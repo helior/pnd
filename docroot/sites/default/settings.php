@@ -231,7 +231,7 @@ $databases = array();
  *   $drupal_hash_salt = file_get_contents('/home/example/salt.txt');
  *
  */
-$drupal_hash_salt = '';
+$drupal_hash_salt = 'T2ACV5i6uzqh2P7TOg9omI0LEi763XAIS3iiqDgihgY';
 
 /**
  * Location of the site configuration files.
@@ -656,3 +656,7 @@ ini_set('session.cookie_lifetime', 2000000);
 # if (file_exists(DRUPAL_ROOT . '/' . $conf_path . '/settings.local.php')) {
 #   include DRUPAL_ROOT . '/' . $conf_path . '/settings.local.php';
 # }
+
+if (file_exists('/var/www/site-php')) {
+  require('/var/www/site-php/pizzandrupal/pizzandrupal-settings.inc');
+}
