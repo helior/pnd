@@ -1,0 +1,3 @@
+[submodule "drupalcore-latest"]
+	path = drupalcore-latest
+	url = http://git.drupal.org/project/drupal.git
