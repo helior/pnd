@@ -7,11 +7,12 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
-use Drupal\field\Entity\FieldConfig;
-use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\field\Entity\Field;
+use Drupal\field\Entity\FieldInstance;
 use Drupal\file\Entity\File;
-use Drupal\field\FieldConfigInterface;
-use Drupal\field\FieldInstanceConfigInterface;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\field\FieldInterface;
+use Drupal\field\FieldInstanceInterface;
 
 /**
  * Image style constant for user presets in the database.
@@ -81,6 +82,41 @@ function image_help($path, $arg) {
       $effect_definition = $effect->getPluginDefinition();
       return isset($effect_definition['description']) ? ('<p>' . $effect_definition['description'] . '</p>') : NULL;
   }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function image_menu() {
+  $items = array();
+
+  $items['admin/config/media/image-styles'] = array(
+    'title' => 'Image styles',
+    'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
+    'route_name' => 'image.style_list',
+  );
+  $items['admin/config/media/image-styles/manage/%image_style'] = array(
+    'title' => 'Edit style',
+    'description' => 'Configure an image style.',
+    'route_name' => 'image.style_edit',
+  );
+  $items['admin/config/media/image-styles/manage/%/effects/%'] = array(
+    'title' => 'Edit image effect',
+    'description' => 'Edit an existing effect within a style.',
+    'route_name' => 'image.effect_edit_form',
+  );
+  $items['admin/config/media/image-styles/manage/%image_style/effects/%/delete'] = array(
+    'title' => 'Delete image effect',
+    'description' => 'Delete an existing effect from a style.',
+    'route_name' => 'image.effect_delete',
+  );
+  $items['admin/config/media/image-styles/manage/%/add/%'] = array(
+    'title' => 'Add image effect',
+    'description' => 'Add a new effect to a style.',
+    'route_name' => 'image.effect_add_form',
+  );
+
+  return $items;
 }
 
 /**
@@ -387,11 +423,10 @@ function image_filter_keyword($value, $current_pixels, $new_pixels) {
  */
 function image_entity_presave(EntityInterface $entity) {
   $field = FALSE;
-  $entity_type_id = $entity->getEntityTypeId();
-  if ($entity_type_id == 'field_instance_config') {
+  if ($entity instanceof FieldInstance) {
     $field = $entity->getField();
   }
-  elseif ($entity_type_id == 'field_config') {
+  elseif ($entity instanceof Field) {
     $field = $entity;
   }
   // Exit, if not saving an image field or image field instance entity.
@@ -420,9 +455,9 @@ function image_entity_presave(EntityInterface $entity) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'field_config'.
+ * Implements hook_ENTITY_TYPE_update() for 'field_entity'.
  */
-function image_field_config_update(FieldConfigInterface $field) {
+function image_field_entity_update(FieldInterface $field) {
   if ($field->type != 'image') {
     // Only act on image fields.
     return;
@@ -460,9 +495,9 @@ function image_field_config_update(FieldConfigInterface $field) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_update() for 'field_instance'.
  */
-function image_field_instance_config_update(FieldInstanceConfigInterface $field_instance) {
+function image_field_instance_update(FieldInstanceInterface $field_instance) {
   $field = $field_instance->getField();
   if ($field->type != 'image') {
     // Only act on image fields.
@@ -498,9 +533,9 @@ function image_field_instance_config_update(FieldInstanceConfigInterface $field_
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_config'.
+ * Implements hook_ENTITY_TYPE_delete() for 'field_entity'.
  */
-function image_field_config_delete(FieldConfigInterface $field) {
+function image_field_entity_delete(FieldInterface $field) {
   if ($field->type != 'image') {
     // Only act on image fields.
     return;
@@ -514,9 +549,9 @@ function image_field_config_delete(FieldConfigInterface $field) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_delete() for 'field_instance'.
  */
-function image_field_instance_config_delete(FieldInstanceConfigInterface $field_instance) {
+function image_field_instance_delete(FieldInstanceInterface $field_instance) {
   $field = $field_instance->getField();
   if ($field->type != 'image') {
     // Only act on image fields.

@@ -10,6 +10,7 @@ namespace Drupal\file\Plugin\Field\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\Field\ConfigFieldItemInterface;
 
 /**
  * Plugin implementation of the 'file' field type.
@@ -19,7 +20,6 @@ use Drupal\Core\TypedData\DataDefinition;
  *   label = @Translation("File"),
  *   description = @Translation("This field stores the ID of a file as an integer value."),
  *   settings = {
- *     "target_type" = "file",
  *     "display_field" = "0",
  *     "display_default" = "0",
  *     "uri_scheme" = ""
@@ -35,7 +35,16 @@ use Drupal\Core\TypedData\DataDefinition;
  *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList"
  * )
  */
-class FileItem extends EntityReferenceItem {
+class FileItem extends EntityReferenceItem implements ConfigFieldItemInterface {
+
+  /**
+   * Property definitions of the contained properties.
+   *
+   * @see FileItem::getPropertyDefinitions()
+   *
+   * @var array
+   */
+  static $propertyDefinitions;
 
   /**
    * {@inheritdoc}
@@ -78,16 +87,19 @@ class FileItem extends EntityReferenceItem {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties = parent::propertyDefinitions($field_definition);
+  public function getPropertyDefinitions() {
+    $this->definition->setSetting('target_type', 'file');
 
-    $properties['display'] = DataDefinition::create('boolean')
-      ->setLabel(t('Flag to control whether this file should be displayed when viewing content'));
+    if (!isset(static::$propertyDefinitions)) {
+      static::$propertyDefinitions = parent::getPropertyDefinitions();
 
-    $properties['description'] = DataDefinition::create('string')
-      ->setLabel(t('A description of the file'));
+      static::$propertyDefinitions['display'] = DataDefinition::create('boolean')
+        ->setLabel(t('Flag to control whether this file should be displayed when viewing content'));
 
-    return $properties;
+      static::$propertyDefinitions['description'] = DataDefinition::create('string')
+        ->setLabel(t('A description of the file'));
+    }
+    return static::$propertyDefinitions;
   }
 
   /**
@@ -96,7 +108,7 @@ class FileItem extends EntityReferenceItem {
   public function settingsForm(array $form, array &$form_state, $has_data) {
     $element = array();
 
-    $element['#attached']['library'][] = 'file/drupal.file';
+    $element['#attached']['library'][] = array('file', 'drupal.file');
 
     $element['display_field'] = array(
       '#type' => 'checkbox',

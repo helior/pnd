@@ -7,11 +7,11 @@
 
 namespace Drupal\book\Form;
 
-use Drupal\book\BookManagerInterface;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\menu_link\MenuLinkStorageControllerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -35,11 +35,11 @@ class BookAdminEditForm extends FormBase {
   protected $nodeStorage;
 
   /**
-   * The book manager.
+   * The menu link storage controller.
    *
-   * @var \Drupal\book\BookManagerInterface
+   * @var \Drupal\menu_link\MenuLinkStorageControllerInterface
    */
-  protected $bookManager;
+  protected $menuLinkStorage;
 
   /**
    * Constructs a new BookAdminEditForm.
@@ -48,13 +48,13 @@ class BookAdminEditForm extends FormBase {
    *   The menu cache object to be used by this controller.
    * @param \Drupal\Core\Entity\EntityStorageControllerInterface $node_storage
    *   The custom block storage controller.
-   * @param \Drupal\book\BookManagerInterface $book_manager
-   *   The book manager.
+   * @param \Drupal\menu_link\MenuLinkStorageControllerInterface $menu_link_storage
+   *   The custom block type storage controller.
    */
-  public function __construct(CacheBackendInterface $cache, EntityStorageControllerInterface $node_storage, BookManagerInterface $book_manager) {
+  public function __construct(CacheBackendInterface $cache, EntityStorageControllerInterface $node_storage, MenuLinkStorageControllerInterface $menu_link_storage) {
     $this->cache = $cache;
     $this->nodeStorage = $node_storage;
-    $this->bookManager = $book_manager;
+    $this->menuLinkStorage = $menu_link_storage;
   }
 
   /**
@@ -65,7 +65,7 @@ class BookAdminEditForm extends FormBase {
     return new static(
       $container->get('cache.menu'),
       $entity_manager->getStorageController('node'),
-      $container->get('book.manager')
+      $entity_manager->getStorageController('menu_link')
     );
   }
 
@@ -117,11 +117,11 @@ class BookAdminEditForm extends FormBase {
         $values = $form_state['values']['table'][$key];
 
         // Update menu item if moved.
-        if ($row['pid']['#default_value'] != $values['pid'] || $row['weight']['#default_value'] != $values['weight']) {
-          $link = $this->bookManager->loadBookLink($values['nid'], FALSE);
-          $link['weight'] = $values['weight'];
-          $link['pid'] = $values['pid'];
-          $this->bookManager->saveBookLink($link, FALSE);
+        if ($row['plid']['#default_value'] != $values['plid'] || $row['weight']['#default_value'] != $values['weight']) {
+          $menu_link = $this->menuLinkStorage->load($values['mlid']);
+          $menu_link->weight = $values['weight'];
+          $menu_link->plid = $values['plid'];
+          $menu_link->save();
           $updated = TRUE;
         }
 
@@ -140,7 +140,7 @@ class BookAdminEditForm extends FormBase {
     if ($updated) {
       // Flush static and cache.
       drupal_static_reset('book_menu_subtree_data');
-      $cid = 'book-links:subtree-cid:' . $form['#node']->book['nid'];
+      $cid = 'links:' . $form['#node']->book['menu_name'] . ':subtree-cid:' . $form['#node']->book['mlid'];
       $this->cache->delete($cid);
     }
 
@@ -202,9 +202,10 @@ class BookAdminEditForm extends FormBase {
         '#item' => $data['link'],
         'nid' => array('#type' => 'value', '#value' => $data['link']['nid']),
         'depth' => array('#type' => 'value', '#value' => $data['link']['depth']),
+        'href' => array('#type' => 'value', '#value' => $data['link']['href']),
         'title' => array(
           '#type' => 'textfield',
-          '#default_value' => $data['link']['title'],
+          '#default_value' => $data['link']['link_title'],
           '#maxlength' => 255,
           '#size' => 40,
         ),
@@ -215,13 +216,13 @@ class BookAdminEditForm extends FormBase {
           '#title' => $this->t('Weight for @title', array('@title' => $data['link']['title'])),
           '#title_display' => 'invisible',
         ),
-        'pid' => array(
+        'plid' => array(
           '#type' => 'hidden',
-          '#default_value' => $data['link']['pid'],
+          '#default_value' => $data['link']['plid'],
         ),
-        'nid' => array(
+        'mlid' => array(
           '#type' => 'hidden',
-          '#default_value' => $data['link']['nid'],
+          '#default_value' => $data['link']['mlid'],
         ),
       );
       if ($data['below']) {

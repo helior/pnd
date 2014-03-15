@@ -235,13 +235,13 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
       'bundle' => 'entity_test',
       'mode' => 'default',
     ));
-    $field = entity_create('field_config', array(
+    $field = entity_create('field_entity', array(
       'name' => 'test_field',
       'entity_type' => 'entity_test',
       'type' => 'test_field'
     ));
     $field->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_instance', array(
       'field_name' => $field->name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',

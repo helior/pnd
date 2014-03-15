@@ -43,7 +43,7 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Setup a field and instance.
     $this->field_name = drupal_strtolower($this->randomName());
-    $this->field = entity_create('field_config', array(
+    $this->field = entity_create('field_entity', array(
       'name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
@@ -57,7 +57,7 @@ class TermFieldTest extends TaxonomyTestBase {
       )
     ));
     $this->field->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_instance', array(
       'field_name' => $this->field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
@@ -102,7 +102,7 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Display creation form.
     $this->drupalGet('entity_test/add');
-    $this->assertFieldByName($this->field_name, NULL, 'Widget is displayed.');
+    $this->assertFieldByName($this->field_name, '', 'Widget is displayed.');
 
     // Submit with some value.
     $edit = array(

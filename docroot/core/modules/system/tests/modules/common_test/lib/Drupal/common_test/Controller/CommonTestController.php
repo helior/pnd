@@ -67,7 +67,7 @@ class CommonTestController {
     $attached = array(
       '#attached' => array(
         'library' => array(
-          'node/drupal.node',
+          array('node', 'drupal.node'),
         ),
         'css' => array(
           drupal_get_path('module', 'node') . '/css/node.admin.css' => array(),

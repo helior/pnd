@@ -26,12 +26,14 @@ class TranslateFilterForm extends TranslateFormBase {
     $filters = $this->translateFilters();
     $filter_values = $this->translateFilterValues();
 
-    $form['#attached']['library'][] = 'locale/drupal.locale.admin';
+    $form['#attached']['css'] = array(
+      drupal_get_path('module', 'locale') . '/css/locale.admin.css',
+    );
 
     $form['filters'] = array(
       '#type' => 'details',
       '#title' => $this->t('Filter translatable strings'),
-      '#open' => TRUE,
+      '#collapsed' => FALSE,
     );
     foreach ($filters as $key => $filter) {
       // Special case for 'string' filter.

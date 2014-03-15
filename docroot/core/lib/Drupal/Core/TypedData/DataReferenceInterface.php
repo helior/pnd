@@ -9,10 +9,16 @@ namespace Drupal\Core\TypedData;
 
 /**
  * Interface for typed data references.
- *
- * @see \Drupal\Core\TypedData\DataReferenceDefinitionInterface
  */
 interface DataReferenceInterface  {
+
+  /**
+   * Gets the data definition of the referenced data.
+   *
+   * @return array
+   *   The data definition of the referenced data.
+   */
+  public function getTargetDefinition();
 
   /**
    * Gets the referenced data.
@@ -29,5 +35,4 @@ interface DataReferenceInterface  {
    *   The identifier of the referenced data, or NULL if the reference is unset.
    */
   public function getTargetIdentifier();
-
 }

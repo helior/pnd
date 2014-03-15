@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Plugin\Field\FieldType;
 
+use Drupal\Core\Field\ConfigFieldItemInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Session\AccountInterface;
@@ -20,7 +21,6 @@ use Drupal\Core\TypedData\AllowedValuesInterface;
  *   label = @Translation("Term Reference"),
  *   description = @Translation("This field stores a reference to a taxonomy term."),
  *   settings = {
- *     "target_type" = "taxonomy_term",
  *     "options_list_callback" = NULL,
  *     "allowed_values" = {
  *       {
@@ -35,7 +35,7 @@ use Drupal\Core\TypedData\AllowedValuesInterface;
  *   list_class = "\Drupal\taxonomy\Plugin\Field\FieldType\TaxonomyTermReferenceFieldItemList"
  * )
  */
-class TaxonomyTermReferenceItem extends EntityReferenceItem implements AllowedValuesInterface {
+class TaxonomyTermReferenceItem extends EntityReferenceItem implements ConfigFieldItemInterface, AllowedValuesInterface {
 
   /**
    * {@inheritdoc}
@@ -84,6 +84,14 @@ class TaxonomyTermReferenceItem extends EntityReferenceItem implements AllowedVa
       }
       return $options;
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPropertyDefinitions() {
+    $this->definition['settings']['target_type'] = 'taxonomy_term';
+    return parent::getPropertyDefinitions();
   }
 
   /**

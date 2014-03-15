@@ -22,8 +22,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  *   },
  *   settings = {
  *     "test_formatter_setting" = "dummy test string"
- *   },
- *   weight = 1
+ *   }
  * )
  */
 class TestFieldDefaultFormatter extends FormatterBase {

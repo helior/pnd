@@ -7,7 +7,6 @@
 
 namespace Drupal\locale\Tests;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Language\Language;
 use Drupal\Component\Utility\String;
@@ -262,7 +261,7 @@ class LocaleTranslationUiTest extends WebTestBase {
     // Test JavaScript translation rebuilding.
     file_unmanaged_delete($js_file);
     $this->assertTrue($result = !file_exists($js_file), String::format('JavaScript file deleted: %file', array('%file' => $result ? $js_file : 'found')));
-    Cache::invalidateTags(array('content' => TRUE));
+    cache_invalidate_tags(array('content' => TRUE));
     _locale_rebuild_js($langcode);
     $this->assertTrue($result = file_exists($js_file), String::format('JavaScript file rebuilt: %file', array('%file' => $result ? $js_file : 'not found')));
   }

@@ -7,7 +7,7 @@
 
 namespace Drupal\book\Access;
 
-use Drupal\book\BookManagerInterface;
+use Drupal\book\BookManager;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
@@ -21,17 +21,17 @@ class BookNodeIsRemovableAccessCheck implements AccessInterface {
   /**
    * Book Manager Service.
    *
-   * @var \Drupal\book\BookManagerInterface
+   * @var \Drupal\book\BookManager
    */
   protected $bookManager;
 
   /**
    * Constructs a BookNodeIsRemovableAccessCheck object.
    *
-   * @param \Drupal\book\BookManagerInterface $book_manager
+   * @param \Drupal\book\BookManager $book_manager
    *   Book Manager Service.
    */
-  public function __construct(BookManagerInterface $book_manager) {
+  public function __construct(BookManager $book_manager) {
     $this->bookManager = $book_manager;
   }
 

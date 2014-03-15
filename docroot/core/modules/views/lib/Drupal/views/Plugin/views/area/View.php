@@ -8,7 +8,6 @@
 namespace Drupal\views\Plugin\views\area;
 
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\views\Views;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -84,7 +83,7 @@ class View extends AreaPluginBase {
     $view_display = $this->view->storage->id() . ':' . $this->view->current_display;
 
     $options = array('' => t('-Select-'));
-    $options += Views::getViewsAsOptions(FALSE, 'all', $view_display, FALSE, TRUE);
+    $options += views_get_views_as_options(FALSE, 'all', $view_display, FALSE, TRUE);
     $form['view_to_insert'] = array(
       '#type' => 'select',
       '#title' => t('View to insert'),

@@ -8,6 +8,7 @@
 namespace Drupal\language;
 
 use Drupal\Component\PhpStorage\PhpStorageFactory;
+use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\Language;
@@ -322,7 +323,7 @@ class ConfigurableLanguageManager extends LanguageManager implements Configurabl
       // at the end.
       $candidates = array_keys($this->getLanguages());
       $candidates[] = Language::LANGCODE_NOT_SPECIFIED;
-      $candidates = array_combine($candidates, $candidates);
+      $candidates = MapArray::copyValuesToKeys($candidates);
 
       // The first candidate should always be the desired language if specified.
       if (!empty($langcode)) {

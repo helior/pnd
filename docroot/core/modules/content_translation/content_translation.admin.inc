@@ -5,7 +5,6 @@
  * The content translation administration forms.
  */
 
-use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
@@ -43,7 +42,7 @@ function content_translation_field_sync_widget(FieldDefinitionInterface $field) 
       '#default_value' => !empty($translation_sync) ? $translation_sync : $default,
       '#attached' => array(
         'library' => array(
-          'content_translation/drupal.content_translation.admin',
+          array('content_translation', 'drupal.content_translation.admin'),
         ),
         'js' => array(
           array('data' => array('contentTranslationDependentOptions' => $settings), 'type' => 'setting'),
@@ -71,7 +70,7 @@ function _content_translation_form_language_content_settings_form_alter(array &$
   }
   $form['entity_types']['#default_value'] = $default;
 
-  $form['#attached']['library'][] = 'content_translation/drupal.content_translation.admin';
+  $form['#attached']['library'][] = array('content_translation', 'drupal.content_translation.admin');
   $form['#attached']['js'][] = array('data' => drupal_get_path('module', 'content_translation') . '/content_translation.admin.js', 'type' => 'file');
 
   $dependent_options_settings = array();
@@ -195,10 +194,10 @@ function _content_translation_preprocess_language_content_settings_table(&$varia
               'bundle' => array(
                 '#prefix' => '<span class="visually-hidden">',
                 '#suffix' => '</span> ',
-                '#markup' => String::checkPlain($element[$bundle]['settings']['#label']),
+                '#markup' => check_plain($element[$bundle]['settings']['#label']),
               ),
               'field' => array(
-                '#markup' => String::checkPlain($field_element['#label']),
+                '#markup' => check_plain($field_element['#label']),
               ),
             ),
             'class' => array('field'),
@@ -229,15 +228,15 @@ function _content_translation_preprocess_language_content_settings_table(&$varia
                   'bundle' => array(
                     '#prefix' => '<span class="visually-hidden">',
                     '#suffix' => '</span> ',
-                    '#markup' => String::checkPlain($element[$bundle]['settings']['#label']),
+                    '#markup' => check_plain($element[$bundle]['settings']['#label']),
                   ),
                   'field' => array(
                     '#prefix' => '<span class="visually-hidden">',
                     '#suffix' => '</span> ',
-                    '#markup' => String::checkPlain($field_element['#label']),
+                    '#markup' => check_plain($field_element['#label']),
                   ),
                   'columns' => array(
-                    '#markup' => String::checkPlain($column_label),
+                    '#markup' => check_plain($column_label),
                   ),
                 ),
                 'class' => array('column'),

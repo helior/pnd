@@ -110,8 +110,6 @@ class EntityNormalizer extends NormalizerBase {
     // Figure out the language to use.
     if (isset($data['langcode'])) {
       $langcode = $data['langcode'][0]['value'];
-      // Remove the langcode so it does not get iterated over below.
-      unset($data['langcode']);
     }
     elseif (\Drupal::moduleHandler()->moduleExists('language')) {
       $langcode = language_get_default_langcode($typed_data_ids['entity_type'], $typed_data_ids['bundle']);

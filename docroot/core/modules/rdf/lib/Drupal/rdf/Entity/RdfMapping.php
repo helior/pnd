@@ -17,9 +17,10 @@ use Drupal\rdf\RdfMappingInterface;
  * @ConfigEntityType(
  *   id = "rdf_mapping",
  *   label = @Translation("RDF mapping"),
- *   config_prefix = "mapping",
+ *   config_prefix = "rdf.mapping",
  *   entity_keys = {
- *     "id" = "id"
+ *     "id" = "id",
+ *     "uuid" = "uuid"
  *   }
  * )
  */
@@ -31,6 +32,13 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
    * @var string
    */
   public $id;
+
+  /**
+   * UUID for the config entity.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * Entity type to be mapped.

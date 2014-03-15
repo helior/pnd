@@ -7,6 +7,7 @@
 
 namespace Drupal\views\EventSubscriber;
 
+use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Page\HtmlPage;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\KeyValueStore\StateInterface;
@@ -14,7 +15,6 @@ use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\Core\Routing\RoutingEvents;
 use Drupal\views\Plugin\views\display\DisplayRouterInterface;
 use Drupal\views\ViewExecutable;
-use Drupal\views\Views;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -104,7 +104,7 @@ class RouteSubscriber extends RouteSubscriberBase {
         $id = $view->storage->id();
         $this->viewsDisplayPairs[] = $id . '.' . $display_id;
       }
-      $this->viewsDisplayPairs = array_combine($this->viewsDisplayPairs, $this->viewsDisplayPairs);
+      $this->viewsDisplayPairs = MapArray::copyValuesToKeys($this->viewsDisplayPairs);
     }
     return $this->viewsDisplayPairs;
   }
@@ -188,10 +188,10 @@ class RouteSubscriber extends RouteSubscriberBase {
   /**
    * Returns all views/display combinations with routes.
    *
-   * @see \Drupal\views\Views::getApplicableViews()
+   * @see views_get_applicable_views()
    */
   protected function getApplicableViews() {
-    return Views::getApplicableViews('uses_route');
+    return views_get_applicable_views('uses_route');
   }
 
 }

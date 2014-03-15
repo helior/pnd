@@ -30,6 +30,7 @@ class UpdateScriptSelectionForm extends FormBase {
     $form['start'] = array(
       '#tree' => TRUE,
       '#type' => 'details',
+      '#collapsed' => TRUE,
     );
 
     // Ensure system.module's updates appear first.

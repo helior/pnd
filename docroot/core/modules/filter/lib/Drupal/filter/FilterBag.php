@@ -8,7 +8,7 @@
 namespace Drupal\filter;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Plugin\DefaultPluginBag;
+use Drupal\Component\Plugin\DefaultPluginBag;
 
 /**
  * A collection of filters.

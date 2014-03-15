@@ -14,8 +14,7 @@ use Drupal\Component\Utility\String;
  * When filter key passed, perform a standard search on the given key,
  * and return the list of matching URL aliases.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\path\Controller\PathController::adminOverview().
+ * @deprecated Use \Drupal\path\Controller\PathController::adminOverview()
  */
 function path_admin_overview($keys = NULL) {
   // Add the filter form above the overview table.
@@ -89,7 +88,7 @@ function path_admin_overview($keys = NULL) {
   }
 
   $build['path_table'] = array(
-    '#type' => 'table',
+    '#theme' => 'table',
     '#header' => $header,
     '#rows' => $rows,
     '#empty' => t('No URL aliases available. <a href="@link">Add URL alias</a>.', array('@link' => url('admin/config/search/path/add'))),
@@ -110,8 +109,7 @@ function path_admin_overview($keys = NULL) {
  *
  * @see path_menu()
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
- *   \Drupal\path\Controller\PathController::adminAdd() or
+ * @deprecated Use \Drupal\path\Controller\PathController::adminEdit() or
  *   \Drupal\path\Controller\PathController::adminEdit()
  */
 function path_admin_edit($path = array()) {
@@ -283,10 +281,8 @@ function path_admin_form_submit($form, &$form_state) {
  */
 function path_admin_filter_form($form, &$form_state, $keys = '') {
   $form['#attributes'] = array('class' => array('search-form'));
-  $form['basic'] = array(
-    '#type' => 'details',
+  $form['basic'] = array('#type' => 'details',
     '#title' => t('Filter aliases'),
-    '#open' => TRUE,
     '#attributes' => array('class' => array('container-inline')),
   );
   $form['basic']['filter'] = array(

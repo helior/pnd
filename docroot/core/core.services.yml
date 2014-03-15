@@ -18,6 +18,7 @@ services:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
       - { name: cache.bin }
+      - { name: persist }
     factory_method: get
     factory_service: cache_factory
     arguments: [config]
@@ -73,9 +74,12 @@ services:
   config.storage:
     class: Drupal\Core\Config\CachedStorage
     arguments: ['@config.cachedstorage.storage', '@cache.config']
+    tags:
+      - { name: persist }
   config.factory:
     class: Drupal\Core\Config\ConfigFactory
     tags:
+      - { name: persist }
       - { name: event_subscriber }
     arguments: ['@config.storage', '@event_dispatcher', '@config.typed']
   config.installer:
@@ -130,6 +134,8 @@ services:
   state:
     class: Drupal\Core\KeyValueStore\State
     arguments: ['@keyvalue']
+    tags:
+      - { name: persist }
   queue:
     class: Drupal\Core\Queue\QueueFactory
     arguments: ['@settings']
@@ -145,7 +151,7 @@ services:
     arguments: [path_alias_whitelist, '@cache.cache', '@lock', '@state', '@database']
   path.alias_manager:
     class: Drupal\Core\Path\AliasManager
-    arguments: ['@path.crud', '@path.alias_whitelist', '@language_manager']
+    arguments: ['@database', '@path.alias_whitelist', '@language_manager']
   http_client_simpletest_subscriber:
     class: Drupal\Core\Http\Plugin\SimpletestHttpRequestSubscriber
   http_default_client:
@@ -177,9 +183,6 @@ services:
   default_plugin_manager:
     abstract: true
     arguments: ['@container.namespaces', '@cache.cache', '@language_manager', '@module_handler']
-  module_handler:
-    class: Drupal\Core\Extension\CachedModuleHandler
-    arguments: ['%container.modules%', '@state', '@cache.bootstrap']
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
     arguments: ['@config.factory', '@module_handler', '@cache.cache', '@info_parser', '@config.installer', '@router.builder']
@@ -209,7 +212,7 @@ services:
     arguments: ['@controller_resolver', '@request', '@router.route_provider', '@module_handler', '@cache.cache', '@language_manager', '@access_manager', '@current_user']
   plugin.manager.menu.local_task:
     class: Drupal\Core\Menu\LocalTaskManager
-    arguments: ['@controller_resolver', '@request', '@router.route_provider', '@router.builder', '@module_handler', '@cache.cache', '@language_manager', '@access_manager', '@current_user']
+    arguments: ['@controller_resolver', '@request', '@router.route_provider', '@module_handler', '@cache.cache', '@language_manager', '@access_manager', '@current_user']
   plugin.manager.menu.contextual_link:
     class: Drupal\Core\Menu\ContextualLinkManager
     arguments: ['@controller_resolver', '@module_handler', '@cache.cache', '@language_manager', '@access_manager', '@current_user']
@@ -275,11 +278,6 @@ services:
     arguments: ['@database', '@router.builder']
     tags:
       - { name: event_subscriber }
-  router.route_preloader:
-    class: Drupal\Core\Routing\RoutePreloader
-    arguments: ['@router.route_provider', '@state', '@content_negotiation']
-    tags:
-      - { name: 'event_subscriber' }
   router.matcher.final_matcher:
     class: Drupal\Core\Routing\UrlMatcher
   router.matcher:
@@ -304,11 +302,6 @@ services:
     calls:
       - [setContext, ['@router.request_context']]
       - [add, ['@router.dynamic']]
-  router.path_roots_subscriber:
-    class: Drupal\Core\EventSubscriber\PathRootsSubscriber
-    arguments: ['@state']
-    tags:
-      - { name: event_subscriber }
   entity.query:
     class: Drupal\Core\Entity\Query\QueryFactory
     arguments: ['@entity.manager']
@@ -328,7 +321,7 @@ services:
     arguments: ['@router.dumper', '@lock', '@event_dispatcher', '@module_handler', '@controller_resolver', '@state']
   router.rebuild_subscriber:
     class: Drupal\Core\EventSubscriber\RouterRebuildSubscriber
-    arguments: ['@router.builder', '@lock']
+    arguments: ['@router.builder']
     tags:
       - { name: event_subscriber }
   path.alias_manager.cached:
@@ -589,9 +582,9 @@ services:
   flood:
     class: Drupal\Core\Flood\DatabaseBackend
     arguments: ['@database', '@request']
-  plugin.manager.mail:
-    class: Drupal\Core\Mail\MailManager
-    arguments: ['@container.namespaces', '@cache.cache', '@language_manager', '@module_handler', '@config.factory']
+  mail.factory:
+    class: Drupal\Core\Mail\MailFactory
+    arguments: ['@config.factory']
   plugin.manager.condition:
     class: Drupal\Core\Condition\ConditionManager
     parent: default_plugin_manager
@@ -607,10 +600,14 @@ services:
       - { name: event_subscriber }
   image.toolkit.manager:
     class: Drupal\Core\ImageToolkit\ImageToolkitManager
-    arguments: ['@container.namespaces', '@cache.cache', '@language_manager', '@config.factory', '@module_handler']
+    arguments: ['@container.namespaces', '@cache.cache', '@language_manager', '@config.factory']
+  image.toolkit:
+    class: Drupal\Core\ImageToolkit\ImageToolkitInterface
+    factory_method: getDefaultToolkit
+    factory_service: image.toolkit.manager
   image.factory:
     class: Drupal\Core\Image\ImageFactory
-    arguments: ['@image.toolkit.manager']
+    arguments: ['@image.toolkit']
   breadcrumb:
     class: Drupal\Core\Breadcrumb\BreadcrumbManager
     arguments: ['@module_handler']

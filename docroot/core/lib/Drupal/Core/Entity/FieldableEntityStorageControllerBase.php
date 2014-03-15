@@ -9,8 +9,9 @@ namespace Drupal\Core\Entity;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Field\PrepareCacheInterface;
-use Drupal\field\FieldConfigInterface;
-use Drupal\field\FieldInstanceConfigInterface;
+use Drupal\field\FieldInterface;
+use Drupal\field\FieldInstanceInterface;
+use Drupal\Core\Field\ConfigFieldItemListInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 abstract class FieldableEntityStorageControllerBase extends EntityStorageControllerBase implements FieldableEntityStorageControllerInterface {
@@ -133,7 +134,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
       foreach ($entities as $id => $entity) {
         $cids[] = "field:{$this->entityTypeId}:$id";
       }
-      $cache = \Drupal::cache('field')->getMultiple($cids);
+      $cache = cache('field')->getMultiple($cids);
       // Put the cached field values back into the entities and remove them from
       // the list of entities to query.
       foreach ($entities as $id => $entity) {
@@ -166,7 +167,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
           foreach ($entity->getTranslationLanguages() as $langcode => $language) {
             $translation = $entity->getTranslation($langcode);
             foreach ($translation as $field_name => $items) {
-              if ($items->getFieldDefinition()->isConfigurable() && !$items->isEmpty()) {
+              if ($items instanceof ConfigFieldItemListInterface && !$items->isEmpty()) {
                 foreach ($items as $delta => $item) {
                   // If the field item needs to prepare the cache data, call the
                   // corresponding method, otherwise use the values as cache
@@ -182,7 +183,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
             }
           }
           $cid = "field:{$this->entityTypeId}:$id";
-          \Drupal::cache('field')->set($cid, $data);
+          cache('field')->set($cid, $data);
         }
       }
     }
@@ -206,7 +207,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
     if ($update) {
       $entity_type = $entity->getEntityType();
       if ($entity_type->isFieldDataCacheable()) {
-        \Drupal::cache('field')->delete('field:' . $entity->getEntityTypeId() . ':' . $entity->id());
+        cache('field')->delete('field:' . $entity->getEntityTypeId() . ':' . $entity->id());
       }
     }
   }
@@ -226,7 +227,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
 
     $entity_type = $entity->getEntityType();
     if ($entity_type->isFieldDataCacheable()) {
-      \Drupal::cache('field')->delete('field:' . $entity->getEntityTypeId() . ':' . $entity->id());
+      cache('field')->delete('field:' . $entity->getEntityTypeId() . ':' . $entity->id());
     }
   }
 
@@ -294,32 +295,32 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
   /**
    * {@inheritdoc}
    */
-  public function onFieldCreate(FieldConfigInterface $field) { }
+  public function onFieldCreate(FieldInterface $field) { }
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldUpdate(FieldConfigInterface $field) { }
+  public function onFieldUpdate(FieldInterface $field) { }
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldDelete(FieldConfigInterface $field) { }
+  public function onFieldDelete(FieldInterface $field) { }
 
   /**
    * {@inheritdoc}
    */
-  public function onInstanceCreate(FieldInstanceConfigInterface $instance) { }
+  public function onInstanceCreate(FieldInstanceInterface $instance) { }
 
   /**
    * {@inheritdoc}
    */
-  public function onInstanceUpdate(FieldInstanceConfigInterface $instance) { }
+  public function onInstanceUpdate(FieldInstanceInterface $instance) { }
 
   /**
    * {@inheritdoc}
    */
-  public function onInstanceDelete(FieldInstanceConfigInterface $instance) { }
+  public function onInstanceDelete(FieldInstanceInterface $instance) { }
 
   /**
    * {@inheritdoc}
@@ -339,7 +340,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
   /**
    * {@inheritdoc}
    */
-  public function onFieldItemsPurge(EntityInterface $entity, FieldInstanceConfigInterface $instance) {
+  public function onFieldItemsPurge(EntityInterface $entity, FieldInstanceInterface $instance) {
     if ($values = $this->readFieldItemsToPurge($entity, $instance)) {
       $items = \Drupal::typedDataManager()->create($instance, $values, $instance->getName(), $entity);
       $items->delete();
@@ -355,29 +356,29 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity.
-   * @param \Drupal\field\FieldInstanceConfigInterface $instance
+   * @param \Drupal\field\FieldInstanceInterface $instance
    *   The field instance.
    *
    * @return array
    *   The field values, in their canonical array format (numerically indexed
    *   array of items, each item being a property/value array).
    */
-  abstract protected function readFieldItemsToPurge(EntityInterface $entity, FieldInstanceConfigInterface $instance);
+  abstract protected function readFieldItemsToPurge(EntityInterface $entity, FieldInstanceInterface $instance);
 
   /**
    * Removes field data from storage during purge.
    *
    * @param EntityInterface $entity
    *   The entity whose values are being purged.
-   * @param FieldInstanceConfigInterface $instance
+   * @param FieldInstanceInterface $instance
    *   The field whose values are bing purged.
    */
-  abstract protected function purgeFieldItems(EntityInterface $entity, FieldInstanceConfigInterface $instance);
+  abstract protected function purgeFieldItems(EntityInterface $entity, FieldInstanceInterface $instance);
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldPurge(FieldConfigInterface $field) { }
+  public function onFieldPurge(FieldInterface $field) { }
 
   /**
    * Checks translation statuses and invoke the related hooks if needed.

@@ -8,7 +8,6 @@
 namespace Drupal\edit;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\edit\Access\EditEntityFieldAccessCheckInterface;
@@ -89,7 +88,7 @@ class MetadataGenerator implements MetadataGeneratorInterface {
     $label = $items->getFieldDefinition()->getLabel();
     $editor = $this->editorManager->createInstance($editor_id);
     $metadata = array(
-      'label' => String::checkPlain($label),
+      'label' => check_plain($label),
       'access' => TRUE,
       'editor' => $editor_id,
       'aria' => t('Entity @type @id, field @field', array('@type' => $entity->getEntityTypeId(), '@id' => $entity->id(), '@field' => $label)),

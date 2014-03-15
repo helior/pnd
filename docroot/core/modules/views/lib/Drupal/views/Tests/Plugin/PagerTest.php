@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests\Plugin;
 
-use Drupal\views\Views;
-
 /**
  * Tests the pluggable pager system.
  */
@@ -67,7 +65,7 @@ class PagerTest extends PluginTestBase {
     $this->assertText('Mini', 'Changed pager plugin, should change some text');
 
     // Test behavior described in http://drupal.org/node/652712#comment-2354400
-    $view = Views::getView('test_store_pager_settings');
+    $view = views_get_view('test_store_pager_settings');
     // Make it editable in the admin interface.
     $view->save();
 
@@ -120,12 +118,12 @@ class PagerTest extends PluginTestBase {
     for ($i = 0; $i < 11; $i++) {
       $this->drupalCreateNode();
     }
-    $view = Views::getView('test_pager_none');
+    $view = views_get_view('test_pager_none');
     $this->executeView($view);
     $this->assertEqual(count($view->result), 11, 'Make sure that every item is returned in the result');
 
     // Setup and test a offset.
-    $view = Views::getView('test_pager_none');
+    $view = views_get_view('test_pager_none');
     $view->setDisplay();
     $pager = array(
       'type' => 'none',
@@ -149,7 +147,7 @@ class PagerTest extends PluginTestBase {
       $this->drupalCreateNode();
     }
 
-    $view = Views::getView('test_pager_none');
+    $view = views_get_view('test_pager_none');
     $view->get_total_rows = TRUE;
     $this->executeView($view);
 
@@ -166,12 +164,12 @@ class PagerTest extends PluginTestBase {
       $this->drupalCreateNode();
     }
 
-    $view = Views::getView('test_pager_some');
+    $view = views_get_view('test_pager_some');
     $this->executeView($view);
     $this->assertEqual(count($view->result), 5, 'Make sure that only a certain count of items is returned');
 
     // Setup and test a offset.
-    $view = Views::getView('test_pager_some');
+    $view = views_get_view('test_pager_some');
     $view->setDisplay();
     $pager = array(
       'type' => 'none',
@@ -199,12 +197,12 @@ class PagerTest extends PluginTestBase {
       $this->drupalCreateNode();
     }
 
-    $view = Views::getView('test_pager_full');
+    $view = views_get_view('test_pager_full');
     $this->executeView($view);
     $this->assertEqual(count($view->result), 5, 'Make sure that only a certain count of items is returned');
 
     // Setup and test a offset.
-    $view = Views::getView('test_pager_full');
+    $view = views_get_view('test_pager_full');
     $view->setDisplay();
     $pager = array(
       'type' => 'full',
@@ -218,7 +216,7 @@ class PagerTest extends PluginTestBase {
     $this->assertEqual(count($view->result), 3, 'Make sure that only a certain count of items is returned');
 
     // Test items per page = 0
-    $view = Views::getView('test_view_pager_full_zero_items_per_page');
+    $view = views_get_view('test_view_pager_full_zero_items_per_page');
     $this->executeView($view);
 
     $this->assertEqual(count($view->result), 11, 'All items are return');
@@ -227,7 +225,7 @@ class PagerTest extends PluginTestBase {
 
     // Test items per page = 0.
     // Setup and test a offset.
-    $view = Views::getView('test_pager_full');
+    $view = views_get_view('test_pager_full');
     $view->setDisplay();
     $pager = array(
       'type' => 'full',
@@ -252,7 +250,7 @@ class PagerTest extends PluginTestBase {
     for ($i = 0; $i < 11; $i++) {
       $this->drupalCreateNode();
     }
-    $view = Views::getView('test_pager_full');
+    $view = views_get_view('test_pager_full');
     $this->executeView($view);
     // Force the value again here.
     $view->setAjaxEnabled(TRUE);
@@ -266,7 +264,7 @@ class PagerTest extends PluginTestBase {
    * Test the api functions on the view object.
    */
   function testPagerApi() {
-    $view = Views::getView('test_pager_full');
+    $view = views_get_view('test_pager_full');
     $view->setDisplay();
     // On the first round don't initialize the pager.
 

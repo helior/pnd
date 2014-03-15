@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests;
 
-use Drupal\views\Views;
-
 /**
  * Basic test class for Views query builder tests.
  */
@@ -33,7 +31,7 @@ class BasicTest extends ViewUnitTestBase {
    * Tests a trivial result set.
    */
   public function testSimpleResultSet() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Execute the view.
@@ -51,7 +49,7 @@ class BasicTest extends ViewUnitTestBase {
    * Tests filtering of the result set.
    */
   public function testSimpleFiltering() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Add a filter.
@@ -111,7 +109,7 @@ class BasicTest extends ViewUnitTestBase {
    */
   public function testSimpleArgument() {
     // Execute with a view
-    $view = Views::getView('test_simple_argument');
+    $view = views_get_view('test_simple_argument');
     $view->setArguments(array(27));
     $this->executeView($view);
 
@@ -132,7 +130,7 @@ class BasicTest extends ViewUnitTestBase {
     ));
 
     // Test "show all" if no argument is present.
-    $view = Views::getView('test_simple_argument');
+    $view = views_get_view('test_simple_argument');
     $this->executeView($view);
 
     // Build the expected result.

@@ -10,7 +10,7 @@ namespace Drupal\user\Plugin\views\argument_default;
 use Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase;
 
 /**
- * Default argument plugin to extract the current user
+ * Default argument plugin to extract the global $user
  *
  * This plugin actually has no options so it odes not need to do a great deal.
  *
@@ -22,7 +22,8 @@ use Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase;
 class CurrentUser extends ArgumentDefaultPluginBase {
 
   public function getArgument() {
-    return \Drupal::currentUser()->id();
+    global $user;
+    return $user->id();
   }
 
 }

@@ -7,11 +7,8 @@
  * - author: Comment author. Can be a link or plain text.
  * - content: The content-related items for the comment display. Use
  *   {{ content }} to print them all, or print a subset such as
- *   {{ content.field_example }}. Use the following code to temporarily suppress
- *   the printing of a given child element:
- *   @code
- *   {{ content|without('field_example') }}
- *   @endcode
+ *   {{ content.field_example }}. Use hide(content.field_example) to temporarily
+ *   suppress the printing of a given element.
  * - created: Formatted date and time for when the comment was created.
  *   Preprocess functions can reformat it by calling format_date() with the
  *   desired parameters on the 'comment.created' variable.
@@ -95,7 +92,9 @@
   </footer>
 
   <div{{ content_attributes }}>
-    {{ content|without('links') }}
+    {# We hide the links now so that we can render them later. #}
+    {% hide(content.links) %}
+    {{ content }}
 
     {% if signature %}
       <div class="user-signature">

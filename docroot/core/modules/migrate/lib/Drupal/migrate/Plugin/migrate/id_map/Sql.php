@@ -431,7 +431,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface {
     }
     if ($keys) {
       $this->getDatabase()->merge($this->mapTableName)
-        ->keys($keys)
+        ->key($keys)
         ->fields($fields)
         ->execute();
     }

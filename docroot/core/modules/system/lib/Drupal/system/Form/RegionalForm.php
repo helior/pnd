@@ -67,7 +67,6 @@ class RegionalForm extends ConfigFormBase {
     $form['locale'] = array(
       '#type' => 'details',
       '#title' => t('Locale'),
-      '#open' => TRUE,
     );
 
     $form['locale']['site_default_country'] = array(
@@ -89,7 +88,6 @@ class RegionalForm extends ConfigFormBase {
     $form['timezone'] = array(
       '#type' => 'details',
       '#title' => t('Time zones'),
-      '#open' => TRUE,
     );
 
     $form['timezone']['date_default_timezone'] = array(

@@ -24,13 +24,23 @@ use Drupal\Core\TypedData\DataDefinition;
 class BooleanItem extends FieldItemBase {
 
   /**
-   * {@inheritdoc}
+   * Definitions of the contained properties.
+   *
+   * @see BooleanItem::getPropertyDefinitions()
+   *
+   * @var array
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties['value'] = DataDefinition::create('boolean')
-      ->setLabel(t('Boolean value'));
+  static $propertyDefinitions;
 
-    return $properties;
+  /**
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::getPropertyDefinitions().
+   */
+  public function getPropertyDefinitions() {
+    if (!isset(static::$propertyDefinitions)) {
+      static::$propertyDefinitions['value'] = DataDefinition::create('boolean')
+        ->setLabel(t('Boolean value'));
+    }
+    return static::$propertyDefinitions;
   }
 
   /**

@@ -9,7 +9,6 @@ namespace Drupal\node;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -80,7 +79,14 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
     $query->condition($nids);
     $query->range(0, 1);
 
-    $grants = static::buildGrantsQueryCondition(node_access_grants($operation, $account));
+    $grants = $query->orConditionGroup();
+    foreach (node_access_grants($operation, $account) as $realm => $gids) {
+      foreach ($gids as $gid) {
+        $grants->condition(db_and()
+            ->condition('gid', $gid)
+            ->condition('realm', $realm));
+      }
+    }
 
     if (count($grants) > 0) {
       $query->condition($grants);
@@ -99,8 +105,15 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
       ->condition('nid', 0)
       ->condition('grant_view', 1, '>=');
 
-    $grants = static::buildGrantsQueryCondition(node_access_grants('view', $account));
-
+    $grants = db_or();
+    foreach (node_access_grants('view', $account) as $realm => $gids) {
+      foreach ($gids as $gid) {
+        $grants->condition(db_and()
+            ->condition('gid', $gid)
+            ->condition('realm', $realm)
+        );
+      }
+    }
     if (count($grants) > 0 ) {
       $query->condition($grants);
     }
@@ -126,9 +139,17 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
         $subquery = $this->database->select('node_access', 'na')
           ->fields('na', array('nid'));
 
+        $grant_conditions = db_or();
         // If any grant exists for the specified user, then user has access to the
         // node for the specified operation.
-        $grant_conditions = static::buildGrantsQueryCondition($grants);
+        foreach ($grants as $realm => $gids) {
+          foreach ($gids as $gid) {
+            $grant_conditions->condition(db_and()
+                ->condition('na.gid', $gid)
+                ->condition('na.realm', $realm)
+            );
+          }
+        }
 
         // Attach conditions to the subquery for nodes.
         if (count($grant_conditions->conditions())) {
@@ -241,31 +262,6 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
     $this->database->delete('node_access')
       ->condition('nid', $nids, 'IN')
       ->execute();
-  }
-
-  /**
-   * Creates a query condition from an array of node access grants.
-   *
-   * @param array $node_access_grants
-   *   An array of grants, as returned by node_access_grants().
-   * @return \Drupal\Core\Database\Query\Condition
-   *   A condition object to be passed to $query->condition().
-   *
-   * @see node_access_grants()
-   */
-  static function buildGrantsQueryCondition(array $node_access_grants) {
-    $grants = new Condition("OR");
-    foreach ($node_access_grants as $realm => $gids) {
-      if (!empty($gids)) {
-        $and = new Condition('AND');
-        $grants->condition($and
-          ->condition('gid', $gids, 'IN')
-          ->condition('realm', $realm)
-        );
-      }
-    }
-
-    return $grants;
   }
 
 }

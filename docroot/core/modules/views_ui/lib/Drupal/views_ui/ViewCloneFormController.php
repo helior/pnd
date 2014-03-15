@@ -39,7 +39,7 @@ class ViewCloneFormController extends ViewFormControllerBase {
       '#type' => 'machine_name',
       '#maxlength' => 128,
       '#machine_name' => array(
-        'exists' => '\Drupal\views\Views::getView',
+        'exists' => 'views_get_view',
         'source' => array('label'),
       ),
       '#default_value' => '',

@@ -7,7 +7,7 @@
  * prevents separate file fields from accidentally uploading files).
  */
 
-(function ($, Drupal) {
+(function ($) {
 
   "use strict";
 
@@ -17,6 +17,7 @@
   Drupal.behaviors.fileValidateAutoAttach = {
     attach: function (context, settings) {
       var $context = $(context);
+      var validateExtension = Drupal.file.validateExtension;
       var elements;
 
       function initFileValidation (selector) {
@@ -32,6 +33,7 @@
     },
     detach: function (context, settings, trigger) {
       var $context = $(context);
+      var validateExtension = Drupal.file.validateExtension;
       var elements;
 
       function removeFileValidation (selector) {
@@ -193,4 +195,4 @@
     }
   };
 
-})(jQuery, Drupal);
+})(jQuery);

@@ -205,7 +205,7 @@ class DbLogController extends ControllerBase {
     }
 
     $build['dblog_table'] = array(
-      '#type' => 'table',
+      '#theme' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#attributes' => array('id' => 'admin-dblog', 'class' => array('admin-dblog')),
@@ -280,7 +280,7 @@ class DbLogController extends ControllerBase {
         ),
       );
       $build['dblog_table'] = array(
-        '#type' => 'table',
+        '#theme' => 'table',
         '#rows' => $rows,
         '#attributes' => array('class' => array('dblog-event')),
       );
@@ -379,7 +379,7 @@ class DbLogController extends ControllerBase {
     }
 
     $build['dblog_top_table']  = array(
-      '#type' => 'table',
+      '#theme' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#empty' => $this->t('No log messages available.'),

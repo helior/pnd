@@ -40,7 +40,7 @@ class Time extends CachePluginBase {
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
     $options = array(60, 300, 1800, 3600, 21600, 518400);
-    $options = array_map('format_interval', array_combine($options, $options));
+    $options = drupal_map_assoc($options, 'format_interval');
     $options = array(-1 => t('Never cache')) + $options + array('custom' => t('Custom'));
 
     $form['results_lifespan'] = array(

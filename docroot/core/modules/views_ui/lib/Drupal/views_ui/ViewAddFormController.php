@@ -76,7 +76,7 @@ class ViewAddFormController extends ViewFormControllerBase {
       '#type' => 'machine_name',
       '#maxlength' => 128,
       '#machine_name' => array(
-        'exists' => '\Drupal\views\Views::getView',
+        'exists' => 'views_get_view',
         'source' => array('name', 'label'),
       ),
       '#description' => $this->t('A unique machine-readable name for this View. It must only contain lowercase letters, numbers, and underscores.'),

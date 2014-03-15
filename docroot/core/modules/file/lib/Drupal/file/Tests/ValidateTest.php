@@ -10,7 +10,7 @@ namespace Drupal\file\Tests;
 /**
  * Tests the file_validate() function.
  */
-class ValidateTest extends FileManagedUnitTestBase {
+class ValidateTest extends FileManagedTestBase {
   public static function getInfo() {
     return array(
       'name' => 'File validate',

@@ -27,7 +27,7 @@ class PHPTransliteration extends BaseTransliteration {
     parent::readLanguageOverrides($langcode);
 
     // Let modules alter the language-specific overrides.
-    \Drupal::moduleHandler()->alter('transliteration_overrides', $this->languageOverrides[$langcode], $langcode);
+    drupal_alter('transliteration_overrides', $this->languageOverrides[$langcode], $langcode);
   }
 
 }

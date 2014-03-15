@@ -106,7 +106,7 @@ abstract class FormatterBase extends PluginSettingsBase implements FormatterInte
         }
       }
 
-      $addition = array_merge($info, $elements);
+      $addition[$field_name] = array_merge($info, $elements);
     }
 
     return $addition;

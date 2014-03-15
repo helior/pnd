@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests\Plugin;
 
-use Drupal\views\Views;
-
 /**
  * Tests the default/mapping row style.
  */
@@ -35,7 +33,7 @@ class StyleMappingTest extends StyleTestBase {
    * Verifies that the fields were mapped correctly.
    */
   public function testMappedOutput() {
-    $view = Views::getView('test_style_mapping');
+    $view = views_get_view('test_style_mapping');
     $output = $this->mappedOutputHelper($view);
     $this->assertTrue(strpos($output, 'job') === FALSE, 'The job field is added to the view but not in the mapping.');
     $view->destroy();

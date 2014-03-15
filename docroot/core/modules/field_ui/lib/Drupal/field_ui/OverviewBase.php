@@ -9,7 +9,6 @@ namespace Drupal\field_ui;
 
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormBase;
-use Drupal\Core\Render\Element;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -158,8 +157,7 @@ abstract class OverviewBase extends FormBase {
     $trees = array_fill_keys(array_keys($regions), $tree);
 
     $parents = array();
-    $children = Element::children($elements);
-    $list = array_combine($children, $children);
+    $list = drupal_map_assoc(element_children($elements));
 
     // Iterate on rows until we can build a known tree path for all of them.
     while ($list) {

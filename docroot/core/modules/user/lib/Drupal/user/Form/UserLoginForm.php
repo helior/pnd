@@ -9,7 +9,6 @@ namespace Drupal\user\Form;
 
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Form\FormBase;
-use Drupal\user\UserAuthInterface;
 use Drupal\user\UserStorageControllerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -33,26 +32,16 @@ class UserLoginForm extends FormBase {
   protected $userStorage;
 
   /**
-   * The user authentication object.
-   *
-   * @var \Drupal\user\UserAuthInterface
-   */
-  protected $userAuth;
-
-  /**
    * Constructs a new UserLoginForm.
    *
    * @param \Drupal\Core\Flood\FloodInterface $flood
    *   The flood service.
    * @param \Drupal\user\UserStorageControllerInterface $user_storage
    *   The user storage controller.
-   * @param \Drupal\user\UserAuthInterface $user_auth
-   *   The user authentication object.
    */
-  public function __construct(FloodInterface $flood, UserStorageControllerInterface $user_storage, UserAuthInterface $user_auth) {
+  public function __construct(FloodInterface $flood, UserStorageControllerInterface $user_storage) {
     $this->flood = $flood;
     $this->userStorage = $user_storage;
-    $this->userAuth = $user_auth;
   }
 
   /**
@@ -61,8 +50,7 @@ class UserLoginForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('flood'),
-      $container->get('entity.manager')->getStorageController('user'),
-      $container->get('user.auth')
+      $container->get('entity.manager')->getStorageController('user')
     );
   }
 
@@ -177,7 +165,7 @@ class UserLoginForm extends FormBase {
       }
       // We are not limited by flood control, so try to authenticate.
       // Set $form_state['uid'] as a flag for self::validateFinal().
-      $form_state['uid'] = $this->userAuth->authenticate($form_state['values']['name'], $password);
+      $form_state['uid'] = user_authenticate($form_state['values']['name'], $password);
     }
   }
 

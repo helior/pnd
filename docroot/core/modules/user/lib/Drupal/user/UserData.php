@@ -89,7 +89,7 @@ class UserData implements UserDataInterface {
       $serialized = 1;
     }
     $this->connection->merge('users_data')
-      ->keys(array(
+      ->key(array(
         'uid' => $uid,
         'module' => $module,
         'name' => $name,

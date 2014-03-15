@@ -35,24 +35,6 @@ abstract class PluginBag implements \Iterator, \Countable {
   abstract protected function initializePlugin($instance_id);
 
   /**
-   * Returns the current configuration of all plugins in this bag.
-   *
-   * @return array
-   *   An array of up-to-date plugin configuration.
-   */
-  abstract public function getConfiguration();
-
-  /**
-   * Sets the configuration for all plugins in this bag.
-   *
-   * @param array $configuration
-   *   An array of up-to-date plugin configuration.
-   *
-   * @return $this
-   */
-  abstract public function setConfiguration($configuration);
-
-  /**
    * Clears all instantiated plugins.
    */
   public function clear() {
@@ -115,10 +97,8 @@ abstract class PluginBag implements \Iterator, \Countable {
    *
    * @param string $id
    *   The ID of the plugin instance to add.
-   * @param array|null $configuration
-   *   (optional) The configuration used by this instance. Defaults to NULL.
    */
-  public function addInstanceId($id, $configuration = NULL) {
+  public function addInstanceId($id) {
     if (!isset($this->instanceIDs[$id])) {
       $this->instanceIDs[$id] = $id;
     }
@@ -135,10 +115,20 @@ abstract class PluginBag implements \Iterator, \Countable {
   }
 
   /**
+   * Sets all instance IDs.
+   *
+   * @param array $instance_ids
+   *   An associative array of instance IDs.
+   */
+  public function setInstanceIds(array $instance_ids) {
+    $this->instanceIDs = $instance_ids;
+  }
+
+  /**
    * Removes an instance ID.
    *
    * @param string $instance_id
-   *   The ID of the plugin instance to remove.
+   *   An image effect instance IDs.
    */
   public function removeInstanceId($instance_id) {
     unset($this->instanceIDs[$instance_id]);

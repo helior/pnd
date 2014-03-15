@@ -27,9 +27,11 @@ use Drupal\system\DateFormatInterface;
  *       "delete" = "Drupal\system\Form\DateFormatDeleteForm"
  *     }
  *   },
+ *   config_prefix = "system.date_format",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label"
+ *     "label" = "label",
+ *     "uuid" = "uuid"
  *   },
  *   admin_permission = "administer site configuration",
  *   links = {
@@ -46,6 +48,13 @@ class DateFormat extends ConfigEntityBase implements DateFormatInterface {
    * @var string
    */
   public $id;
+
+  /**
+   * The date format UUID.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The human-readable name of the date format entity.

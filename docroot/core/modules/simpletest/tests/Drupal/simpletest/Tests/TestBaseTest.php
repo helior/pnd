@@ -48,8 +48,6 @@ class TestBaseTest extends UnitTestCase {
       array('curry   paste', FALSE),
       array('curry paste', TRUE),
       array('thai green curry paste', TRUE),
-      array('@startswithat', FALSE),
-      array('contains@at', TRUE),
     );
   }
 

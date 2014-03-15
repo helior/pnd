@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests the core Drupal\views\Plugin\views\field\Url handler.
@@ -44,7 +43,7 @@ class FieldUrlTest extends ViewUnitTestBase {
   }
 
   public function testFieldUrl() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     $view->displayHandlers->get('default')->overrideOption('fields', array(

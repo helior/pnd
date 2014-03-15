@@ -9,6 +9,7 @@ namespace Drupal\plugin_test\Plugin;
 
 use Drupal\Component\Plugin\PluginBag;
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Component\Utility\MapArray;
 
 /**
  * Defines a plugin bag which uses fruit plugins.
@@ -31,8 +32,7 @@ class TestPluginBag extends PluginBag {
   public function __construct(PluginManagerInterface $manager) {
     $this->manager = $manager;
 
-    $instance_ids = array_keys($this->manager->getDefinitions());
-    $this->instanceIDs = array_combine($instance_ids, $instance_ids);
+    $this->instanceIDs = MapArray::copyValuesToKeys(array_keys($this->manager->getDefinitions()));
   }
 
   /**
@@ -40,20 +40,6 @@ class TestPluginBag extends PluginBag {
    */
   protected function initializePlugin($instance_id) {
     $this->pluginInstances[$instance_id] = $this->manager->createInstance($instance_id, array());
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getConfiguration() {
-    return array();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setConfiguration($configuration) {
-    return $this;
   }
 
 }

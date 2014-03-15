@@ -10,7 +10,6 @@ namespace Drupal\block;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Utility\Json;
 use Drupal\Component\Utility\String;
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityListController;
 use Drupal\Core\Entity\EntityControllerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -145,9 +144,9 @@ class BlockListController extends ConfigEntityListController implements FormInte
     }
     $entities = $this->load();
     $form['#theme'] = array('block_list');
-    $form['#attached']['library'][] = 'core/drupal.tableheader';
-    $form['#attached']['library'][] = 'block/drupal.block';
-    $form['#attached']['library'][] = 'block/drupal.block.admin';
+    $form['#attached']['library'][] = array('system', 'drupal.tableheader');
+    $form['#attached']['library'][] = array('block', 'drupal.block');
+    $form['#attached']['library'][] = array('block', 'drupal.block.admin');
     $form['#attributes']['class'][] = 'clearfix';
 
     // Add a last region for disabled blocks.
@@ -348,7 +347,6 @@ class BlockListController extends ConfigEntityListController implements FormInte
         $form['place_blocks']['list'][$category_key] = array(
           '#type' => 'details',
           '#title' => $category,
-          '#open' => TRUE,
           'content' => array(
             '#theme' => 'links',
             '#links' => array(),
@@ -414,7 +412,7 @@ class BlockListController extends ConfigEntityListController implements FormInte
       $entity->save();
     }
     drupal_set_message(t('The block settings have been updated.'));
-    Cache::invalidateTags(array('content' => TRUE));
+    cache_invalidate_tags(array('content' => TRUE));
   }
 
 }

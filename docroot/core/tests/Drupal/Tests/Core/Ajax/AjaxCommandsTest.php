@@ -5,7 +5,7 @@
  * Contains \Drupal\Tests\Core\Ajax\AjaxCommandsTest.
  */
 
-namespace Drupal\Tests\Core\Ajax;
+namespace Drupal\Tests\Core\Ajax {
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Ajax\AddCssCommand;
@@ -308,7 +308,7 @@ class AjaxCommandsTest extends UnitTestCase {
    * Tests that OpenDialogCommand objects can be constructed and rendered.
    */
   public function testOpenDialogCommand() {
-    $command = new TestOpenDialogCommand('#some-dialog', 'Title', '<p>Text!</p>', array(
+    $command = new OpenDialogCommand('#some-dialog', 'Title', '<p>Text!</p>', array(
       'url' => FALSE,
       'width' => 500,
     ));
@@ -332,7 +332,7 @@ class AjaxCommandsTest extends UnitTestCase {
    * Tests that OpenModalDialogCommand objects can be constructed and rendered.
    */
   public function testOpenModalDialogCommand() {
-    $command = new TestOpenModalDialogCommand('Title', '<p>Text!</p>', array(
+    $command = new OpenModalDialogCommand('Title', '<p>Text!</p>', array(
       'url' => 'example',
       'width' => 500,
     ));
@@ -425,26 +425,12 @@ class AjaxCommandsTest extends UnitTestCase {
 
 }
 
-/**
- * Wraps OpenModalDialogCommand::drupalAttachLibrary().
- *
- * {@inheritdoc}
- */
-class TestOpenModalDialogCommand extends OpenModalDialogCommand {
-
-  protected function drupalAttachLibrary($name) {
-  }
-
 }
 
-/**
- * Wraps OpenDialogCommand::drupalAttachLibrary().
- *
- * {@inheritdoc}
- */
-class TestOpenDialogCommand extends OpenDialogCommand {
-
-  protected function drupalAttachLibrary($name) {
+namespace {
+  if (!function_exists('drupal_add_library')) {
+    function drupal_add_library() {
+      return TRUE;
+    }
   }
-
 }

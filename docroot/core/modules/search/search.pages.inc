@@ -31,7 +31,7 @@ function search_theme_suggestions_search_result(array $variables) {
  *   - content_attributes: HTML attributes for the content.
  */
 function template_preprocess_search_result(&$variables) {
-  $language_interface = \Drupal::languageManager()->getCurrentLanguage();
+  $language_interface = language(Language::TYPE_INTERFACE);
 
   $result = $variables['result'];
   $variables['url'] = check_url($result['link']);

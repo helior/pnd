@@ -6,7 +6,7 @@
  */
 
 use Drupal\Component\Utility\Html;
-use Drupal\field\FieldConfigInterface;
+use Drupal\field\FieldInterface;
 
 /**
  * Implements hook_field_info_alter().
@@ -223,14 +223,14 @@ function theme_file_upload_help($variables) {
 /**
  * Determine whether a field references files stored in {file_managed}.
  *
- * @param Drupal\field\FieldConfigInterface $field
+ * @param Drupal\field\FieldInterface $field
  *   A field definition.
  *
  * @return
  *   The field column if the field references {file_managed}.fid, typically
  *   fid, FALSE if it doesn't.
  */
-function file_field_find_file_reference_column(FieldConfigInterface $field) {
+function file_field_find_file_reference_column(FieldInterface $field) {
   $schema = $field->getSchema();
   foreach ($schema['foreign keys'] as $data) {
     if ($data['table'] == 'file_managed') {
@@ -271,7 +271,7 @@ function theme_file_formatter_table($variables) {
   }
 
   $build = array(
-    '#type' => 'table',
+    '#theme' => 'table',
     '#header' => $header,
     '#rows' => $rows,
   );

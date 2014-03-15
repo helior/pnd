@@ -8,7 +8,8 @@
 namespace Drupal\aggregator\Form;
 
 use Drupal\aggregator\FeedStorageControllerInterface;
-use Drupal\Component\Utility\UrlHelper;
+use Drupal\Component\Utility\Url;
+use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Guzzle\Http\Exception\RequestException;
@@ -19,6 +20,13 @@ use Guzzle\Http\ClientInterface;
  * Imports feeds from OPML.
  */
 class OpmlFeedAdd extends FormBase {
+
+  /**
+   * The entity query factory object.
+   *
+   * @var \Drupal\Core\Entity\Query\QueryFactory
+   */
+  protected $queryFactory;
 
   /**
    * The feed storage.
@@ -37,12 +45,15 @@ class OpmlFeedAdd extends FormBase {
   /**
    * Constructs a database object.
    *
+   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
+   *   The entity query object.
    * @param \Drupal\aggregator\FeedStorageControllerInterface $feed_storage
    *   The feed storage.
    * @param \Guzzle\Http\ClientInterface $http_client
    *   The Guzzle HTTP client.
    */
-  public function __construct(FeedStorageControllerInterface $feed_storage, ClientInterface $http_client) {
+  public function __construct(QueryFactory $query_factory, FeedStorageControllerInterface $feed_storage, ClientInterface $http_client) {
+    $this->queryFactory = $query_factory;
     $this->feedStorageController = $feed_storage;
     $this->httpClient = $http_client;
   }
@@ -52,6 +63,7 @@ class OpmlFeedAdd extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('entity.query'),
       $container->get('entity.manager')->getStorageController('aggregator_feed'),
       $container->get('http_default_client')
     );
@@ -68,8 +80,8 @@ class OpmlFeedAdd extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
-    $intervals = array(900, 1800, 3600, 7200, 10800, 21600, 32400, 43200, 64800, 86400, 172800, 259200, 604800, 1209600, 2419200);
-    $period = array_map('format_interval', array_combine($intervals, $intervals));
+    $period = drupal_map_assoc(array(900, 1800, 3600, 7200, 10800, 21600, 32400, 43200,
+      64800, 86400, 172800, 259200, 604800, 1209600, 2419200), 'format_interval');
 
     $form['upload'] = array(
       '#type' => 'file',
@@ -146,13 +158,13 @@ class OpmlFeedAdd extends FormBase {
     // @todo Move this functionality to a processor.
     foreach ($feeds as $feed) {
       // Ensure URL is valid.
-      if (!UrlHelper::isValid($feed['url'], TRUE)) {
+      if (!Url::isValid($feed['url'], TRUE)) {
         drupal_set_message($this->t('The URL %url is invalid.', array('%url' => $feed['url'])), 'warning');
         continue;
       }
 
       // Check for duplicate titles or URLs.
-      $query = $this->feedStorageController->getQuery();
+      $query = $this->queryFactory->get('aggregator_feed');
       $condition = $query->orConditionGroup()
         ->condition('title', $feed['title'])
         ->condition('url', $feed['url']);

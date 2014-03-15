@@ -52,8 +52,7 @@ class EntityReference extends Fields {
     // Force all fields to be inline by default.
     if (empty($this->options['inline'])) {
       $fields = $this->view->getHandlers('field', $this->displayHandler->display['id']);
-      $names = array_keys($fields);
-      $this->options['inline'] = array_combine($names, $names);
+      $this->options['inline'] = drupal_map_assoc(array_keys($fields));
     }
 
     return parent::preRender($row);

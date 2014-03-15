@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Entity;
 
 use Drupal\views\Tests\ViewTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests the EntityType generic filter handler.
@@ -75,7 +74,7 @@ class FilterEntityBundleTest extends ViewTestBase {
    * Tests the generic bundle filter.
    */
   public function testFilterEntity() {
-    $view = Views::getView('test_entity_type_filter');
+    $view = views_get_view('test_entity_type_filter');
     $this->executeView($view);
 
     // Test we have all the results, with all types selected.
@@ -96,7 +95,7 @@ class FilterEntityBundleTest extends ViewTestBase {
       // Test each bundle type.
       $view->initDisplay();
       $filters = $view->display_handler->getOption('filters');
-      $filters['type']['value'] = array($key => $key);
+      $filters['type']['value'] = drupal_map_assoc(array($key));
       $view->display_handler->setOption('filters', $filters);
       $this->executeView($view);
 
@@ -108,7 +107,7 @@ class FilterEntityBundleTest extends ViewTestBase {
     // Test an invalid bundle type to make sure we have no results.
     $view->initDisplay();
     $filters = $view->display_handler->getOption('filters');
-    $filters['type']['value'] = array('type_3' => 'type_3');
+    $filters['type']['value'] = drupal_map_assoc(array('type_3'));
     $view->display_handler->setOption('filters', $filters);
     $this->executeView($view);
 

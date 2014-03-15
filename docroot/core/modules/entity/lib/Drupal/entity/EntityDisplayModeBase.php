@@ -22,6 +22,13 @@ abstract class EntityDisplayModeBase extends ConfigEntityBase implements EntityD
   public $id;
 
   /**
+   * The UUID of the form or view mode.
+   *
+   * @var string
+   */
+  public $uuid;
+
+  /**
    * The human-readable name of the form or view mode.
    *
    * @var string

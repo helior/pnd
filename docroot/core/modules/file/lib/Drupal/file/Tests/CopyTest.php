@@ -10,7 +10,7 @@ namespace Drupal\file\Tests;
 /**
  * Copy related tests.
  */
-class CopyTest extends FileManagedUnitTestBase {
+class CopyTest extends FileManagedTestBase {
   public static function getInfo() {
     return array(
       'name' => 'File copying',

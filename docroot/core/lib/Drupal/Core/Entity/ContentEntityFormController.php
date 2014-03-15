@@ -139,8 +139,7 @@ class ContentEntityFormController extends EntityFormController {
     // edited by this form. Values of fields handled by field API are copied
     // by field_attach_extract_form_values() below.
     $values_excluding_fields = $entity_type->isFieldable() ? array_diff_key($form_state['values'], field_info_instances($entity_type_id, $entity->bundle())) : $form_state['values'];
-    $definitions = $entity->getFieldDefinitions();
-
+    $definitions = $entity->getPropertyDefinitions();
     foreach ($values_excluding_fields as $key => $value) {
       if (isset($definitions[$key])) {
         $entity->$key = $value;

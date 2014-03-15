@@ -19,7 +19,6 @@ use Drupal\Core\Field\FormatterBase;
  *   field_types = {
  *     "test_field",
  *   },
- *   weight = -10
  * )
  */
 class TestFieldNoSettingsFormatter extends FormatterBase {

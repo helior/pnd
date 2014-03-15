@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests for core Drupal\views\Plugin\views\sort\Random handler.
@@ -51,7 +50,7 @@ class SortRandomTest extends ViewUnitTestBase {
    * Return a basic view with random ordering.
    */
   protected function getBasicRandomView() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Add a random ordering.
@@ -73,7 +72,7 @@ class SortRandomTest extends ViewUnitTestBase {
    */
   public function testRandomOrdering() {
     // Execute a basic view first.
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $this->executeView($view);
 
     // Verify the result.

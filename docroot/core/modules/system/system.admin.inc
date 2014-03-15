@@ -6,8 +6,6 @@
  */
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Extension\Extension;
-use Drupal\Core\Template\Attribute;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -32,6 +30,12 @@ function system_theme_default() {
         ->set('default', $theme)
         ->save();
 
+      // Rebuild the menu. This duplicates the menu_router_rebuild() in
+      // theme_enable(). However, modules must know the current default theme in
+      // order to use this information in hook_menu() or hook_menu_alter()
+      // implementations, and saving the configuration before the theme_enable()
+      // could result in a race condition where the theme is default but not
+      // enabled.
       \Drupal::service('router.builder')->setRebuildNeeded();
 
       // The status message depends on whether an admin theme is currently in use:
@@ -63,62 +67,98 @@ function system_theme_default() {
  *   incompatible files as the keys, their values being TRUE.
  * @param $files
  *   The set of files that will be tested.
- * @param \Drupal\Core\Extension\Extension $file
+ * @param $file
  *   The file at which the check starts.
  * @return
  *   Returns TRUE if an incompatible file is found, NULL (no return value)
  *   otherwise.
  */
-function _system_is_incompatible(&$incompatible, $files, Extension $file) {
-  if (isset($incompatible[$file->getName()])) {
+function _system_is_incompatible(&$incompatible, $files, $file) {
+  if (isset($incompatible[$file->name])) {
     return TRUE;
   }
   // Recursively traverse required modules, looking for incompatible modules.
   foreach ($file->requires as $requires) {
     if (isset($files[$requires]) && _system_is_incompatible($incompatible, $files, $files[$requires])) {
-      $incompatible[$file->getName()] = TRUE;
+      $incompatible[$file->name] = TRUE;
       return TRUE;
     }
   }
 }
 
 /**
- * Prepares variables for administrative content block templates.
+ * Returns HTML for an administrative block for display.
  *
- * Default template: admin-block-content.html.twig.
+ * @param $variables
+ *   An associative array containing:
+ *   - block: An array containing information about the block:
+ *     - show: A Boolean whether to output the block. Defaults to FALSE.
+ *     - title: The block's title.
+ *     - content: (optional) Formatted content for the block.
+ *     - description: (optional) Description of the block. Only output if
+ *       'content' is not set.
+ *
+ * @ingroup themeable
+ */
+function theme_admin_block($variables) {
+  $block = $variables['block'];
+  $output = '';
+
+  // Don't display the block if it has no content to display.
+  if (empty($block['show'])) {
+    return $output;
+  }
+
+  $output .= '<div class="admin-panel">';
+  if (!empty($block['title'])) {
+    $output .= '<h3>' . $block['title'] . '</h3>';
+  }
+  if (!empty($block['content'])) {
+    $output .= '<div class="body">' . render($block['content']) . '</div>';
+  }
+  else {
+    $output .= '<div class="description">' . $block['description'] . '</div>';
+  }
+  $output .= '</div>';
+
+  return $output;
+}
+
+/**
+ * Returns HTML for the content of an administrative block.
  *
  * @param $variables
  *   An associative array containing:
  *   - content: An array containing information about the block. Each element
  *     of the array represents an administrative menu item, and must at least
- *     contain the keys 'title', 'link_path', and 'localized_options', which are
+ *     contain the keys 'title', 'href', and 'localized_options', which are
  *     passed to l(). A 'description' key may also be provided.
  *
  * @ingroup themeable
  */
-function template_preprocess_admin_block_content(&$variables) {
-  if (!empty($variables['content'])) {
-    $compact = system_admin_compact_mode();
-    $variables['attributes'] = array('class' => array('admin-list'));
-    if ($compact) {
-      $variables['attributes']['class'][] = 'compact';
+function theme_admin_block_content($variables) {
+  $content = $variables['content'];
+  $output = '';
+
+  if (!empty($content)) {
+    $class = 'admin-list';
+    if ($compact = system_admin_compact_mode()) {
+      $class .= ' compact';
     }
-    foreach ($variables['content'] as $key => $item) {
-      $variables['content'][$key]['link'] = l($item['title'], $item['link_path'], $item['localized_options']);
+    $output .= '<dl class="' . $class . '">';
+    foreach ($content as $item) {
+      $output .= '<dt>' . l($item['title'], $item['link_path'], $item['localized_options']) . '</dt>';
       if (!$compact && isset($item['description'])) {
-        $variables['content'][$key]['description'] = filter_xss_admin($item['description']);
-      }
-      else {
-        $variables['content'][$key]['description'] = FALSE;
+        $output .= '<dd>' . filter_xss_admin($item['description']) . '</dd>';
       }
     }
+    $output .= '</dl>';
   }
+  return $output;
 }
 
 /**
- * Prepares variables for administrative index page templates.
- *
- * Default template: admin-page.html.twig.
+ * Returns HTML for an administrative page.
  *
  * @param $variables
  *   An associative array containing:
@@ -129,24 +169,40 @@ function template_preprocess_admin_block_content(&$variables) {
  *
  * @ingroup themeable
  */
-function template_preprocess_admin_page(&$variables) {
-  $variables['system_compact_link'] = array(
-    '#theme' => 'system_compact_link',
-  );
-  $variables['containers'] = array();
+function theme_admin_page($variables) {
+  $blocks = $variables['blocks'];
+
   $stripe = 0;
-  foreach ($variables['blocks'] as $block) {
-    if (!empty($block['content']['#content'])) {
+  $container = array();
+
+  foreach ($blocks as $block) {
+    $admin_block = array(
+      '#theme' => 'admin_block',
+      '#block' => $block,
+    );
+    if ($block_output = drupal_render($admin_block)) {
       if (empty($block['position'])) {
-        // Perform automatic striping.
+        // perform automatic striping.
         $block['position'] = ++$stripe % 2 ? 'left' : 'right';
       }
-      $variables['containers'][$block['position']]['blocks'][] = array(
-        '#theme' => 'admin_block',
-        '#block' => $block,
-      );
+      if (!isset($container[$block['position']])) {
+        $container[$block['position']] = '';
+      }
+      $container[$block['position']] .= $block_output;
     }
   }
+
+  $system_compact_link = array('#theme' => 'system_compact_link');
+  $output = '<div class="admin clearfix">';
+  $output .= drupal_render($system_compact_link);
+
+  foreach ($container as $id => $data) {
+    $output .= '<div class="' . $id . ' clearfix">';
+    $output .= $data;
+    $output .= '</div>';
+  }
+  $output .= '</div>';
+  return $output;
 }
 
 /**
@@ -179,6 +235,7 @@ function theme_system_admin_index($variables) {
       $block['title'] = $module;
       $block['content'] = drupal_render($admin_block_content);
       $block['description'] = t($description);
+      $block['show'] = TRUE;
 
       $admin_block = array(
         '#theme' => 'admin_block',
@@ -334,6 +391,7 @@ function theme_system_modules_details($variables) {
       '#title' => '<span class="text"> ' . drupal_render($module['description']) . '</span>',
       '#attributes' => array('id' => $module['enable']['#id'] . '-description'),
       '#description' => $description,
+      '#collapsed' => TRUE,
     );
     $col4 = drupal_render($details);
     $row[] = array('class' => array('description', 'expand'), 'data' => $col4);
@@ -342,7 +400,7 @@ function theme_system_modules_details($variables) {
   }
 
   $table = array(
-    '#type' => 'table',
+    '#theme' => 'table',
     '#header' => $form['#header'],
     '#rows' => $rows,
   );
@@ -406,7 +464,7 @@ function theme_system_modules_uninstall($variables) {
   }
 
   $table = array(
-    '#type' => 'table',
+    '#theme' => 'table',
     '#header' => $header,
     '#rows' => $rows,
     '#empty' => t('No modules are available to uninstall.'),
@@ -418,9 +476,7 @@ function theme_system_modules_uninstall($variables) {
 }
 
 /**
- * Prepares variables for appearance page templates.
- *
- * Default template: system-themes-page.html.twig.
+ * Returns HTML for the Appearance page.
  *
  * @param $variables
  *   An associative array containing:
@@ -429,10 +485,10 @@ function theme_system_modules_uninstall($variables) {
  *
  * @ingroup themeable
  */
-function template_preprocess_system_themes_page(&$variables) {
-  $groups = array();
+function theme_system_themes_page($variables) {
   $theme_groups = $variables['theme_groups'];
-  $variables['attributes']['id'] = 'system-themes-page';
+
+  $output = '<div id="system-themes-page">';
 
   foreach ($variables['theme_group_titles'] as $state => $title) {
     if (!count($theme_groups[$state])) {
@@ -440,70 +496,66 @@ function template_preprocess_system_themes_page(&$variables) {
       continue;
     }
     // Start new theme group.
-    $theme_group = array();
-    $theme_group['state'] = $state;
-    $theme_group['title'] = $title;
-    $theme_group['themes'] = array();
-    $theme_group['attributes'] = new Attribute(array('class' => array('system-themes-list', 'system-themes-list-' . $state, 'clearfix')));
+    $output .= '<div class="system-themes-list system-themes-list-'. $state .' clearfix"><h2>'. $title .'</h2>';
 
     foreach ($theme_groups[$state] as $theme) {
-      $current_theme = array();
 
-      // Screenshot depicting the theme.
+      // Theme the screenshot.
       if ($theme->screenshot) {
-        $current_theme['screenshot'] = array(
+        $image = array(
           '#theme' => 'image',
           '#uri' => $theme->screenshot['uri'],
           '#alt' => $theme->screenshot['alt'],
           '#title' => $theme->screenshot['title'],
           '#attributes' => $theme->screenshot['attributes'],
         );
+        $screenshot = drupal_render($image);
       }
       else {
-        $current_theme['screenshot'] = array();
+        $screenshot = '<div class="no-screenshot"><div class="no-screenshot__text">' . t('no screenshot') . '</div></div>';
       }
 
       // Localize the theme description.
-      $current_theme['description'] = t($theme->info['description']);
+      $description = t($theme->info['description']);
 
-      // Style theme info.
+      // Style theme info
+      $notes = count($theme->notes) ? ' (' . join(', ', $theme->notes) . ')' : '';
       $theme->classes[] = 'theme-selector';
       $theme->classes[] = 'clearfix';
-      $current_theme['attributes'] = new Attribute(array('class' => $theme->classes));
-      $current_theme['name'] = $theme->info['name'];
-      $current_theme['version'] = isset($theme->info['version']) ? $theme->info['version'] : '';
-      $current_theme['notes'] = $theme->notes;
+      $output .= '<div class="'. join(' ', $theme->classes) .'">' . $screenshot . '<div class="theme-info"><h3>' . $theme->info['name'] . ' ' . (isset($theme->info['version']) ? $theme->info['version'] : '') . $notes . '</h3><div class="theme-description">' . $description . '</div>';
 
       // Make sure to provide feedback on compatibility.
-      $current_theme['incompatible'] = '';
       if (!empty($theme->incompatible_core)) {
-        $current_theme['incompatible'] = t('This version is not compatible with Drupal !core_version and should be replaced.', array('!core_version' => \Drupal::CORE_COMPATIBILITY));
+        $output .= '<div class="incompatible">' . t('This version is not compatible with Drupal !core_version and should be replaced.', array('!core_version' => \Drupal::CORE_COMPATIBILITY)) . '</div>';
       }
       elseif (!empty($theme->incompatible_php)) {
         if (substr_count($theme->info['php'], '.') < 2) {
           $theme->info['php'] .= '.*';
         }
-        $current_theme['incompatible'] = t('This theme requires PHP version @php_required and is incompatible with PHP version !php_version.', array('@php_required' => $theme->info['php'], '!php_version' => phpversion()));
+        $output .= '<div class="incompatible">' . t('This theme requires PHP version @php_required and is incompatible with PHP version !php_version.', array('@php_required' => $theme->info['php'], '!php_version' => phpversion())) . '</div>';
       }
       elseif (!empty($theme->incompatible_base)) {
-        $current_theme['incompatible'] = t('This theme requires the base theme @base_theme to operate correctly.', array('@base_theme' => $theme->info['base theme']));
+        $output .= '<div class="incompatible">' . t('This theme requires the base theme @base_theme to operate correctly.', array('@base_theme' => $theme->info['base theme'])) . '</div>';
       }
       elseif (!empty($theme->incompatible_engine)) {
-        $current_theme['incompatible'] = t('This theme requires the theme engine @theme_engine to operate correctly.', array('@theme_engine' => $theme->info['engine']));
+        $output .= '<div class="incompatible">' . t('This theme requires the theme engine @theme_engine to operate correctly.', array('@theme_engine' => $theme->info['engine'])) . '</div>';
       }
-
-      // Build operation links.
-      $current_theme['operations'] = array(
-        '#theme' => 'links',
-        '#links' => $theme->operations,
-        '#attributes' => array(
-          'class' => array('operations', 'clearfix'),
-        ),
-      );
-      $theme_group['themes'][] = $current_theme;
+      else {
+        $links = array(
+          '#theme' => 'links',
+          '#links' => $theme->operations,
+          '#attributes' => array(
+            'class' => array('operations', 'clearfix'),
+          ),
+        );
+        $output .= drupal_render($links);
+      }
+      $output .= '</div></div>';
     }
-    $groups[] = $theme_group;
+    $output .= '</div>';
   }
-  $variables['theme_groups'] = $groups;
+  $output .= '</div>';
+
+  return $output;
 }
 

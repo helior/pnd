@@ -30,13 +30,23 @@ use Drupal\Core\TypedData\DataDefinition;
 class UriItem extends StringItem {
 
   /**
-   * {@inheritdoc}
+   * Field definitions of the contained properties.
+   *
+   * @see self::getPropertyDefinitions()
+   *
+   * @var array
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties['value'] = DataDefinition::create('uri')
-      ->setLabel(t('URI value'));
+  static $propertyDefinitions;
 
-    return $properties;
+  /**
+   * Implements ComplexDataInterface::getPropertyDefinitions().
+   */
+  public function getPropertyDefinitions() {
+    if (!isset(self::$propertyDefinitions)) {
+      self::$propertyDefinitions['value'] = DataDefinition::create('uri')
+        ->setLabel(t('URI value'));
+    }
+    return self::$propertyDefinitions;
   }
 
   /**

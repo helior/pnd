@@ -10,13 +10,10 @@ display:
         type: perm
         options:
           perm: 'access content overview'
-        provider: user
       cache:
         type: none
-        provider: views
       query:
         type: views_query
-        provider: views
       exposed_form:
         type: basic
         options:
@@ -27,12 +24,10 @@ display:
           expose_sort_order: true
           sort_asc_label: Asc
           sort_desc_label: Desc
-        provider: views
       pager:
         type: full
         options:
           items_per_page: 50
-        provider: views
       style:
         type: table
         options:
@@ -135,10 +130,8 @@ display:
               responsive: ''
           default: changed
           empty_table: true
-        provider: views
       row:
         type: fields
-        provider: views
       fields:
         node_bulk_form:
           id: node_bulk_form
@@ -557,4 +550,5 @@ label: Content
 module: node
 id: content
 tag: default
+uuid: 914eaf17-0b90-4fcd-a312-18b51e9dac77
 langcode: en

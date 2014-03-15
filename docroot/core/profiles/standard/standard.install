@@ -4,8 +4,6 @@
  * Install, update and uninstall functions for the standard installation profile.
  */
 
-use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-
 /**
  * Implements hook_install().
  *
@@ -27,7 +25,7 @@ function standard_install() {
   \Drupal::config('system.site')->set('page.front', 'node')->save();
 
   // Add comment field to article node type.
-  \Drupal::service('comment.manager')->addDefaultField('node', 'article', 'comment', CommentItemInterface::OPEN);
+  \Drupal::service('comment.manager')->addDefaultField('node', 'article', 'comment', COMMENT_OPEN);
 
   // Allow visitor account creation with administrative approval.
   $user_settings = \Drupal::config('user.settings');

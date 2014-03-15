@@ -15,9 +15,11 @@ use Drupal\editor\EditorInterface;
  *
  * @ConfigEntityType(
  *   id = "editor",
- *   label = @Translation("Text Editor"),
+ *   label = @Translation("Editor"),
+ *   config_prefix = "editor.editor",
  *   entity_keys = {
- *     "id" = "format"
+ *     "id" = "format",
+ *     "uuid" = "uuid"
  *   }
  * )
  */
@@ -53,21 +55,14 @@ class Editor extends ConfigEntityBase implements EditorInterface {
   public $image_upload = array();
 
   /**
-   * The filter format this text editor is associated with.
-   *
-   * @var \Drupal\filter\FilterFormatInterface
-   */
-  protected $filterFormat;
-
-  /**
-   * {@inheritdoc}
+   * Overrides Drupal\Core\Entity\Entity::id().
    */
   public function id() {
     return $this->format;
   }
 
   /**
-   * {@inheritdoc}
+   * Overrides Drupal\Core\Entity\Entity::__construct()
    */
   public function __construct(array $values, $entity_type) {
     parent::__construct($values, $entity_type);
@@ -77,19 +72,9 @@ class Editor extends ConfigEntityBase implements EditorInterface {
 
     // Initialize settings, merging module-provided defaults.
     $default_settings = $plugin->getDefaultSettings();
-    $default_settings += \Drupal::moduleHandler()->invokeAll('editor_default_settings', array($this->editor));
-    \Drupal::moduleHandler()->alter('editor_default_settings', $default_settings, $this->editor);
+    $default_settings += module_invoke_all('editor_default_settings', $this->editor);
+    drupal_alter('editor_default_settings', $default_settings, $this->editor);
     $this->settings += $default_settings;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getFilterFormat() {
-    if (!$this->filterFormat) {
-      $this->filterFormat = \Drupal::entityManager()->getStorageController('filter_format')->load($this->format);
-    }
-    return $this->filterFormat;
   }
 
 }

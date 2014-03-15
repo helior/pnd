@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests\Handler;
 
-use Drupal\views\Views;
-
 /**
  * Tests fields from within a UI.
  *
@@ -177,7 +175,7 @@ class FieldWebTest extends HandlerTestBase {
    * Tests rewriting the output to a link.
    */
   public function testAlterUrl() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
     $view->initHandlers();
     $this->executeView($view);
@@ -325,7 +323,7 @@ class FieldWebTest extends HandlerTestBase {
    * Tests the field/label/wrapper classes.
    */
   public function testFieldClasses() {
-    $view = Views::getView('test_field_classes');
+    $view = views_get_view('test_field_classes');
     $view->initHandlers();
 
     // Tests whether the default field classes are added.
@@ -432,7 +430,7 @@ class FieldWebTest extends HandlerTestBase {
    * Tests trimming/read-more/ellipses.
    */
   public function testTextRendering() {
-    $view = Views::getView('test_field_output');
+    $view = views_get_view('test_field_output');
     $view->initHandlers();
     $name_field = $view->field['name'];
 

@@ -19,11 +19,11 @@ use Drupal\node\NodeInterface;
 class BookBreadcrumbBuilder extends BreadcrumbBuilderBase {
 
   /**
-   * The node storage controller.
+   * The menu link storage controller.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\menu_link\MenuLinkStorageControllerInterface
    */
-  protected $nodeStorage;
+  protected $menuLinkStorage;
 
   /**
    * The access manager.
@@ -50,7 +50,7 @@ class BookBreadcrumbBuilder extends BreadcrumbBuilderBase {
    *   The current user account.
    */
   public function __construct(EntityManagerInterface $entity_manager, AccessManager $access_manager, AccountInterface $account) {
-    $this->nodeStorage = $entity_manager->getStorageController('node');
+    $this->menuLinkStorage = $entity_manager->getStorageController('menu_link');
     $this->accessManager = $access_manager;
     $this->account = $account;
   }
@@ -68,22 +68,22 @@ class BookBreadcrumbBuilder extends BreadcrumbBuilderBase {
    * {@inheritdoc}
    */
   public function build(array $attributes) {
-    $book_nids = array();
+    $mlids = array();
     $links = array($this->l($this->t('Home'), '<front>'));
     $book = $attributes['node']->book;
     $depth = 1;
     // We skip the current node.
     while (!empty($book['p' . ($depth + 1)])) {
-      $book_nids[] = $book['p' . $depth];
+      $mlids[] = $book['p' . $depth];
       $depth++;
     }
-    $parent_books = $this->nodeStorage->loadMultiple($book_nids);
-    if (count($parent_books) > 0) {
+    $menu_links = $this->menuLinkStorage->loadMultiple($mlids);
+    if (count($menu_links) > 0) {
       $depth = 1;
       while (!empty($book['p' . ($depth + 1)])) {
-        if (!empty($parent_books[$book['p' . $depth]]) && ($parent_book = $parent_books[$book['p' . $depth]])) {
-          if ($parent_book->access('view', $this->account)) {
-            $links[] = $this->l($parent_book->label(), 'node.view', array('node' => $parent_book->id()));
+        if (!empty($menu_links[$book['p' . $depth]]) && ($menu_link = $menu_links[$book['p' . $depth]])) {
+          if ($this->accessManager->checkNamedRoute($menu_link->route_name, $menu_link->route_parameters, $this->account)) {
+            $links[] = $this->l($menu_link->label(), $menu_link->route_name, $menu_link->route_parameters, $menu_link->options);
           }
         }
         $depth++;

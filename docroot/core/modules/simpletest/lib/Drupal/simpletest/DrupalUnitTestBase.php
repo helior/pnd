@@ -169,11 +169,9 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     // Modules have been collected in reverse class hierarchy order; modules
     // defined by base classes should be sorted first. Then, merge the results
     // together.
-    if ($modules) {
-      $modules = array_reverse($modules);
-      $modules = call_user_func_array('array_merge_recursive', $modules);
-      $this->enableModules($modules, FALSE);
-    }
+    $modules = array_reverse($modules);
+    $modules = call_user_func_array('array_merge_recursive', $modules);
+    $this->enableModules($modules, FALSE);
     // In order to use theme functions default theme config needs to exist.
     \Drupal::config('system.theme')->set('default', 'stark');
 
@@ -181,7 +179,6 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     // StreamWrapper APIs.
     // @todo Move StreamWrapper management into DrupalKernel.
     // @see https://drupal.org/node/2028109
-    $this->streamWrappers = array();
     // The public stream wrapper only depends on the file_public_path setting,
     // which is provided by UnitTestBase::setUp().
     $this->registerStreamWrapper('public', 'Drupal\Core\StreamWrapper\PublicStream');
@@ -200,8 +197,8 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     // of PHP core, which has to be maintained manually.
     // @todo Move StreamWrapper management into DrupalKernel.
     // @see https://drupal.org/node/2028109
-    foreach ($this->streamWrappers as $scheme => $type) {
-      $this->unregisterStreamWrapper($scheme, $type);
+    foreach ($this->streamWrappers as $scheme) {
+      $this->unregisterStreamWrapper($scheme);
     }
     parent::tearDown();
   }
@@ -420,7 +417,7 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     if (isset($this->streamWrappers[$scheme])) {
       $this->unregisterStreamWrapper($scheme);
     }
-    $this->streamWrappers[$scheme] = $type;
+    $this->streamWrappers[$scheme] = $scheme;
     if (($type & STREAM_WRAPPERS_LOCAL) == STREAM_WRAPPERS_LOCAL) {
       stream_wrapper_register($scheme, $class);
     }
@@ -429,14 +426,12 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     }
     // @todo Revamp Drupal's stream wrapper API for D8.
     // @see https://drupal.org/node/2028109
-    $wrappers = &drupal_static('file_get_stream_wrappers', array());
-    $wrappers[STREAM_WRAPPERS_ALL][$scheme] = array(
+    $wrappers = &drupal_static('file_get_stream_wrappers');
+    $wrappers[$scheme] = array(
       'type' => $type,
       'class' => $class,
     );
-    if (($type & STREAM_WRAPPERS_WRITE_VISIBLE) == STREAM_WRAPPERS_WRITE_VISIBLE) {
-      $wrappers[STREAM_WRAPPERS_WRITE_VISIBLE][$scheme] = $wrappers[STREAM_WRAPPERS_ALL][$scheme];
-    }
+    $wrappers[STREAM_WRAPPERS_ALL] = $wrappers;
   }
 
   /**
@@ -447,20 +442,15 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
    *
    * @param string $scheme
    *   The scheme to unregister.
-   * @param int $type
-   *   The Drupal Stream Wrapper API type of the scheme to unregister.
    */
-  protected function unregisterStreamWrapper($scheme, $type) {
+  protected function unregisterStreamWrapper($scheme) {
     stream_wrapper_unregister($scheme);
     unset($this->streamWrappers[$scheme]);
     // @todo Revamp Drupal's stream wrapper API for D8.
     // @see https://drupal.org/node/2028109
-    $wrappers = &drupal_static('file_get_stream_wrappers', array());
-    foreach ($wrappers as $filter => $schemes) {
-      if (is_int($filter) && (($filter & $type) == $filter)) {
-        unset($wrappers[$filter][$scheme]);
-      }
-    }
+    $wrappers = &drupal_static('file_get_stream_wrappers');
+    unset($wrappers[$scheme]);
+    unset($wrappers[STREAM_WRAPPERS_ALL][$scheme]);
   }
 
 }

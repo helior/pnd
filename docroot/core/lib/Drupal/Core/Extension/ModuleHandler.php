@@ -145,11 +145,11 @@ class ModuleHandler implements ModuleHandlerInterface {
    */
   public function buildModuleDependencies(array $modules) {
     foreach ($modules as $module) {
-      $graph[$module->getName()]['edges'] = array();
+      $graph[$module->name]['edges'] = array();
       if (isset($module->info['dependencies']) && is_array($module->info['dependencies'])) {
         foreach ($module->info['dependencies'] as $dependency) {
           $dependency_data = static::parseDependency($dependency);
-          $graph[$module->getName()]['edges'][$dependency_data['name']] = $dependency_data;
+          $graph[$module->name]['edges'][$dependency_data['name']] = $dependency_data;
         }
       }
     }
@@ -382,7 +382,7 @@ class ModuleHandler implements ModuleHandlerInterface {
       if (isset($theme)) {
         $theme_keys = array();
         foreach ($base_theme_info as $base) {
-          $theme_keys[] = $base->getName();
+          $theme_keys[] = $base->name;
         }
         $theme_keys[] = $theme;
         foreach ($theme_keys as $theme_key) {
@@ -599,10 +599,9 @@ class ModuleHandler implements ModuleHandlerInterface {
         $this->load($module);
         module_load_install($module);
 
-        // Clear the static cache of system_rebuild_module_data() to pick up the
-        // new module, since it merges the installation status of modules into
-        // its statically cached list.
-        drupal_static_reset('system_rebuild_module_data');
+        // Flush theme info caches, since (testing) modules can implement
+        // hook_system_theme_info() to register additional themes.
+        system_list_reset();
 
         // Update the kernel to include it.
         // This reboots the kernel to register the module's bundle and its
@@ -743,10 +742,10 @@ class ModuleHandler implements ModuleHandlerInterface {
       // Remove any potential cache bins provided by the module.
       $this->removeCacheBins($module);
 
-      // Clear the static cache of system_rebuild_module_data() to pick up the
-      // new module, since it merges the installation status of modules into
-      // its statically cached list.
-      drupal_static_reset('system_rebuild_module_data');
+      // Refresh the system list to exclude the uninstalled modules.
+      // @todo Only needed to rebuild theme info.
+      // @see system_list_reset()
+      system_list_reset();
 
       // Clear the entity info cache.
       entity_info_cache_clear();
@@ -760,9 +759,6 @@ class ModuleHandler implements ModuleHandlerInterface {
       watchdog('system', '%module module uninstalled.', array('%module' => $module), WATCHDOG_INFO);
 
       $schema_store->delete($module);
-
-      // Make sure any route data is also removed for this module.
-      \Drupal::service('router.dumper')->dump(array('provider' => $module));
     }
     drupal_get_installed_schema_version(NULL, TRUE);
 

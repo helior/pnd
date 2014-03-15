@@ -7,7 +7,6 @@
 
 namespace Drupal\entity_test\Entity;
 
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 
 /**
@@ -42,7 +41,7 @@ class EntityTestBaseFieldDisplay extends EntityTest {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
+  public static function baseFieldDefinitions($entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
 
     $fields['test_no_display'] = FieldDefinition::create('text')

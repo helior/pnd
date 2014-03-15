@@ -11,6 +11,33 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\Language;
 
 /**
+ * Gets the entity definition for an entity type.
+ *
+ * @param string|null $entity_type
+ *   (optional) The entity type (e.g. 'node'). Leave NULL to retrieve
+ *   information for all entity types.
+ *
+ * @return array
+ *   An array containing the entity type's definition, as retrieved with
+ *   \Drupal\Core\Entity\EntityManagerInterface. If $entity_type is NULL, an
+ *   associative array of all entity type definitions keyed by entity type is
+ *   returned.
+ *
+ * @see \Drupal\Core\Entity\EntityManagerInterface
+ * @see hook_entity_info_alter()
+ *
+ * @deprecated Use \Drupal\Core\Entity\EntityManagerInterface::getDefinitions() directly.
+ */
+function entity_get_info($entity_type = NULL) {
+  if (empty($entity_type)) {
+    return \Drupal::entityManager()->getDefinitions();
+  }
+  else {
+    return \Drupal::entityManager()->getDefinition($entity_type);
+  }
+}
+
+/**
  * Resets the cached information about entity types.
  */
 function entity_info_cache_clear() {
@@ -93,8 +120,8 @@ function entity_invoke_bundle_hook($hook, $entity_type, $bundle, $bundle_new = N
 function entity_get_form_modes($entity_type = NULL) {
   $form_modes = &drupal_static(__FUNCTION__);
   if (!$form_modes) {
-    $langcode = \Drupal::languageManager()->getCurrentLanguage()->id;
-    if ($cache = \Drupal::cache()->get("entity_form_mode_info:$langcode")) {
+    $langcode = language(Language::TYPE_INTERFACE)->id;
+    if ($cache = cache()->get("entity_form_mode_info:$langcode")) {
       $form_modes = $cache->data;
     }
     else {
@@ -103,8 +130,8 @@ function entity_get_form_modes($entity_type = NULL) {
         list($form_mode_entity_type, $form_mode_name) = explode('.', $form_mode->id(), 2);
         $form_modes[$form_mode_entity_type][$form_mode_name] = (array) $form_mode;
       }
-      \Drupal::moduleHandler()->alter('entity_form_mode_info', $form_modes);
-      \Drupal::cache()->set("entity_form_mode_info:$langcode", $form_modes, Cache::PERMANENT, array('entity_types' => TRUE));
+      drupal_alter('entity_form_mode_info', $form_modes);
+      cache()->set("entity_form_mode_info:$langcode", $form_modes, Cache::PERMANENT, array('entity_info' => TRUE));
     }
   }
 
@@ -131,8 +158,8 @@ function entity_get_form_modes($entity_type = NULL) {
 function entity_get_view_modes($entity_type = NULL) {
   $view_modes = &drupal_static(__FUNCTION__);
   if (!$view_modes) {
-    $langcode = \Drupal::languageManager()->getCurrentLanguage()->id;
-    if ($cache = \Drupal::cache()->get("entity_view_mode_info:$langcode")) {
+    $langcode = language(Language::TYPE_INTERFACE)->id;
+    if ($cache = cache()->get("entity_view_mode_info:$langcode")) {
       $view_modes = $cache->data;
     }
     else {
@@ -141,8 +168,8 @@ function entity_get_view_modes($entity_type = NULL) {
         list($view_mode_entity_type, $view_mode_name) = explode('.', $view_mode->id(), 2);
         $view_modes[$view_mode_entity_type][$view_mode_name] = (array) $view_mode;
       }
-      \Drupal::moduleHandler()->alter('entity_view_mode_info', $view_modes);
-      \Drupal::cache()->set("entity_view_mode_info:$langcode", $view_modes, Cache::PERMANENT, array('entity_types' => TRUE));
+      drupal_alter('entity_view_mode_info', $view_modes);
+      cache()->set("entity_view_mode_info:$langcode", $view_modes, Cache::PERMANENT, array('entity_info' => TRUE));
     }
   }
 
@@ -240,7 +267,6 @@ function entity_revision_delete($entity_type, $revision_id) {
  */
 function entity_load_by_uuid($entity_type_id, $uuid, $reset = FALSE) {
   $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
-
   if (!$uuid_key = $entity_type->getKey('uuid')) {
     throw new EntityStorageException("Entity type $entity_type_id does not support UUIDs.");
   }
@@ -371,10 +397,7 @@ function entity_create($entity_type, array $values = array()) {
  *
  * @return \Drupal\Core\Entity\EntityStorageControllerInterface
  *
- * @see \Drupal\Core\Entity\EntityManagerInterface::getStorageController().
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::entityManager()->getStorageController().
+ * @deprecated Use \Drupal\Core\Entity\EntityManagerInterface::getStorageController().
  */
 function entity_get_controller($entity_type) {
   return \Drupal::entityManager()
@@ -412,10 +435,7 @@ function entity_page_label(EntityInterface $entity, $langcode = NULL) {
  * @return \Drupal\Core\Entity\EntityAccessControllerInterface
  *   An entity access controller instance.
  *
- * @see \Drupal\Core\Entity\EntityManagerInterface::getAccessController().
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::entityManager()->getAccessController().
+ * @deprecated Use \Drupal\Core\Entity\EntityManagerInterface::getAccessController().
  */
 function entity_access_controller($entity_type) {
   return \Drupal::entityManager()
@@ -431,10 +451,7 @@ function entity_access_controller($entity_type) {
  * @return \Drupal\Core\Entity\EntityListControllerInterface
  *   An entity list controller.
  *
- * @see \Drupal\Core\Entity\EntityManagerInterface::getListController().
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::entityManager()->getListController().
+ * @deprecated Use \Drupal\Core\Entity\EntityManagerInterface::getFormController().
  */
 function entity_list_controller($entity_type) {
   return \Drupal::entityManager()

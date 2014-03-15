@@ -71,6 +71,8 @@ abstract class AutocompleteWidgetBase extends WidgetBase {
    * {@inheritdoc}
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
+    global $user;
+
     $entity = $items->getEntity();
 
     // Prepare the autocomplete route parameters.
@@ -94,7 +96,7 @@ abstract class AutocompleteWidgetBase extends WidgetBase {
       '#size' => $this->getSetting('size'),
       '#placeholder' => $this->getSetting('placeholder'),
       '#element_validate' => array(array($this, 'elementValidate')),
-      '#autocreate_uid' => ($entity instanceof EntityOwnerInterface) ? $entity->getOwnerId() : \Drupal::currentUser()->id(),
+      '#autocreate_uid' => ($entity instanceof EntityOwnerInterface) ? $entity->getOwnerId() : $user->id(),
     );
 
     return array('target_id' => $element);

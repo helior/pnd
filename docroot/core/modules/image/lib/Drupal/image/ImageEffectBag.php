@@ -7,7 +7,7 @@
 
 namespace Drupal\image;
 
-use Drupal\Core\Plugin\DefaultPluginBag;
+use Drupal\Component\Plugin\DefaultPluginBag;
 
 /**
  * A collection of image effects.
@@ -42,7 +42,8 @@ class ImageEffectBag extends DefaultPluginBag {
       $configuration['uuid'] = $uuid_generator->generate();
     }
     $instance_id = $configuration['uuid'];
-    $this->addInstanceId($instance_id, $configuration);
+    $this->setConfiguration($instance_id, $configuration);
+    $this->addInstanceId($instance_id);
     return $instance_id;
   }
 

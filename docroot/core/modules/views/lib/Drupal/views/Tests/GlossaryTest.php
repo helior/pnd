@@ -6,9 +6,7 @@
  */
 
 namespace Drupal\views\Tests;
-
 use Drupal\Component\Utility\Unicode;
-use Drupal\views\Views;
 
 /**
  * Tests glossary view ( summary of arguments ).
@@ -56,7 +54,7 @@ class GlossaryTest extends ViewTestBase {
     }
 
     // Execute glossary view
-    $view = Views::getView('glossary');
+    $view = views_get_view('glossary');
     $view->setDisplay('attachment_1');
     $view->executeDisplay('attachment_1');
 

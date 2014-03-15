@@ -11,7 +11,6 @@ use Drupal\Component\Utility\Number;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\comment\CommentInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\TypedData\DataDefinition;
@@ -38,6 +37,7 @@ use Drupal\user\UserInterface;
  *   uri_callback = "comment_uri",
  *   fieldable = TRUE,
  *   translatable = TRUE,
+ *   render_cache = FALSE,
  *   entity_keys = {
  *     "id" = "cid",
  *     "bundle" = "field_id",
@@ -160,7 +160,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
     // Update the {comment_entity_statistics} table prior to executing the hook.
     $storage_controller->updateEntityStatistics($this);
     if ($this->isPublished()) {
-      \Drupal::moduleHandler()->invokeAll('comment_publish', array($this));
+      module_invoke_all('comment_publish', $this);
     }
   }
 
@@ -191,17 +191,6 @@ class Comment extends ContentEntityBase implements CommentInterface {
   /**
    * {@inheritdoc}
    */
-  public function referencedEntities() {
-    $referenced_entities = parent::referencedEntities();
-    if ($this->getCommentedEntityId()) {
-      $referenced_entities[] = $this->getCommentedEntity();
-    }
-    return $referenced_entities;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function permalink() {
     $entity = $this->getCommentedEntity();
     $uri = $entity->urlInfo();
@@ -213,7 +202,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
+  public static function baseFieldDefinitions($entity_type) {
     $fields['cid'] = FieldDefinition::create('integer')
       ->setLabel(t('Comment ID'))
       ->setDescription(t('The comment ID.'))

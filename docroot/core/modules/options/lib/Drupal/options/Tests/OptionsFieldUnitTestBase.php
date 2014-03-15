@@ -39,14 +39,14 @@ class OptionsFieldUnitTestBase extends FieldUnitTestBase {
   /**
    * The list field used in the test.
    *
-   * @var \Drupal\field\Entity\FieldConfig
+   * @var \Drupal\field\Entity\Field
    */
   protected $field;
 
   /**
    * The list field instance used in the test.
    *
-   * @var \Drupal\field\Entity\FieldInstanceConfig
+   * @var \Drupal\field\Entity\FieldInstance
    */
   protected $instance;
 
@@ -55,7 +55,7 @@ class OptionsFieldUnitTestBase extends FieldUnitTestBase {
    */
   public function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('router'));
+    $this->installSchema('system', array('router', 'menu_router'));
 
     $this->fieldDefinition = array(
       'name' => $this->fieldName,
@@ -66,7 +66,7 @@ class OptionsFieldUnitTestBase extends FieldUnitTestBase {
         'allowed_values' => array(1 => 'One', 2 => 'Two', 3 => 'Three'),
       ),
     );
-    $this->field = entity_create('field_config', $this->fieldDefinition);
+    $this->field = entity_create('field_entity', $this->fieldDefinition);
     $this->field->save();
 
     $instance = array(
@@ -74,7 +74,7 @@ class OptionsFieldUnitTestBase extends FieldUnitTestBase {
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
     );
-    $this->instance = entity_create('field_instance_config', $instance);
+    $this->instance = entity_create('field_instance', $instance);
     $this->instance->save();
 
     entity_get_form_display('entity_test', 'entity_test', 'default')

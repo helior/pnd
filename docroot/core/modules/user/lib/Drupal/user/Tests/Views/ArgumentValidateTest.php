@@ -7,8 +7,6 @@
 
 namespace Drupal\user\Tests\Views;
 
-use Drupal\views\Views;
-
 /**
  * Tests views user argument validator plugin.
  */
@@ -85,7 +83,7 @@ class ArgumentValidateTest extends UserTestBase {
   }
 
   function view_argument_validate_user($argtype) {
-    $view = Views::getView('test_view_argument_validate_user');
+    $view = views_get_view('test_view_argument_validate_user');
     $view->setDisplay();
     $view->displayHandlers->get('default')->options['arguments']['null']['validate_options']['type'] = $argtype;
     $view->preExecute();

@@ -9,7 +9,6 @@ namespace Drupal\Tests\Core\Entity;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -85,7 +84,7 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field name methods.
    */
   public function testFieldName() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $field_name = $this->randomName();
     $definition->setName($field_name);
     $this->assertEquals($field_name, $definition->getName());
@@ -95,7 +94,7 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field label methods.
    */
   public function testFieldLabel() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $label = $this->randomName();
     $definition->setLabel($label);
     $this->assertEquals($label, $definition->getLabel());
@@ -105,7 +104,7 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field description methods.
    */
   public function testFieldDescription() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $description = $this->randomName();
     $definition->setDescription($description);
     $this->assertEquals($description, $definition->getDescription());
@@ -123,13 +122,12 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field settings methods.
    */
   public function testFieldSettings() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $setting = $this->randomName();
     $value = $this->randomName();
     $definition->setSetting($setting, $value);
     $this->assertEquals($value, $definition->getSetting($setting));
-    $default_settings = $this->fieldTypeDefinition['settings'] + $this->fieldTypeDefinition['instance_settings'];
-    $this->assertEquals(array($setting => $value) + $default_settings, $definition->getSettings());
+    $this->assertEquals(array($setting => $value), $definition->getSettings());
   }
 
   /**
@@ -148,7 +146,7 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field default value.
    */
   public function testFieldDefaultValue() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $setting = 'default_value';
     $value = $this->randomName();
     $definition->setSetting($setting, $value);
@@ -162,7 +160,7 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field translatable methods.
    */
   public function testFieldTranslatable() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $this->assertFalse($definition->isTranslatable());
     $definition->setTranslatable(TRUE);
     $this->assertTrue($definition->isTranslatable());
@@ -174,19 +172,16 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests field cardinality.
    */
   public function testFieldCardinality() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $this->assertEquals(1, $definition->getCardinality());
-    $definition->setCardinality(2);
-    $this->assertEquals(2, $definition->getCardinality());
-    $definition->setCardinality(FieldDefinitionInterface::CARDINALITY_UNLIMITED);
-    $this->assertEquals(FieldDefinitionInterface::CARDINALITY_UNLIMITED, $definition->getCardinality());
+    // @todo: Add more tests when this can be controlled.
   }
 
   /**
    * Tests required.
    */
   public function testFieldRequired() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $this->assertFalse($definition->isRequired());
     $definition->setRequired(TRUE);
     $this->assertTrue($definition->isRequired());
@@ -198,7 +193,7 @@ class FieldDefinitionTest extends UnitTestCase {
    * Tests configurable.
    */
   public function testFieldConfigurable() {
-    $definition = FieldDefinition::create($this->fieldType);
+    $definition = new FieldDefinition();
     $this->assertFalse($definition->isConfigurable());
   }
 

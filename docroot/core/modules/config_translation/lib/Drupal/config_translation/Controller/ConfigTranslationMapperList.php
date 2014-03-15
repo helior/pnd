@@ -53,7 +53,7 @@ class ConfigTranslationMapperList extends ControllerBase {
    */
   public function render() {
     $build = array(
-      '#type' => 'table',
+      '#theme' => 'table',
       '#header' => $this->buildHeader(),
       '#rows' => array(),
     );

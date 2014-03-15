@@ -9,7 +9,7 @@ namespace Drupal\aggregator_test\Plugin\aggregator\processor;
 
 use Drupal\aggregator\Plugin\AggregatorPluginSettingsBase;
 use Drupal\aggregator\Plugin\ProcessorInterface;
-use Drupal\aggregator\FeedInterface;
+use Drupal\aggregator\Entity\Feed;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -74,7 +74,7 @@ class TestProcessor extends AggregatorPluginSettingsBase implements ProcessorInt
       '#type' => 'details',
       '#title' => t('Test processor settings'),
       '#description' => $info['description'],
-      '#open' => in_array($info['id'], $processors),
+      '#collapsed' => !in_array($info['id'], $processors),
     );
     // Add some dummy settings to verify settingsForm is called.
     $form['processors'][$info['id']]['dummy_length'] = array(
@@ -98,7 +98,7 @@ class TestProcessor extends AggregatorPluginSettingsBase implements ProcessorInt
   /**
    * {@inheritdoc}
    */
-  public function process(FeedInterface $feed) {
+  public function process(Feed $feed) {
     foreach ($feed->items as &$item) {
       // Prepend our test string.
       $item['title'] = 'testProcessor' . $item['title'];
@@ -108,7 +108,7 @@ class TestProcessor extends AggregatorPluginSettingsBase implements ProcessorInt
   /**
    * {@inheritdoc}
    */
-  public function remove(FeedInterface $feed) {
+  public function remove(Feed $feed) {
     // Append a random number, just to change the feed description.
     $feed->description->value .= rand(0, 10);
   }
@@ -116,7 +116,7 @@ class TestProcessor extends AggregatorPluginSettingsBase implements ProcessorInt
   /**
    * {@inheritdoc}
    */
-  public function postProcess(FeedInterface $feed) {
+  public function postProcess(Feed $feed) {
     // Double the refresh rate.
     $feed->refresh->value *= 2;
     $feed->save();

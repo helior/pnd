@@ -23,8 +23,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  *   },
  *   settings = {
  *     "test_widget_setting" = "dummy test string"
- *   },
- *   weight = -10
+ *   }
  * )
  */
 class TestFieldWidget extends WidgetBase {

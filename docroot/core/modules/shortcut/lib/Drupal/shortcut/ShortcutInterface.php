@@ -44,7 +44,7 @@ interface ShortcutInterface extends ContentEntityInterface {
   /**
    * Sets the weight among shortcuts with the same depth.
    *
-   * @param int $weight
+   *Â·@param int $weight
    *   The shortcut weight.
    *
    * @return \Drupal\shortcut\ShortcutInterface

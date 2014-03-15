@@ -27,11 +27,12 @@ use Drupal\custom_block\CustomBlockTypeInterface;
  *     "list" = "Drupal\custom_block\CustomBlockTypeListController"
  *   },
  *   admin_permission = "administer blocks",
- *   config_prefix = "type",
+ *   config_prefix = "custom_block.type",
  *   bundle_of = "custom_block",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label"
+ *     "label" = "label",
+ *     "uuid" = "uuid"
  *   },
  *   links = {
  *     "delete-form" = "custom_block.type_delete",
@@ -47,6 +48,13 @@ class CustomBlockType extends ConfigEntityBase implements CustomBlockTypeInterfa
    * @var string
    */
   public $id;
+
+  /**
+   * The custom block type UUID.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The custom block type label.

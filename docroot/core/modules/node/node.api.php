@@ -150,7 +150,7 @@ use Drupal\Component\Utility\Xss;
  *   'grant_update' => 0,
  *   'grant_delete' => 0,
  * );
- * db_insert('node_access')->fields($record)->execute();
+ * drupal_write_record('node_access', $record);
  * @endcode
  * And then in its hook_node_grants() implementation, it would need to return:
  * @code

@@ -7,8 +7,6 @@
 
 namespace Drupal\Core\Config;
 
-use Drupal\Core\Config\ConfigEvents;
-use Drupal\Core\DependencyInjection\DependencySerialization;
 use Drupal\Core\Lock\LockBackendInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -22,7 +20,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  *
  * The ConfigImporter has a identifier which is used to construct event names.
  * The events fired during an import are:
- * - ConfigEvents::IMPORT_VALIDATE: Events listening can throw a
+ * - ConfigEvents::VALIDATE: Events listening can throw a
  *   \Drupal\Core\Config\ConfigImporterException to prevent an import from
  *   occurring.
  *   @see \Drupal\Core\EventSubscriber\ConfigImportSubscriber
@@ -31,12 +29,12 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  *
  * @see \Drupal\Core\Config\ConfigImporterEvent
  */
-class ConfigImporter extends DependencySerialization {
+class ConfigImporter {
 
   /**
-   * The name used to identify the lock.
+   * The name used to identify events and the lock.
    */
-  const LOCK_ID = 'config_importer';
+  const ID = 'config.importer';
 
   /**
    * The storage comparer used to discover configuration changes.
@@ -202,25 +200,17 @@ class ConfigImporter extends DependencySerialization {
       // Ensure that the changes have been validated.
       $this->validate();
 
-      if (!$this->lock->acquire(static::LOCK_ID)) {
+      if (!$this->lock->acquire(static::ID)) {
         // Another process is synchronizing configuration.
-        throw new ConfigImporterException(sprintf('%s is already importing', static::LOCK_ID));
+        throw new ConfigImporterException(sprintf('%s is already importing', static::ID));
       }
-      // First pass deleted, then new, and lastly changed configuration, in order
-      // to handle dependencies correctly.
-      // @todo Implement proper dependency ordering using
-      //   https://drupal.org/node/2080823
-      foreach (array('delete', 'create', 'update') as $op) {
-        foreach ($this->getUnprocessed($op) as $name) {
-          $this->process($op, $name);
-        }
-      }
+      $this->importInvokeOwner();
+      $this->importConfig();
       // Allow modules to react to a import.
-      $this->eventDispatcher->dispatch(ConfigEvents::IMPORT, new ConfigImporterEvent($this));
-
+      $this->notify('import');
 
       // The import is now complete.
-      $this->lock->release(static::LOCK_ID);
+      $this->lock->release(static::ID);
       $this->reset();
     }
     return $this;
@@ -237,45 +227,30 @@ class ConfigImporter extends DependencySerialization {
       if (!$this->storageComparer->validateSiteUuid()) {
         throw new ConfigImporterException('Site UUID in source storage does not match the target storage.');
       }
-      $this->eventDispatcher->dispatch(ConfigEvents::IMPORT_VALIDATE, new ConfigImporterEvent($this));
+      $this->notify('validate');
       $this->validated = TRUE;
     }
     return $this;
   }
 
   /**
-   * Processes a configuration change.
-   *
-   * @param string $op
-   *   The change operation.
-   * @param string $name
-   *   The name of the configuration to process.
+   * Writes an array of config changes from the source to the target storage.
    */
-  protected function process($op, $name) {
-    if (!$this->importInvokeOwner($op, $name)) {
-      $this->importConfig($op, $name);
+  protected function importConfig() {
+    foreach (array('delete', 'create', 'update') as $op) {
+      foreach ($this->getUnprocessed($op) as $name) {
+        $config = new Config($name, $this->storageComparer->getTargetStorage(), $this->eventDispatcher, $this->typedConfigManager);
+        if ($op == 'delete') {
+          $config->delete();
+        }
+        else {
+          $data = $this->storageComparer->getSourceStorage()->read($name);
+          $config->setData($data ? $data : array());
+          $config->save();
+        }
+        $this->setProcessed($op, $name);
+      }
     }
-  }
-
-  /**
-   * Writes a configuration change from the source to the target storage.
-   *
-   * @param string $op
-   *   The change operation.
-   * @param string $name
-   *   The name of the configuration to process.
-   */
-  protected function importConfig($op, $name) {
-    $config = new Config($name, $this->storageComparer->getTargetStorage(), $this->eventDispatcher, $this->typedConfigManager);
-    if ($op == 'delete') {
-      $config->delete();
-    }
-    else {
-      $data = $this->storageComparer->getSourceStorage()->read($name);
-      $config->setData($data ? $data : array());
-      $config->save();
-    }
-    $this->setProcessed($op, $name);
   }
 
   /**
@@ -285,43 +260,47 @@ class ConfigImporter extends DependencySerialization {
    * configuration data.
    *
    * @todo Add support for other extension types; e.g., themes etc.
-   *
-   * @param string $op
-   *   The change operation to get the unprocessed list for, either delete,
-   *   create or update.
-   * @param string $name
-   *   The name of the configuration to process.
-   *
-   * @return bool
-   *   TRUE if the configuration was imported as a configuration entity. FALSE
-   *   otherwise.
    */
-  protected function importInvokeOwner($op, $name) {
-    // Call to the configuration entity's storage controller to handle the
-    // configuration change.
-    $handled_by_module = FALSE;
-    // Validate the configuration object name before importing it.
-    // Config::validateName($name);
-    if ($entity_type = $this->configManager->getEntityTypeIdByName($name)) {
-      $old_config = new Config($name, $this->storageComparer->getTargetStorage(), $this->eventDispatcher, $this->typedConfigManager);
-      if ($old_data = $this->storageComparer->getTargetStorage()->read($name)) {
-        $old_config->initWithData($old_data);
-      }
+  protected function importInvokeOwner() {
+    // First pass deleted, then new, and lastly changed configuration, in order
+    // to handle dependencies correctly.
+    foreach (array('delete', 'create', 'update') as $op) {
+      foreach ($this->getUnprocessed($op) as $name) {
+        // Call to the configuration entity's storage controller to handle the
+        // configuration change.
+        $handled_by_module = FALSE;
+        // Validate the configuration object name before importing it.
+        // Config::validateName($name);
+        if ($entity_type = $this->configManager->getEntityTypeIdByName($name)) {
+          $old_config = new Config($name, $this->storageComparer->getTargetStorage(), $this->eventDispatcher, $this->typedConfigManager);
+          if ($old_data = $this->storageComparer->getTargetStorage()->read($name)) {
+            $old_config->initWithData($old_data);
+          }
 
-      $data = $this->storageComparer->getSourceStorage()->read($name);
-      $new_config = new Config($name, $this->storageComparer->getTargetStorage(), $this->eventDispatcher, $this->typedConfigManager);
-      if ($data !== FALSE) {
-        $new_config->setData($data);
-      }
+          $data = $this->storageComparer->getSourceStorage()->read($name);
+          $new_config = new Config($name, $this->storageComparer->getTargetStorage(), $this->eventDispatcher, $this->typedConfigManager);
+          if ($data !== FALSE) {
+            $new_config->setData($data);
+          }
 
-      $method = 'import' . ucfirst($op);
-      $handled_by_module = $this->configManager->getEntityManager()->getStorageController($entity_type)->$method($name, $new_config, $old_config);
+          $method = 'import' . ucfirst($op);
+          $handled_by_module = $this->configManager->getEntityManager()->getStorageController($entity_type)->$method($name, $new_config, $old_config);
+        }
+        if (!empty($handled_by_module)) {
+          $this->setProcessed($op, $name);
+        }
+      }
     }
-    if (!empty($handled_by_module)) {
-      $this->setProcessed($op, $name);
-      return TRUE;
-    }
-    return FALSE;
+  }
+
+  /**
+   * Dispatches a config importer event.
+   *
+   * @param string $event_name
+   *   The name of the config importer event to dispatch.
+   */
+  protected function notify($event_name) {
+    $this->eventDispatcher->dispatch(static::ID . '.' . $event_name, new ConfigImporterEvent($this));
   }
 
   /**
@@ -331,7 +310,17 @@ class ConfigImporter extends DependencySerialization {
    *   TRUE if an import is already running, FALSE if not.
    */
   public function alreadyImporting() {
-    return !$this->lock->lockMayBeAvailable(static::LOCK_ID);
+    return !$this->lock->lockMayBeAvailable(static::ID);
+  }
+
+  /**
+   * Returns the identifier for events and locks.
+   *
+   * @return string
+   *   The identifier for events and locks.
+   */
+  public function getId() {
+    return static::ID;
   }
 
 }

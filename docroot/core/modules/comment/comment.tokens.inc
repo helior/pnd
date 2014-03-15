@@ -142,6 +142,11 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
           $replacements[$original] = $sanitize ? check_plain($comment->getHostname()) : $comment->getHostname();
           break;
 
+        case 'name':
+          $name = ($comment->getOwnerId() == 0) ? \Drupal::config('user.settings')->get('anonymous') : $comment->getAuthorName();
+          $replacements[$original] = $sanitize ? filter_xss($name) : $name;
+          break;
+
         case 'mail':
           $mail = $comment->getAuthorEmail();
           $replacements[$original] = $sanitize ? check_plain($mail) : $mail;
@@ -252,7 +257,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
         case 'comment-count':
           $count = 0;
           $fields = array_keys(\Drupal::service('comment.manager')->getFields($entity->getEntityTypeId()));
-          $definitions = array_keys($entity->getFieldDefinitions());
+          $definitions = array_keys($entity->getPropertyDefinitions());
           $valid_fields = array_intersect($fields, $definitions);
           foreach ($valid_fields as $field_name) {
             $count += $entity->get($field_name)->comment_count;

@@ -91,7 +91,7 @@ class DatabaseStorageExpirable extends DatabaseStorage implements KeyValueStoreE
     // the end of this request.
     $this->needsGarbageCollection = TRUE;
     $this->connection->merge($this->table)
-      ->keys(array(
+      ->key(array(
         'name' => $key,
         'collection' => $this->collection,
       ))

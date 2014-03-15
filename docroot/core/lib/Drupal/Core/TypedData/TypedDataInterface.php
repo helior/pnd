@@ -11,8 +11,6 @@ use Drupal\user;
 
 /**
  * Interface for typed data objects.
- *
- * @see \Drupal\Core\TypedData\DataDefinitionInterface
  */
 interface TypedDataInterface {
 
@@ -22,7 +20,7 @@ interface TypedDataInterface {
    * @return \Drupal\Core\TypedData\DataDefinitionInterface
    *   The data definition object.
    */
-  public function getDataDefinition();
+  public function getDefinition();
 
   /**
    * Gets the data value.

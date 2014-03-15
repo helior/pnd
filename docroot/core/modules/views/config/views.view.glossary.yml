@@ -18,16 +18,13 @@ display:
           distinct: false
           slave: false
           query_tags: {  }
-        provider: views
       use_ajax: true
       access:
         type: none
         options: {  }
-        provider: views
       cache:
         type: none
         options: {  }
-        provider: views
       exposed_form:
         type: basic
         options:
@@ -38,7 +35,6 @@ display:
           expose_sort_order: true
           sort_asc_label: Asc
           sort_desc_label: Desc
-        provider: views
       pager:
         type: mini
         options:
@@ -57,7 +53,6 @@ display:
           tags:
             previous: ‹‹
             next: ››
-        provider: views
       fields:
         title:
           id: title
@@ -289,7 +284,6 @@ display:
           order: asc
           summary: ''
           empty_table: false
-        provider: views
       row:
         type: fields
         options:
@@ -297,7 +291,6 @@ display:
           separator: ''
           hide_empty: false
           default_field_elements: true
-        provider: views
       header: {  }
       footer: {  }
       empty: {  }
@@ -325,13 +318,11 @@ display:
       query:
         type: views_query
         options: {  }
-        provider: views
       pager:
         type: none
         options:
           offset: 0
           items_per_page: 0
-        provider: views
       defaults:
         arguments: false
       arguments:
@@ -378,4 +369,5 @@ label: Glossary
 module: node
 id: glossary
 tag: default
+uuid: da0cfcf2-3e94-436f-a900-0dd0c2310cd7
 langcode: en

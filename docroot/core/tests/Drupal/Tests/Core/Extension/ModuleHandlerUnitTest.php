@@ -7,6 +7,10 @@
 
 namespace Drupal\Tests\Core\Extension;
 
+if (!defined('DRUPAL_ROOT')) {
+  define('DRUPAL_ROOT', dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__)))));
+}
+
 use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit_Framework_Error_Notice;

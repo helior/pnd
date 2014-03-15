@@ -29,6 +29,13 @@ use Drupal\Core\TypedData\DataDefinition;
 class ListTextItem extends ListItemBase {
 
   /**
+   * Definitions of the contained properties.
+   *
+   * @var array
+   */
+  static $propertyDefinitions;
+
+  /**
    * {@inheritdoc}
    */
   public static function schema(FieldDefinitionInterface $field_definition) {
@@ -46,13 +53,13 @@ class ListTextItem extends ListItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $constraints = array('Length' => array('max' => 255));
-    $properties['value'] = DataDefinition::create('string')
-      ->setLabel(t('Text value'))
-      ->setConstraints($constraints);
-
-    return $properties;
+  public function getPropertyDefinitions() {
+    if (!isset(static::$propertyDefinitions)) {
+      $constraints = array('Length' => array('max' => 255));
+      static::$propertyDefinitions['value'] = DataDefinition::create('string')
+        ->setLabel(t('Text value'))
+        ->setConstraints($constraints);
+   }
+    return static::$propertyDefinitions;
   }
-
 }

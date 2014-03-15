@@ -7,8 +7,6 @@
 
 namespace Drupal\tracker\Tests\Views;
 
-use Drupal\views\Views;
-
 /**
  * Tests the tracker user uid handlers.
  */
@@ -45,7 +43,7 @@ class TrackerUserUidTest extends TrackerTestBase {
       )
     );
 
-    $view = Views::getView('test_tracker_user_uid');
+    $view = views_get_view('test_tracker_user_uid');
     $this->executeView($view);
 
     // We should have no results as the filter is set for uid 0.

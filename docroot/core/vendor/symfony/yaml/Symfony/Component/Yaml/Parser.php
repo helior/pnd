@@ -312,9 +312,7 @@ class Parser
         $removeComments = !preg_match($removeCommentsPattern, $this->currentLine);
 
         while ($this->moveToNextLine()) {
-            $indent = $this->getCurrentLineIndentation();
-
-            if ($indent === $newIndent) {
+            if ($this->getCurrentLineIndentation() === $newIndent) {
                 $removeComments = !preg_match($removeCommentsPattern, $this->currentLine);
             }
 
@@ -323,16 +321,20 @@ class Parser
                 break;
             }
 
-            if ($this->isCurrentLineBlank()) {
-                $data[] = substr($this->currentLine, $newIndent);
+            if ($removeComments && $this->isCurrentLineEmpty() || $this->isCurrentLineBlank()) {
+                if ($this->isCurrentLineBlank()) {
+                    $data[] = substr($this->currentLine, $newIndent);
+                }
+
                 continue;
             }
 
-            if ($removeComments && $this->isCurrentLineComment()) {
-                continue;
-            }
+            $indent = $this->getCurrentLineIndentation();
 
-            if ($indent >= $newIndent) {
+            if (preg_match('#^(?P<text> *)$#', $this->currentLine, $match)) {
+                // empty line
+                $data[] = $match['text'];
+            } elseif ($indent >= $newIndent) {
                 $data[] = substr($this->currentLine, $newIndent);
             } elseif (0 == $indent) {
                 $this->moveToPreviousLine();

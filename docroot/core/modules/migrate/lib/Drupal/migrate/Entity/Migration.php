@@ -29,10 +29,12 @@ use Drupal\migrate\Plugin\MigrateIdMapInterface;
  *       "delete" = "Drupal\Core\Entity\EntityFormController"
  *     }
  *   },
+ *   config_prefix = "migrate.migration",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "weight" = "weight"
+ *     "weight" = "weight",
+ *     "uuid" = "uuid"
  *   }
  * )
  */
@@ -44,6 +46,15 @@ class Migration extends ConfigEntityBase implements MigrationInterface {
    * @var string
    */
   public $id;
+
+  /**
+   * The migration UUID.
+   *
+   * This is assigned automatically when the migration is created.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The human-readable label for the migration.

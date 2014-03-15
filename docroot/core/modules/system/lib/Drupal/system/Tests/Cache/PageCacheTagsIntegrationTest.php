@@ -46,29 +46,27 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
   function testPageCacheTags() {
     // Create two nodes.
     $author_1 = $this->drupalCreateUser();
-    $node_1 = $this->drupalCreateNode(array(
+    $node_1_path = 'node/' . $this->drupalCreateNode(array(
       'uid' => $author_1->id(),
       'title' => 'Node 1',
       'body' => array(
         0 => array('value' => 'Body 1', 'format' => 'basic_html'),
       ),
       'promote' => NODE_PROMOTED,
-    ));
+    ))->id();
     $author_2 = $this->drupalCreateUser();
-    $node_2 = $this->drupalCreateNode(array(
+    $node_2_path = 'node/' . $this->drupalCreateNode(array(
       'uid' => $author_2->id(),
       'title' => 'Node 2',
       'body' => array(
         0 => array('value' => 'Body 2', 'format' => 'full_html'),
       ),
       'promote' => NODE_PROMOTED,
-    ));
+    ))->id();
 
     // Full node page 1.
-    $this->verifyPageCacheTags('node/' . $node_1->id(), array(
+    $this->verifyPageCacheTags($node_1_path, array(
       'content:1',
-      'node_view:1',
-      'node:' . $node_1->id(),
       'user:' . $author_1->id(),
       'filter_format:basic_html',
       'menu:footer',
@@ -76,10 +74,8 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
     ));
 
     // Full node page 2.
-    $this->verifyPageCacheTags('node/' . $node_2->id(), array(
+    $this->verifyPageCacheTags($node_2_path, array(
       'content:1',
-      'node_view:1',
-      'node:' . $node_2->id(),
       'user:' . $author_2->id(),
       'filter_format:full_html',
       'menu:footer',

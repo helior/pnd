@@ -7,8 +7,9 @@
 
 namespace Drupal\number\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Component\Utility\MapArray;
 
 /**
  * Plugin implementation of the 'number_decimal' field type.
@@ -36,11 +37,12 @@ class DecimalItem extends NumberItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties['value'] = DataDefinition::create('string')
-      ->setLabel(t('Decimal value'));
-
-    return $properties;
+  public function getPropertyDefinitions() {
+    if (!isset(static::$propertyDefinitions)) {
+      static::$propertyDefinitions['value'] = DataDefinition::create('string')
+        ->setLabel(t('Decimal value'));
+    }
+    return static::$propertyDefinitions;
   }
 
   /**
@@ -66,20 +68,18 @@ class DecimalItem extends NumberItemBase {
     $element = array();
     $settings = $this->getSettings();
 
-    $range = range(10, 32);
     $element['precision'] = array(
       '#type' => 'select',
       '#title' => t('Precision'),
-      '#options' => array_combine($range, $range),
+      '#options' => MapArray::copyValuesToKeys(range(10, 32)),
       '#default_value' => $settings['precision'],
       '#description' => t('The total number of digits to store in the database, including those to the right of the decimal.'),
       '#disabled' => $has_data,
     );
-    $range = range(0, 10);
     $element['scale'] = array(
       '#type' => 'select',
       '#title' => t('Scale', array(), array('decimal places')),
-      '#options' => array_combine($range, $range),
+      '#options' => MapArray::copyValuesToKeys(range(0, 10)),
       '#default_value' => $settings['scale'],
       '#description' => t('The number of digits to the right of the decimal.'),
       '#disabled' => $has_data,

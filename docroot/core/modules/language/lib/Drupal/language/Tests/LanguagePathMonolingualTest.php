@@ -62,6 +62,9 @@ class LanguagePathMonolingualTest extends WebTestBase {
     // Set language detection to URL.
     $edit = array('language_interface[enabled][language-url]' => TRUE);
     $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
+
+    // Force languages to be initialized.
+    drupal_language_initialize();
   }
 
   /**

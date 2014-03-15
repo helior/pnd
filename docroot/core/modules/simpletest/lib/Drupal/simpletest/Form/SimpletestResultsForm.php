@@ -145,7 +145,6 @@ class SimpletestResultsForm extends FormBase {
       $form['result']['results'][$group] = array(
         '#type' => 'details',
         '#title' => $info['name'],
-        '#open' => TRUE,
         '#description' => $info['description'],
       );
       $form['result']['results'][$group]['summary'] = $summary;
@@ -172,14 +171,14 @@ class SimpletestResultsForm extends FormBase {
         $form['result']['summary']['#' . $assertion->status]++;
       }
       $form['result']['results'][$group]['table'] = array(
-        '#type' => 'table',
+        '#theme' => 'table',
         '#header' => $header,
         '#rows' => $rows,
       );
 
       // Set summary information.
       $group_summary['#ok'] = $group_summary['#fail'] + $group_summary['#exception'] == 0;
-      $form['result']['results'][$group]['#open'] = !$group_summary['#ok'];
+      $form['result']['results'][$group]['#collapsed'] = $group_summary['#ok'];
 
       // Store test group (class) as for use in filter.
       $filter[$group_summary['#ok'] ? 'pass' : 'fail'][] = $group;
@@ -261,7 +260,7 @@ class SimpletestResultsForm extends FormBase {
     $form_execute = array();
     $form_state_execute = array('values' => array());
     foreach ($classes as $class) {
-      $form_state_execute['values']['tests'][$class] = $class;
+      $form_state_execute['values'][$class] = 1;
     }
 
     // Submit the simpletest test form to rerun the tests.

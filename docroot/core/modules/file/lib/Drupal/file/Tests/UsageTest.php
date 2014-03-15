@@ -10,7 +10,7 @@ namespace Drupal\file\Tests;
 /**
  * Tests file usage functions.
  */
-class UsageTest extends FileManagedUnitTestBase {
+class UsageTest extends FileManagedTestBase {
   public static function getInfo() {
     return array(
       'name' => 'File usage',
@@ -161,7 +161,7 @@ class UsageTest extends FileManagedUnitTestBase {
     $this->assertTrue(file_exists($perm_new->getFileUri()), 'New permanent file was created correctly.');
 
     // Run cron and then ensure that only the old, temp file was deleted.
-    $this->container->get('cron')->run();
+    $this->cronRun();
     $this->assertFalse(file_exists($temp_old->getFileUri()), 'Old temp file was correctly removed.');
     $this->assertTrue(file_exists($temp_new->getFileUri()), 'New temp file was correctly ignored.');
     $this->assertTrue(file_exists($perm_old->getFileUri()), 'Old permanent file was correctly ignored.');

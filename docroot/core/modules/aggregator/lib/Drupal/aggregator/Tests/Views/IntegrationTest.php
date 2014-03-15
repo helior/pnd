@@ -7,7 +7,6 @@
 
 namespace Drupal\aggregator\Tests\Views;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\views\Tests\ViewUnitTestBase;
 
@@ -87,7 +86,7 @@ class IntegrationTest extends ViewUnitTestBase {
       $expected[] = $values;
     }
 
-    $view = Views::getView('test_aggregator_items');
+    $view = views_get_view('test_aggregator_items');
     $this->executeView($view);
 
     $column_map = array(

@@ -15,8 +15,6 @@ namespace Drupal\Core\TypedData;
  *
  * When implementing this interface which extends Traversable, make sure to list
  * IteratorAggregate or Iterator before this interface in the implements clause.
- *
- * @see \Drupal\Core\TypedData\ListDefinitionInterface
  */
 interface ListInterface extends TypedDataInterface, \ArrayAccess, \Countable, \Traversable {
 

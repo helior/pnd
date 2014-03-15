@@ -7,12 +7,12 @@
 
 namespace Drupal\system\Tests\Installer;
 
-use Drupal\simpletest\InstallerTestBase;
+use Drupal\system\Tests\InstallerTest;
 
 /**
  * Tests the installer translation detection.
  */
-class InstallerTranslationTest extends InstallerTestBase {
+class InstallerTranslationTest extends InstallerTest {
 
   /**
    * Overrides the language code in which to install Drupal.
@@ -57,14 +57,6 @@ class InstallerTranslationTest extends InstallerTestBase {
     $this->assertNotEqual($string, 'Visit your new site');
     $this->translations['Visit your new site'] = $string;
     parent::setUpConfirm();
-  }
-
-  /**
-   * Verifies that installation succeeded.
-   */
-  public function testInstaller() {
-    $this->assertUrl('user/1');
-    $this->assertResponse(200);
   }
 
 }

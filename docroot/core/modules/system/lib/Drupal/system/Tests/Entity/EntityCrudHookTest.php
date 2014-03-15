@@ -7,7 +7,6 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Database\Database;
 
@@ -134,7 +133,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
   public function testCommentHooks() {
     $account = $this->createUser();
     $this->enableModules(array('entity', 'filter'));
-    $this->container->get('comment.manager')->addDefaultField('node', 'article', 'comment', CommentItemInterface::OPEN);
+    $this->container->get('comment.manager')->addDefaultField('node', 'article', 'comment', COMMENT_OPEN);
 
     $node = entity_create('node', array(
       'uid' => $account->id(),

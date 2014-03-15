@@ -21,8 +21,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  *   },
  *   settings = {
  *     "field_empty_setting" = ""
- *   },
- *   weight = -1
+ *   }
  * )
  */
 class TestFieldEmptySettingFormatter extends FormatterBase {

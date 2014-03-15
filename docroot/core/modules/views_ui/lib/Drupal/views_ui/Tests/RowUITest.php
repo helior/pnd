@@ -7,8 +7,6 @@
 
 namespace Drupal\views_ui\Tests;
 
-use Drupal\views\Views;
-
 /**
  * Tests the UI of row plugins.
  *
@@ -60,7 +58,7 @@ class RowUITest extends UITestBase {
     $this->drupalPostForm($view_edit_url, array(), t('Save'));
     $this->assertLink(t('Test row plugin'), 0, 'Make sure the test row plugin is shown in the UI');
 
-    $view = Views::getView($view_name);
+    $view = views_get_view($view_name);
     $view->initDisplay();
     $row = $view->display_handler->getOption('row');
     $this->assertEqual($row['type'], 'test_row', 'Make sure that the test_row got saved as used row plugin.');

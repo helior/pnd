@@ -8,7 +8,6 @@
 namespace Drupal\language\Tests\Views;
 
 use Drupal\Core\Language\Language;
-use Drupal\views\Views;
 
 /**
  * Tests the argument language handler.
@@ -36,7 +35,7 @@ class ArgumentLanguageTest extends LanguageTestBase {
    * Tests the language argument.
    */
   public function testArgument() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     foreach (array('en' => 'John', 'xx-lolspeak' => 'George') as $langcode => $name) {
       $view->setDisplay();
       $view->displayHandlers->get('default')->overrideOption('arguments', array(

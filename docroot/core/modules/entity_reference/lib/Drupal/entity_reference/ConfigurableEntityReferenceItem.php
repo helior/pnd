@@ -8,6 +8,7 @@
 namespace Drupal\entity_reference;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Field\ConfigFieldItemInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Session\AccountInterface;
@@ -26,7 +27,7 @@ use Drupal\Core\Validation\Plugin\Validation\Constraint\AllowedValuesConstraint;
  *
  * @see entity_reference_field_info_alter().
  */
-class ConfigurableEntityReferenceItem extends EntityReferenceItem implements AllowedValuesInterface {
+class ConfigurableEntityReferenceItem extends EntityReferenceItem implements ConfigFieldItemInterface, AllowedValuesInterface {
 
   /**
    * {@inheritdoc}
@@ -75,25 +76,40 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
   }
 
   /**
+   * Definitions of the contained properties.
+   *
+   * @see ConfigurableEntityReferenceItem::getPropertyDefinitions()
+   *
+   * @var array
+   */
+  static $propertyDefinitions;
+
+  /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $settings = $field_definition->getSettings();
+  public function getPropertyDefinitions() {
+    $settings = $this->definition->getSettings();
     $target_type = $settings['target_type'];
 
-    // Call the parent to define the target_id and entity properties.
-    $properties = parent::propertyDefinitions($field_definition);
+    // Definitions vary by entity type and bundle, so key them accordingly.
+    $key = $target_type . ':';
+    $key .= isset($settings['target_bundle']) ? $settings['target_bundle'] : '';
 
-    // Only add the revision ID property if the target entity type supports
-    // revisions.
-    $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
-    if ($target_type_info->hasKey('revision') && $target_type_info->getRevisionTable()) {
-      $properties['revision_id'] = DataDefinition::create('integer')
-        ->setLabel(t('Revision ID'))
-        ->setConstraints(array('Range' => array('min' => 0)));
+    if (!isset(static::$propertyDefinitions[$key])) {
+      // Call the parent to define the target_id and entity properties.
+      parent::getPropertyDefinitions();
+
+      // Only add the revision ID property if the target entity type supports
+      // revisions.
+      $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
+      if ($target_type_info->hasKey('revision') && $target_type_info->getRevisionTable()) {
+        static::$propertyDefinitions[$key]['revision_id'] = DataDefinition::create('integer')
+          ->setLabel(t('Revision ID'))
+          ->setConstraints(array('Range' => array('min' => 0)));
+      }
     }
 
-    return $properties;
+    return static::$propertyDefinitions[$key];
   }
 
   /**
@@ -185,7 +201,6 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
     $form['handler'] = array(
       '#type' => 'details',
       '#title' => t('Reference type'),
-      '#open' => TRUE,
       '#tree' => TRUE,
       '#process' => array('_entity_reference_form_process_merge_parent'),
     );

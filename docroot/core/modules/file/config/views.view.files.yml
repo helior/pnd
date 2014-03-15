@@ -14,11 +14,9 @@ display:
         type: perm
         options:
           perm: 'access files overview'
-        provider: views
       cache:
         type: none
         options: {  }
-        provider: views
       query:
         type: views_query
         options:
@@ -27,7 +25,6 @@ display:
           slave: false
           query_comment: false
           query_tags: {  }
-        provider: views
       exposed_form:
         type: basic
         options:
@@ -38,7 +35,6 @@ display:
           expose_sort_order: true
           sort_asc_label: Asc
           sort_desc_label: Desc
-        provider: views
       pager:
         type: mini
         options:
@@ -57,7 +53,6 @@ display:
             items_per_page_options_all_label: '- All -'
             offset: false
             offset_label: Offset
-        provider: views
       style:
         type: table
         options:
@@ -138,10 +133,8 @@ display:
               responsive: priority-medium
           default: 'changed'
           empty_table: true
-        provider: views
       row:
         type: fields
-        provider: views
       fields:
         fid:
           id: fid
@@ -727,7 +720,6 @@ display:
             items_per_page_options_all_label: '- All -'
             offset: false
             offset_label: Offset
-        provider: views
       pager_options: false
       filters: {  }
       filter_groups:
@@ -1031,11 +1023,9 @@ display:
               responsive: ''
           default: entity_label
           empty_table: true
-        provider: views
       row:
         type: fields
         options: {  }
-        provider: views
       relationships:
         fid:
           id: fid
@@ -1049,4 +1039,5 @@ label: Files
 module: file
 id: files
 tag: default
+uuid: 4b47e09e-16e0-494b-b447-7166191dbb6e
 langcode: en

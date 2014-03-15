@@ -7,10 +7,8 @@
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Utility\Settings;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DrupalKernel;
-use Drupal\Core\Extension\ExtensionDiscovery;
 
 /**
  * Requirement severity -- Informational message only.
@@ -95,19 +93,16 @@ function drupal_load_updates() {
 function drupal_install_profile_distribution_name() {
   // During installation, the profile information is stored in the global
   // installation state (it might not be saved anywhere yet).
-  $info = array();
   if (drupal_installation_attempted()) {
     global $install_state;
-    if (isset($install_state['profile_info'])) {
-      $info = $install_state['profile_info'];
-    }
+    return isset($install_state['profile_info']['distribution_name']) ? $install_state['profile_info']['distribution_name'] : 'Drupal';
   }
   // At all other times, we load the profile via standard methods.
   else {
     $profile = drupal_get_profile();
     $info = system_get_info('module', $profile);
+    return $info['distribution_name'];
   }
-  return isset($info['distribution']['name']) ? $info['distribution']['name'] : 'Drupal';
 }
 
 /**
@@ -127,17 +122,22 @@ function drupal_detect_database_types() {
 }
 
 /**
- * Returns all supported database driver installer objects.
+ * Returns all supported database installer objects that are compiled into PHP.
  *
- * @return \Drupal\Core\Database\Install\Tasks[]
- *   An array of available database driver installer objects.
+ * @return
+ *  An array of database installer objects compiled into PHP.
  */
 function drupal_get_database_types() {
   $databases = array();
   $drivers = array();
 
-  // The internal database driver name is any valid PHP identifier.
-  $mask = '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '$/';
+  // We define a driver as a directory in /core/includes/database that in turn
+  // contains a database.inc file. That allows us to drop in additional drivers
+  // without modifying the installer.
+  require_once __DIR__ . '/database.inc';
+  // Allow any valid PHP identifier.
+  // @see http://www.php.net/manual/en/language.variables.basics.php.
+  $mask = '/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/';
   $files = file_scan_directory(DRUPAL_ROOT . '/core/lib/Drupal/Core/Database/Driver', $mask, array('recurse' => FALSE));
   if (is_dir(DRUPAL_ROOT . '/drivers/lib/Drupal/Driver/Database')) {
     $files += file_scan_directory(DRUPAL_ROOT . '/drivers/lib/Drupal/Driver/Database/', $mask, array('recurse' => FALSE));
@@ -199,14 +199,8 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
   }
   // Build list of setting names and insert the values into the global namespace.
   $variable_names = array();
-  $settings_settings = array();
   foreach ($settings as $setting => $data) {
-    if ($setting != 'settings') {
-      _drupal_rewrite_settings_global($GLOBALS[$setting], $data);
-    }
-    else {
-      _drupal_rewrite_settings_global($settings_settings, $data);
-    }
+    _drupal_rewrite_settings_global($GLOBALS[$setting], $data);
     $variable_names['$'. $setting] = $setting;
   }
   $contents = file_get_contents(DRUPAL_ROOT . '/' . $settings_file);
@@ -312,14 +306,6 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
     // Write the new settings file.
     if (file_put_contents(DRUPAL_ROOT . '/' . $settings_file, $buffer) === FALSE) {
       throw new Exception(t('Failed to modify %settings. Verify the file permissions.', array('%settings' => $settings_file)));
-    }
-    else {
-      // In case any $settings variables were written, import them into the
-      // Settings singleton.
-      if (!empty($settings_settings)) {
-        $old_settings = settings()->getAll();
-        new Settings($settings_settings + $old_settings);
-      }
     }
   }
   else {
@@ -456,7 +442,7 @@ function drupal_install_config_directories() {
   // Add a randomized config directory name to settings.php, unless it was
   // manually defined in the existing already.
   if (empty($config_directories)) {
-    $config_directories_hash = Crypt::randomBytesBase64(55);
+    $config_directories_hash = Crypt::randomStringHashed(55);
     $settings['config_directories'] = array(
       CONFIG_ACTIVE_DIRECTORY => (object) array(
         'value' => conf_path() . '/files/config_' . $config_directories_hash . '/active',
@@ -576,21 +562,22 @@ function drupal_verify_profile($install_state) {
   include_once __DIR__ . '/common.inc';
 
   $profile = $install_state['parameters']['profile'];
-  if (!isset($profile) || !isset($install_state['profiles'][$profile])) {
+  $profile_file = $install_state['profiles'][$profile]->uri;
+
+  if (!isset($profile) || !file_exists($profile_file)) {
     throw new Exception(install_no_profile_error());
   }
   $info = $install_state['profile_info'];
 
-  // Get the list of available modules for the selected installation profile.
-  $listing = new ExtensionDiscovery();
+  // Get a list of modules that exist in Drupal's assorted subdirectories.
   $present_modules = array();
-  foreach ($listing->scan('module') as $present_module) {
-    $present_modules[] = $present_module->getName();
+  foreach (drupal_system_listing('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.module$/', 'modules') as $present_module) {
+    $present_modules[] = $present_module->name;
   }
 
   // The installation profile is also a module, which needs to be installed
   // after all the other dependencies have been installed.
-  $present_modules[] = $profile;
+  $present_modules[] = drupal_get_profile();
 
   // Verify that all of the profile's required modules are present.
   $missing_modules = array_diff($info['dependencies'], $present_modules);
@@ -626,16 +613,19 @@ function drupal_install_system($install_state) {
   // Create tables.
   drupal_install_schema('system');
 
-  // Immediately boot a new kernel into the regular production environment.
-  $request = \Drupal::hasRequest() ? \Drupal::request() : FALSE;
+  if (!\Drupal::hasService('kernel')) {
+    // Immediately boot a kernel to have real services ready. If there's already
+    // an initialized request object in the pre-kernel container, persist it in
+    // the post-kernel container.
+    if (\Drupal::getContainer()->initialized('request')) {
+      $request = \Drupal::request();
+    }
+    $kernel = new DrupalKernel('install', drupal_classloader(), FALSE);
+    $kernel->boot();
+    if (isset($request)) {
+      \Drupal::getContainer()->set('request', $request);
+    }
 
-  unset($GLOBALS['conf']['container_service_providers']['InstallerServiceProvider']);
-  $kernel = new DrupalKernel('prod', drupal_classloader(), FALSE);
-  $kernel->boot();
-
-  if ($request) {
-    $kernel->getContainer()->enterScope('request');
-    $kernel->getContainer()->set('request', $request, 'request');
   }
 
   $system_path = drupal_get_path('module', 'system');
@@ -658,9 +648,8 @@ function drupal_install_system($install_state) {
     ->set('enabled.system', 0)
     ->save();
 
-  // Update the module list to include it. Reboot the kernel too.
+  // Update the module list to include it.
   \Drupal::moduleHandler()->setModuleList(array('system' => $system_path . '/system.module'));
-  $kernel->updateModules(array('system' => $system_path . '/system.module'));
 
   \Drupal::service('config.installer')->installDefaultConfig('module', 'system');
 
@@ -867,6 +856,8 @@ function drupal_install_fix_file($file, $mask, $message = TRUE) {
   }
 
   // chmod() will work if the web server is running as owner of the file.
+  // If PHP safe_mode is enabled the currently executing script must also
+  // have the same owner.
   if (@chmod($file, $mod)) {
     return TRUE;
   }
@@ -969,7 +960,9 @@ function drupal_requirements_url($severity) {
 function drupal_check_profile($profile, array $install_state) {
   include_once __DIR__ . '/file.inc';
 
-  if (!isset($profile) || !isset($install_state['profiles'][$profile])) {
+  $profile_file = $install_state['profiles'][$profile]->uri;
+
+  if (!isset($profile) || !file_exists($profile_file)) {
     throw new Exception(install_no_profile_error());
   }
 
@@ -1049,19 +1042,15 @@ function drupal_check_module($module) {
  * Additional, less commonly-used information that can appear in a
  * profile.info.yml file but not in a normal Drupal module .info.yml file
  * includes:
- *
- * - distribution: Existence of this key denotes that the installation profile
- *   is intended to be the only eligible choice in a distribution and will be
- *   auto-selected during installation, whereas the installation profile
- *   selection screen will be skipped. If more than one distribution profile is
- *   found then the first one discovered will be selected.
- *   The following subproperties may be set:
- *   - name: The name of the distribution that is being installed, to be shown
- *     throughout the installation process. If omitted,
- *     drupal_install_profile_distribution_name() defaults to 'Drupal'.
- *   - install: Optional parameters to override the installer:
- *     - theme: The machine name of a theme to use in the installer instead of
- *       Drupal's default installer theme.
+ * - distribution_name: The name of the Drupal distribution that is being
+ *   installed, to be shown throughout the installation process. Defaults to
+ *   'Drupal'.
+ * - exclusive: If the install profile is intended to be the only eligible
+ *   choice in a distribution, setting exclusive = TRUE will auto-select it
+ *   during installation, and the install profile selection screen will be
+ *   skipped. If more than one profile is found where exclusive = TRUE then
+ *   this property will have no effect and the profile selection screen will
+ *   be shown as normal with all available profiles shown.
  *
  * Note that this function does an expensive file system scan to get info file
  * information for dependencies. If you only need information from the info
@@ -1091,6 +1080,7 @@ function install_profile_info($profile, $langcode = 'en') {
     $defaults = array(
       'dependencies' => array(),
       'description' => '',
+      'distribution_name' => 'Drupal',
       'version' => NULL,
       'hidden' => FALSE,
       'php' => DRUPAL_MINIMUM_PHP,

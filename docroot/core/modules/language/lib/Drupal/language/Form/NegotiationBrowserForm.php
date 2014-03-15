@@ -107,6 +107,7 @@ class NegotiationBrowserForm extends ConfigFormBase {
     $form['new_mapping'] = array(
       '#type' => 'details',
       '#title' => $this->t('Add a new mapping'),
+      '#collapsed' => TRUE,
       '#tree' => TRUE,
     );
     $form['new_mapping']['browser_langcode'] = array(

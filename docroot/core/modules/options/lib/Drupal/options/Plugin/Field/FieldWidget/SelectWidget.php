@@ -48,7 +48,7 @@ class SelectWidget extends OptionsWidgetBase {
    */
   static protected function sanitizeLabel(&$label) {
     // Select form inputs allow unencoded HTML entities, but no HTML tags.
-    $label = decode_entities(strip_tags($label));
+    $label = strip_tags($label);
   }
 
   /**

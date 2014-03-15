@@ -12,8 +12,6 @@ use Drupal\Core\Database\IntegrityConstraintViolationException;
 
 /**
  * Defines the database lock backend. This is the default backend in Drupal.
- *
- * @ingroup lock
  */
 class DatabaseLockBackend extends LockBackendAbstract {
 

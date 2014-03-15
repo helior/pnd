@@ -68,7 +68,6 @@ class SiteInformationForm extends ConfigFormBase {
     $form['site_information'] = array(
       '#type' => 'details',
       '#title' => t('Site details'),
-      '#open' => TRUE,
     );
     $form['site_information']['site_name'] = array(
       '#type' => 'textfield',
@@ -92,7 +91,6 @@ class SiteInformationForm extends ConfigFormBase {
     $form['front_page'] = array(
       '#type' => 'details',
       '#title' => t('Front page'),
-      '#open' => TRUE,
     );
     $front_page = $site_config->get('page.front') != 'user' ? $this->aliasManager->getPathAlias($site_config->get('page.front')) : '';
     $form['front_page']['site_frontpage'] = array(
@@ -106,7 +104,6 @@ class SiteInformationForm extends ConfigFormBase {
     $form['error_page'] = array(
       '#type' => 'details',
       '#title' => t('Error pages'),
-      '#open' => TRUE,
     );
     $form['error_page']['site_403'] = array(
       '#type' => 'textfield',

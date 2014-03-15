@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Callbacks provided by the form system.
+ * Calbacks provided by the form system.
  */
 
 /**

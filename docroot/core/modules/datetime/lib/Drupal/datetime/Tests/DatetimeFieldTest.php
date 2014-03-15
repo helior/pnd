@@ -26,14 +26,14 @@ class DateTimeFieldTest extends WebTestBase {
   /**
    * A field to use in this test class.
    *
-   * @var \Drupal\field\Entity\FieldConfig
+   * @var \Drupal\field\Entity\Field
    */
   protected $field;
 
   /**
    * The instance used in this test class.
    *
-   * @var \Drupal\field\Entity\FieldInstanceConfig
+   * @var \Drupal\field\Entity\FieldInstance
    */
   protected $instance;
 
@@ -58,14 +58,14 @@ class DateTimeFieldTest extends WebTestBase {
     $this->drupalLogin($web_user);
 
     // Create a field with settings to validate.
-    $this->field = entity_create('field_config', array(
+    $this->field = entity_create('field_entity', array(
       'name' => drupal_strtolower($this->randomName()),
       'entity_type' => 'entity_test',
       'type' => 'datetime',
       'settings' => array('datetime_type' => 'date'),
     ));
     $this->field->save();
-    $this->instance = entity_create('field_instance_config', array(
+    $this->instance = entity_create('field_instance', array(
       'field_name' => $this->field->name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
@@ -296,7 +296,7 @@ class DateTimeFieldTest extends WebTestBase {
     $this->drupalCreateContentType(array('type' => 'date_content'));
 
     // Create a field with settings to validate.
-    $field = entity_create('field_config', array(
+    $field = entity_create('field_entity', array(
       'name' => drupal_strtolower($this->randomName()),
       'entity_type' => 'node',
       'type' => 'datetime',
@@ -304,7 +304,7 @@ class DateTimeFieldTest extends WebTestBase {
     ));
     $field->save();
 
-    $instance = entity_create('field_instance_config', array(
+    $instance = entity_create('field_instance', array(
       'field_name' => $field->name,
       'entity_type' => 'node',
       'bundle' => 'date_content',
@@ -323,7 +323,7 @@ class DateTimeFieldTest extends WebTestBase {
 
     // Check if default_date has been stored successfully.
     $config_entity = $this->container->get('config.factory')->get('field.instance.node.date_content.' . $field->name)->get();
-    $this->assertEqual($config_entity['default_value'][0]['default_date'], 'now', 'Default value has been stored successfully');
+    $this->assertEqual($config_entity['default_value'][0]['default_date'], 'now', 'Default value has been stored succesfully');
 
     // Clean field_info cache in order to avoid stale cache values.
     field_info_cache_clear();
@@ -345,7 +345,7 @@ class DateTimeFieldTest extends WebTestBase {
 
     // Check if default_date has been stored successfully.
     $config_entity = $this->container->get('config.factory')->get('field.instance.node.date_content.' . $field->name)->get();
-    $this->assertTrue(empty($config_entity['default_value']), 'Empty default value has been stored successfully');
+    $this->assertTrue(empty($config_entity['default_value']), 'Empty default value has been stored succesfully');
 
     // Clean field_info cache in order to avoid stale cache values.
     field_info_cache_clear();

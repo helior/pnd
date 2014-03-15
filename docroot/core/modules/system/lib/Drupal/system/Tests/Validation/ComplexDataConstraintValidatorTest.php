@@ -8,7 +8,6 @@
 namespace Drupal\system\Tests\Validation;
 
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\Core\TypedData\MapDataDefinition;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
@@ -43,8 +42,7 @@ class ComplexDataConstraintValidatorTest extends DrupalUnitTestBase {
    */
   public function testValidation() {
     // Create a definition that specifies some ComplexData constraint.
-    $definition = MapDataDefinition::create()
-      ->setPropertyDefinition('key', DataDefinition::create('integer'))
+    $definition = DataDefinition::create('map')
       ->addConstraint('ComplexData', array(
         'key' => array(
           'AllowedValues' => array(1, 2, 3)
@@ -73,8 +71,7 @@ class ComplexDataConstraintValidatorTest extends DrupalUnitTestBase {
     $violations = $typed_data->validate();
     $this->assertEqual($violations->count(), 0, 'Constraint on non-existing key is ignored.');
 
-    $definition = MapDataDefinition::create()
-      ->setPropertyDefinition('key', DataDefinition::create('integer'))
+    $definition = DataDefinition::create('map')
       ->addConstraint('ComplexData', array(
         'key' => array(
           'NotNull' => array()

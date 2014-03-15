@@ -8,7 +8,6 @@
 namespace Drupal\forum\Tests;
 
 use Drupal\comment\CommentInterface;
-use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -76,7 +75,7 @@ class ForumUninstallTest extends WebTestBase {
     // We want to test the handling of removing the forum comment field, so we
     // ensure there is at least one other comment field attached to a node type
     // so that comment_entity_load() runs for nodes.
-    \Drupal::service('comment.manager')->addDefaultField('node', 'forum', 'another_comment_field', CommentItemInterface::OPEN);
+    \Drupal::service('comment.manager')->addDefaultField('node', 'forum', 'another_comment_field', COMMENT_OPEN);
 
     $this->drupalGet('node/' . $node->nid->value);
     $this->assertResponse(200);

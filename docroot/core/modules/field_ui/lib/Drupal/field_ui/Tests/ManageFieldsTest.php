@@ -15,7 +15,6 @@ use Drupal\Component\Utility\String;
  * Tests the functionality of the 'Manage fields' screen.
  */
 class ManageFieldsTest extends FieldUiTestBase {
-
   public static function getInfo() {
     return array(
       'name' => 'Manage fields',
@@ -49,7 +48,7 @@ class ManageFieldsTest extends FieldUiTestBase {
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
     );
-    entity_create('field_config', $field)->save();
+    entity_create('field_entity', $field)->save();
 
     $instance = array(
       'field_name' => 'field_' . $vocabulary->id(),
@@ -57,7 +56,7 @@ class ManageFieldsTest extends FieldUiTestBase {
       'label' => 'Tags',
       'bundle' => 'article',
     );
-    entity_create('field_instance_config', $instance)->save();
+    entity_create('field_instance', $instance)->save();
 
     entity_get_form_display('node', 'article', 'default')
       ->setComponent('field_' . $vocabulary->id())
@@ -283,12 +282,12 @@ class ManageFieldsTest extends FieldUiTestBase {
   function testDefaultValue() {
     // Create a test field and instance.
     $field_name = 'test';
-    entity_create('field_config', array(
+    entity_create('field_entity', array(
       'name' => $field_name,
       'entity_type' => 'node',
       'type' => 'test_field'
     ))->save();
-    $instance = entity_create('field_instance_config', array(
+    $instance = entity_create('field_instance', array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'bundle' => $this->type,
@@ -384,38 +383,12 @@ class ManageFieldsTest extends FieldUiTestBase {
   }
 
   /**
-   * Tests that Field UI respects disallowed field names.
-   */
-  function testDisallowedFieldNames() {
-    // Reset the field prefix so we can test properly.
-    \Drupal::config('field_ui.settings')->set('field_prefix', '')->save();
-
-    $label = 'Disallowed field';
-    $edit = array(
-      'fields[_add_new_field][label]' => $label,
-      'fields[_add_new_field][type]' => 'test_field',
-    );
-
-    // Try with an entity key.
-    $edit['fields[_add_new_field][field_name]'] = 'title';
-    $bundle_path = 'admin/structure/types/manage/' . $this->type;
-    $this->drupalPostForm("$bundle_path/fields",  $edit, t('Save'));
-    $this->assertText(t('There was a problem creating field Disallowed field: Attempt to create field title which is reserved by entity type node.', array('%label' => $label)), 'Field was not saved.');
-
-    // Try with a base field.
-    $edit['fields[_add_new_field][field_name]'] = 'sticky';
-    $bundle_path = 'admin/structure/types/manage/' . $this->type;
-    $this->drupalPostForm("$bundle_path/fields",  $edit, t('Save'));
-    $this->assertText(t('There was a problem creating field Disallowed field: Attempt to create field sticky which is reserved by entity type node.', array('%label' => $label)), 'Field was not saved.');
-  }
-
-  /**
    * Tests that Field UI respects locked fields.
    */
   function testLockedField() {
     // Create a locked field and attach it to a bundle. We need to do this
     // programatically as there's no way to create a locked field through UI.
-    $field = entity_create('field_config', array(
+    $field = entity_create('field_entity', array(
       'name' => strtolower($this->randomName(8)),
       'entity_type' => 'node',
       'type' => 'test_field',
@@ -423,7 +396,7 @@ class ManageFieldsTest extends FieldUiTestBase {
       'locked' => TRUE
     ));
     $field->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_instance', array(
       'field_name' => $field->name,
       'entity_type' => 'node',
       'bundle' => $this->type,
@@ -458,7 +431,7 @@ class ManageFieldsTest extends FieldUiTestBase {
 
     // Create a field and an instance programmatically.
     $field_name = 'hidden_test_field';
-    entity_create('field_config', array(
+    entity_create('field_entity', array(
       'name' => $field_name,
       'entity_type' => 'node',
       'type' => $field_name,
@@ -469,11 +442,11 @@ class ManageFieldsTest extends FieldUiTestBase {
       'entity_type' => 'node',
       'label' => t('Hidden field'),
     );
-    entity_create('field_instance_config', $instance)->save();
+    entity_create('field_instance', $instance)->save();
     entity_get_form_display('node', $this->type, 'default')
       ->setComponent($field_name)
       ->save();
-    $this->assertTrue(entity_load('field_instance_config', 'node.' . $this->type . '.' . $field_name), format_string('An instance of the field %field was created programmatically.', array('%field' => $field_name)));
+    $this->assertTrue(entity_load('field_instance', 'node.' . $this->type . '.' . $field_name), format_string('An instance of the field %field was created programmatically.', array('%field' => $field_name)));
 
     // Check that the newly added instance appears on the 'Manage Fields'
     // screen.
@@ -557,13 +530,13 @@ class ManageFieldsTest extends FieldUiTestBase {
    */
   function testHelpDescriptions() {
     // Create an image field
-    entity_create('field_config', array(
+    entity_create('field_entity', array(
       'name' => 'field_image',
       'entity_type' => 'node',
       'type' => 'image',
     ))->save();
 
-    entity_create('field_instance_config', array(
+    entity_create('field_instance', array(
       'field_name' => 'field_image',
       'entity_type' => 'node',
       'label' => 'Image',

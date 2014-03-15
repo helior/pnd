@@ -379,8 +379,7 @@ class TestLocalActionManager extends LocalActionManager {
     $this->account = $account;
     $this->controllerResolver = $controller_resolver;
     $this->request = $request;
-    $this->moduleHandler = $module_handler;
-    $this->alterInfo('menu_local_actions');
+    $this->alterInfo($module_handler, 'menu_local_actions');
     $this->setCacheBackend($cache_backend, $language_manager, 'local_action_plugins', array('local_action' => TRUE));
   }
 

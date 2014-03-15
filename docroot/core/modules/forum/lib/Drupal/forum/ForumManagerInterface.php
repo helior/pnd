@@ -7,7 +7,6 @@
 
 namespace Drupal\forum;
 
-use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -20,13 +19,11 @@ interface ForumManagerInterface {
    *
    * @param int $tid
    *   Term ID.
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   Account to fetch topics for.
    *
    * @return array
-   *   Array with keys 'topics' and 'header'.
+   *   Array of topics.
    */
-  public function getTopics($tid, AccountInterface $account);
+  public function getTopics($tid);
 
   /**
    * Utility method to fetch the child forums for a given forum.

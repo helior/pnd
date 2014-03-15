@@ -7,7 +7,6 @@
 
 namespace Drupal\user\Tests\Views;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
 
@@ -83,7 +82,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
    * Tests just using the filter.
    */
   public function testUserNameApi() {
-    $view = Views::getView('test_user_name');
+    $view = views_get_view('test_user_name');
 
     $view->initHandlers();
     $view->filter['uid']->value = array($this->accounts[0]->id());

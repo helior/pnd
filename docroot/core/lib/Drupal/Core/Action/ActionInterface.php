@@ -7,7 +7,6 @@
 
 namespace Drupal\Core\Action;
 
-use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Executable\ExecutableInterface;
 
 /**
@@ -16,7 +15,7 @@ use Drupal\Core\Executable\ExecutableInterface;
  * @see \Drupal\Core\Annotation\Action
  * @see \Drupal\Core\Action\ActionManager
  */
-interface ActionInterface extends ExecutableInterface, PluginInspectionInterface {
+interface ActionInterface extends ExecutableInterface {
 
   /**
    * Executes the plugin for an array of objects.

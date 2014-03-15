@@ -83,10 +83,6 @@ class BlockInterfaceTest extends DrupalUnitTestBase {
         '#default_value' => TRUE,
         '#return_value' => 'visible',
       ),
-      'cache' => array(
-        '#type' => 'value',
-        '#value' => DRUPAL_NO_CACHE,
-      ),
       'display_message' => array(
         '#type' => 'textfield',
         '#title' => t('Display message'),

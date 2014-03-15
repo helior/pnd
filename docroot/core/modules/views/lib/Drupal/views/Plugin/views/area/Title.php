@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Plugin\views\area;
 
-use \Drupal\Core\Utility\Title as UtilityTitle;
-
 /**
  * Views area title override handler.
  *
@@ -53,7 +51,7 @@ class Title extends AreaPluginBase {
     // If a title is provided, process it.
     if (!empty($this->options['title'])) {
       $value = $this->globalTokenReplace($this->options['title']);
-      $this->view->setTitle($this->sanitizeValue($value, 'xss_admin'), UtilityTitle::PASS_THROUGH);
+      $this->view->setTitle($this->sanitizeValue($value, 'xss_admin'), PASS_THROUGH);
     }
   }
 

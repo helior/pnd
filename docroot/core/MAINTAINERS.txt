@@ -128,8 +128,7 @@ Markup
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 
 Migrate
-- Ben Dougherty 'benjy' https://drupal.org/user/1852732
-- Claudiu Cristea "claudiu.cristea"  https://drupal.org/user/56348
+- Károly Négyesi 'chx' http://drupal.org/user/9446
 - Mike Ryan 'mikeryan' http://drupal.org/user/4420
 
 Menu system
@@ -375,9 +374,7 @@ Shortcut module
 - ?
 
 Simpletest module
-- Daniel F. Kudwien 'sun' http://drupal.org/user/54136
-- Sascha Grossenbacher 'Berdir' http://drupal.org/user/214652
-- Alex Pott 'alexpott' http://drupal.org/user/157725
+- Jimmy Berry 'boombatower' http://drupal.org/user/214218
 
 Statistics module
 - Tim Millwood 'timmillwood' http://drupal.org/user/227849

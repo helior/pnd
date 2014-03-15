@@ -7,8 +7,6 @@
 
 namespace Drupal\node\Tests;
 
-use Drupal\Core\Cache\Cache;
-
 /**
  * Functional tests for the node module blocks.
  */
@@ -115,7 +113,7 @@ class NodeBlockFunctionalTest extends NodeTestBase {
     $node4 = $this->drupalCreateNode($default_settings);
     // drupalCreateNode() does not automatically flush content caches unlike
     // posting a node from a node form.
-    Cache::invalidateTags(array('content' => TRUE));
+    cache_invalidate_tags(array('content' => TRUE));
 
     // Test that all four nodes are shown.
     $this->drupalGet('');

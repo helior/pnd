@@ -8,7 +8,7 @@
 namespace Drupal\Core\TypedData;
 
 /**
- * A typed data definition class for defining data based on defined data types.
+ * A class for defining data based on defined data types.
  */
 class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
 
@@ -34,20 +34,13 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public static function createFromDataType($type) {
-    return self::create($type);
-  }
-
-  /**
    * Constructs a new data definition object.
    *
-   * @param array $values
-   *   (optional) If given, an array of initial values to set on the definition.
+   * @param array $definition
+   *   (optional) If given, a data definition represented as array.
    */
-  public function __construct(array $values = array()) {
-    $this->definition = $values;
+  public function __construct(array $definition = array()) {
+    $this->definition = $definition;
   }
 
   /**
@@ -117,7 +110,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * {@inheritdoc}
    */
   public function isList() {
-    return ($this instanceof ListDataDefinitionInterface);
+    return ($this instanceof ListDefinitionInterface);
   }
 
   /**

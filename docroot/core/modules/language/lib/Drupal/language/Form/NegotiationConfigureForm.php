@@ -117,7 +117,6 @@ class NegotiationConfigureForm extends FormBase {
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
-      '#button_type' => 'primary',
       '#value' => $this->t('Save settings'),
     );
 
@@ -206,7 +205,7 @@ class NegotiationConfigureForm extends FormBase {
         '#attributes' => array('class' => array('language-customization-checkbox')),
         '#attached' => array(
           'library' => array(
-            'language/language.admin'
+            array('language', 'language.admin')
           ),
         ),
       );

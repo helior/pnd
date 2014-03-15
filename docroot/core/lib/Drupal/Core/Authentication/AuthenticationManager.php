@@ -37,7 +37,7 @@ class AuthenticationManager implements AuthenticationProviderInterface, Authenti
    *
    * @var array
    */
-  protected $providerOrders = array();
+  protected $providerOrders;
 
   /**
    * Sorted list of registered providers.

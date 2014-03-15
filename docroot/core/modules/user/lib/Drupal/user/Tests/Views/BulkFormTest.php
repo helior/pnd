@@ -7,8 +7,6 @@
 
 namespace Drupal\user\Tests\Views;
 
-use Drupal\views\Views;
-
 /**
  * Tests the views bulk form test.
  *
@@ -83,7 +81,7 @@ class BulkFormTest extends UserTestBase {
     $this->assertNoRaw($account->label(), 'The user is not found in the table.');
 
     // Remove the user status filter from the view.
-    $view = Views::getView('test_user_bulk_form');
+    $view = views_get_view('test_user_bulk_form');
     $view->removeHandler('default', 'filter', 'status');
     $view->storage->save();
 

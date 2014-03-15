@@ -394,7 +394,7 @@ class EditLoadingTest extends WebTestBase {
     $display_settings = array(
       'label' => 'inline',
     );
-    $build = $node->body->view($display_settings);
+    $build = field_view_field($node, 'body', $display_settings);
     $output = drupal_render($build);
     $this->assertFalse(strpos($output, 'data-edit-field-id'), 'data-edit-field-id attribute not added when rendering field using dynamic display options.');
   }

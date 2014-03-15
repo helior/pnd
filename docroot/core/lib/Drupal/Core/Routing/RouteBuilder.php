@@ -103,7 +103,9 @@ class RouteBuilder implements RouteBuilderInterface {
       return FALSE;
     }
 
-    foreach ($this->getRouteDefinitions() as $provider => $routes) {
+    $yaml_discovery = $this->getYamlDiscovery();
+
+    foreach ($yaml_discovery->findAll() as $provider => $routes) {
       $collection = new RouteCollection();
 
       // The top-level 'routes_callback' is a list of methods in controller
@@ -178,16 +180,16 @@ class RouteBuilder implements RouteBuilderInterface {
   }
 
   /**
-   * Retrieves all defined routes from .routing.yml files.
+   * Returns the YAML discovery for getting all the .routing.yml files.
    *
-   * @return array
-   *   The defined routes, keyed by provider.
+   * @return \Drupal\Component\Discovery\YamlDiscovery
+   *   The yaml discovery.
    */
-  protected function getRouteDefinitions() {
+  protected function getYamlDiscovery() {
     if (!isset($this->yamlDiscovery)) {
       $this->yamlDiscovery = new YamlDiscovery('routing', $this->moduleHandler->getModuleDirectories());
     }
-    return $this->yamlDiscovery->findAll();
+    return $this->yamlDiscovery;
   }
 
 }

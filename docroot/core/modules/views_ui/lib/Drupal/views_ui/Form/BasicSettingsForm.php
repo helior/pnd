@@ -68,7 +68,6 @@ class BasicSettingsForm extends ConfigFormBase {
     $form['live_preview'] = array(
       '#type' => 'details',
       '#title' => $this->t('Live preview settings'),
-      '#open' => TRUE,
     );
 
     $form['live_preview']['ui_always_live_preview'] = array(

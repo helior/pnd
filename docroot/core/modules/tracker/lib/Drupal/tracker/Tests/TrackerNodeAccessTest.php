@@ -7,7 +7,6 @@
 
 namespace Drupal\tracker\Tests;
 
-use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -33,7 +32,7 @@ class TrackerNodeAccessTest extends WebTestBase {
   public function setUp() {
     parent::setUp();
     node_access_rebuild();
-    $this->container->get('comment.manager')->addDefaultField('node', 'page', 'comment', CommentItemInterface::OPEN);
+    $this->container->get('comment.manager')->addDefaultField('node', 'page', 'comment', COMMENT_OPEN);
     \Drupal::state()->set('node_access_test.private', TRUE);
   }
 

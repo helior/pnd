@@ -37,7 +37,7 @@ class CsrfTokenGeneratorTest extends UnitTestCase {
    */
   function setUp() {
     parent::setUp();
-    $this->key = Crypt::randomBytesBase64(55);
+    $this->key = Crypt::randomStringHashed(55);
 
     $private_key = $this->getMockBuilder('Drupal\Core\PrivateKey')
       ->disableOriginalConstructor()

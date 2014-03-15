@@ -8,7 +8,6 @@
 namespace Drupal\Core;
 
 use Drupal\Core\Cache\ListCacheBinsPass;
-use Drupal\Core\Config\ConfigFactoryOverridePass;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\Compiler\ModifyServiceDefinitionsPass;
@@ -52,12 +51,9 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     // during a subrequest).
     $container->addScope(new Scope('request'));
     $this->registerTwig($container);
+    $this->registerModuleHandler($container);
     $this->registerUuid($container);
 
-    // Add the compiler pass that lets service providers modify existing
-    // service definitions. This pass must come first so that later
-    // list-building passes are operating on the post-alter services list.
-    $container->addCompilerPass(new ModifyServiceDefinitionsPass());
     $container->addCompilerPass(new RegisterRouteFiltersPass());
     // Add a compiler pass for registering event subscribers.
     $container->addCompilerPass(new RegisterKernelListenersPass(), PassConfig::TYPE_AFTER_REMOVING);
@@ -79,13 +75,34 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     // Add the compiler pass that will process the tagged theme negotiator
     // service.
     $container->addCompilerPass(new ThemeNegotiatorPass());
-    // Add the compiler pass that will process the tagged config factory
-    // override services.
-    $container->addCompilerPass(new ConfigFactoryOverridePass());
+    // Add the compiler pass that lets service providers modify existing
+    // service definitions.
+    $container->addCompilerPass(new ModifyServiceDefinitionsPass());
     // Add the compiler pass that will process tagged authentication services.
     $container->addCompilerPass(new RegisterAuthenticationPass());
     // Register Twig extensions.
     $container->addCompilerPass(new RegisterTwigExtensionsPass());
+  }
+
+  /**
+   * Registers the module handler.
+   *
+   * As this is different during install, it needs to stay in PHP.
+   */
+  protected function registerModuleHandler(ContainerBuilder $container) {
+    // The ModuleHandler manages enabled modules and provides the ability to
+    // invoke hooks in all enabled modules.
+    if ($container->getParameter('kernel.environment') == 'install') {
+      // During installation we use the non-cached version.
+      $container->register('module_handler', 'Drupal\Core\Extension\ModuleHandler')
+        ->addArgument('%container.modules%');
+    }
+    else {
+      $container->register('module_handler', 'Drupal\Core\Extension\CachedModuleHandler')
+        ->addArgument('%container.modules%')
+        ->addArgument(new Reference('state'))
+        ->addArgument(new Reference('cache.bootstrap'));
+    }
   }
 
   /**
@@ -107,6 +124,7 @@ class CoreServiceProvider implements ServiceProviderInterface  {
         // When in the installer, twig_cache must be FALSE until we know the
         // files folder is writable.
         'cache' => drupal_installation_attempted() ? FALSE : settings()->get('twig_cache', TRUE),
+        'base_template_class' => 'Drupal\Core\Template\TwigTemplate',
         // @todo Remove in followup issue
         // @see http://drupal.org/node/1712444.
         'autoescape' => FALSE,

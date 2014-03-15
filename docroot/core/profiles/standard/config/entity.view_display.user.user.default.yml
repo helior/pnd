@@ -1,4 +1,5 @@
 id: user.user.default
+uuid: 7a60b270-a584-46dc-ba00-a510230e9f45
 targetEntityType: user
 bundle: user
 mode: default

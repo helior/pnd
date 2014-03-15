@@ -108,12 +108,11 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
       '#default_value' => $this->configuration['feed'],
       '#options' => $options,
     );
-    $range = range(2, 20);
     $form['block_count'] = array(
       '#type' => 'select',
       '#title' => t('Number of news items in block'),
       '#default_value' => $this->configuration['block_count'],
-      '#options' => array_combine($range, $range),
+      '#options' => drupal_map_assoc(range(2, 20)),
     );
     return $form;
   }

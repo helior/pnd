@@ -9,7 +9,6 @@ namespace Drupal\views\Tests\Handler;
 
 use Drupal\Component\Utility\String;
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests for core Drupal\views\Plugin\views\sort\Date handler.
@@ -159,7 +158,7 @@ class SortDateTest extends ViewUnitTestBase {
   public function testDateOrdering() {
     foreach (array('second', 'minute', 'hour', 'day', 'month', 'year') as $granularity) {
       foreach (array(FALSE, TRUE) as $reverse) {
-        $view = Views::getView('test_view');
+        $view = views_get_view('test_view');
         $view->setDisplay();
 
         // Change the fields.

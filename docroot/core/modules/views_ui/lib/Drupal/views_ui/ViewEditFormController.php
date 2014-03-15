@@ -13,7 +13,6 @@ use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\String;
 use Drupal\user\TempStoreFactory;
-use Drupal\views\Views;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -84,13 +83,13 @@ class ViewEditFormController extends ViewFormControllerBase {
 
     $form['#tree'] = TRUE;
 
-    $form['#attached']['library'][] = 'core/jquery.ui.tabs';
-    $form['#attached']['library'][] = 'core/jquery.ui.dialog';
-    $form['#attached']['library'][] = 'core/drupal.states';
-    $form['#attached']['library'][] = 'core/drupal.tabledrag';
+    $form['#attached']['library'][] = array('system', 'jquery.ui.tabs');
+    $form['#attached']['library'][] = array('system', 'jquery.ui.dialog');
+    $form['#attached']['library'][] = array('system', 'drupal.states');
+    $form['#attached']['library'][] = array('system', 'drupal.tabledrag');
 
     if (!\Drupal::config('views.settings')->get('no_javascript')) {
-      $form['#attached']['library'][] = 'views_ui/views_ui.admin';
+      $form['#attached']['library'][] = array('views_ui', 'views_ui.admin');
     }
 
     $form['#attached']['css'] = static::getAdminCSS();
@@ -226,10 +225,6 @@ class ViewEditFormController extends ViewFormControllerBase {
         array($this, 'cancel'),
       ),
     );
-    if ($this->entity->isLocked()) {
-      $actions['submit']['#access'] = FALSE;
-      $actions['cancel']['#access'] = FALSE;
-    }
     return $actions;
   }
 
@@ -240,9 +235,6 @@ class ViewEditFormController extends ViewFormControllerBase {
     parent::validate($form, $form_state);
 
     $view = $this->entity;
-    if ($view->isLocked()) {
-      $this->setFormError('', $form_state, $this->t('Changes cannot be made to a locked view.'));
-    }
     foreach ($view->getExecutable()->validate() as $display_errors) {
       foreach ($display_errors as $error) {
         $this->setFormError('', $form_state, $error);
@@ -294,7 +286,7 @@ class ViewEditFormController extends ViewFormControllerBase {
 
     if (!empty($destination)) {
       // Find out the first display which has a changed path and redirect to this url.
-      $old_view = Views::getView($view->id());
+      $old_view = views_get_view($view->id());
       $old_view->initDisplay();
       foreach ($old_view->displayHandlers as $id => $display) {
         // Only check for displays with a path.
@@ -437,7 +429,7 @@ class ViewEditFormController extends ViewFormControllerBase {
           "#suffix" => '</li>',
         );
 
-        foreach (Views::fetchPluginNames('display', NULL, array($view->get('storage')->get('base_table'))) as $type => $label) {
+        foreach (views_fetch_plugin_names('display', NULL, array($view->get('storage')->get('base_table'))) as $type => $label) {
           if ($type == $display['display_plugin']) {
             continue;
           }
@@ -502,6 +494,7 @@ class ViewEditFormController extends ViewFormControllerBase {
     $build['columns']['third'] = array(
       '#type' => 'details',
       '#title' => $this->t('Advanced'),
+      '#collapsed' => TRUE,
       '#theme_wrappers' => array('details'),
       '#attributes' => array(
         'class' => array(
@@ -510,8 +503,11 @@ class ViewEditFormController extends ViewFormControllerBase {
         ),
       ),
     );
+
     // Collapse the details by default.
-    $build['columns']['third']['#open'] = \Drupal::config('views.settings')->get('ui.show.advanced_column');
+    if (\Drupal::config('views.settings')->get('ui.show.advanced_column')) {
+      $build['columns']['third']['#collapsed'] = FALSE;
+    }
 
     // Each option (e.g. title, access, display as grid/table/list) fits into one
     // of several "buckets," or boxes (Format, Fields, Sort, and so on).
@@ -734,7 +730,7 @@ class ViewEditFormController extends ViewFormControllerBase {
     }
 
     // Buttons for adding a new display.
-    foreach (Views::fetchPluginNames('display', NULL, array($view->get('base_table'))) as $type => $label) {
+    foreach (views_fetch_plugin_names('display', NULL, array($view->get('base_table'))) as $type => $label) {
       $element['add_display'][$type] = array(
         '#type' => 'submit',
         '#value' => $this->t('Add !display', array('!display' => $label)),

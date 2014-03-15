@@ -144,7 +144,7 @@ class NodeQueryAlterTest extends NodeTestBase {
       'grant_update' => 0,
       'grant_delete' => 0,
     );
-    db_insert('node_access')->fields($record)->execute();
+    drupal_write_record('node_access', $record);
 
     // Test that the noAccessUser still doesn't have the 'view'
     // privilege after adding the node_access record.

@@ -1,6 +1,3 @@
-/**
- * Drupal's batch API.
- */
 (function ($, Drupal) {
 
   "use strict";
@@ -11,7 +8,7 @@
   Drupal.behaviors.batch = {
     attach: function (context, settings) {
       var batch = settings.batch;
-      var $progress = $('[data-drupal-progress]').once('batch');
+      var $progress = $('#progress').once('batch');
       var progressBar;
 
       // Success: redirect to the summary.

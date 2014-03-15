@@ -83,7 +83,7 @@ class CacheDecoratorTest extends DiscoveryTestBase {
    * that test the basic discovery behavior.
    */
   public function testCachedDefinitions() {
-    $cache = \Drupal::cache($this->cacheBin);
+    $cache = cache($this->cacheBin);
 
     // Check that nothing is cached initially.
     $cached = $cache->get($this->cacheKey);
@@ -111,7 +111,7 @@ class CacheDecoratorTest extends DiscoveryTestBase {
    * Tests CacheDecorator::clearCachedDefinitions().
    */
   public function testClearCachedDefinitions() {
-    $cache = \Drupal::cache($this->cacheBin);
+    $cache = cache($this->cacheBin);
 
     // Populate the caches by collecting definitions once.
     $this->discovery->getDefinitions();

@@ -538,6 +538,7 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['style_settings'] = array(
       '#type' => 'details',
       '#title' => t('Style settings'),
+      '#collapsed' => TRUE,
       '#weight' => 99,
     );
 
@@ -686,6 +687,7 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['alter'] = array(
       '#title' => t('Rewrite results'),
       '#type' => 'details',
+      '#collapsed' => TRUE,
       '#weight' => 100,
     );
 
@@ -888,6 +890,7 @@ abstract class FieldPluginBase extends HandlerBase {
       $form['alter']['help'] = array(
         '#type' => 'details',
         '#title' => t('Replacement patterns'),
+        '#collapsed' => TRUE,
         '#value' => $output,
         '#states' => array(
           'visible' => array(
@@ -1026,6 +1029,7 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['empty_field_behavior'] = array(
       '#type' => 'details',
       '#title' => t('No results behavior'),
+      '#collapsed' => TRUE,
       '#weight' => 100,
     );
 

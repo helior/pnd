@@ -21,21 +21,30 @@ use Drupal\Core\TypedData\DataDefinition;
  *   settings = {
  *     "max_length" = "255"
  *   },
- *   configurable = FALSE,
- *   default_widget = "string",
- *   default_formatter = "string"
+ *   configurable = FALSE
  * )
  */
 class StringItem extends FieldItemBase {
 
   /**
+   * Definitions of the contained properties.
+   *
+   * @see StringItem::getPropertyDefinitions()
+   *
+   * @var array
+   */
+  static $propertyDefinitions;
+
+  /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties['value'] = DataDefinition::create('string')
-      ->setLabel(t('Text value'));
+  public function getPropertyDefinitions() {
 
-    return $properties;
+    if (!isset(static::$propertyDefinitions)) {
+      static::$propertyDefinitions['value'] = DataDefinition::create('string')
+        ->setLabel(t('Text value'));
+    }
+    return static::$propertyDefinitions;
   }
 
   /**
@@ -46,7 +55,7 @@ class StringItem extends FieldItemBase {
       'columns' => array(
         'value' => array(
           'type' => 'varchar',
-          'length' => (int) $field_definition->getSetting('max_length'),
+          'length' => $field_definition->getSetting('max_length'),
           'not null' => FALSE,
         ),
       ),
@@ -62,12 +71,7 @@ class StringItem extends FieldItemBase {
     if ($max_length = $this->getSetting('max_length')) {
       $constraint_manager = \Drupal::typedDataManager()->getValidationConstraintManager();
       $constraints[] = $constraint_manager->create('ComplexData', array(
-        'value' => array(
-          'Length' => array(
-            'max' => $max_length,
-            'maxMessage' => t('%name: may not be longer than @max characters.', array('%name' => $this->getFieldDefinition()->getLabel(), '@max' => $max_length)),
-          ),
-        ),
+        'value' => array('Length' => array('max' => $max_length))
       ));
     }
 

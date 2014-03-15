@@ -253,6 +253,7 @@ class Table extends StylePluginBase {
     $form['accessibility_details'] = array(
       '#type' => 'details',
       '#title' => t('Table details'),
+      '#collapsed' => TRUE,
     );
 
     $form['summary'] = array(

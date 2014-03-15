@@ -233,6 +233,33 @@ function taxonomy_theme() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function taxonomy_menu() {
+  $items['admin/structure/taxonomy'] = array(
+    'title' => 'Taxonomy',
+    'description' => 'Manage tagging, categorization, and classification of your content.',
+    'route_name' => 'taxonomy.vocabulary_list',
+  );
+
+  $items['taxonomy/term/%taxonomy_term'] = array(
+    'title' => 'Taxonomy term',
+    'title callback' => 'taxonomy_term_title',
+    'title arguments' => array(2),
+    'route_name' => 'taxonomy.term_page',
+  );
+  $items['taxonomy/term/%taxonomy_term/feed'] = array(
+    'title' => 'Taxonomy term',
+    'title callback' => 'taxonomy_term_title',
+    'title arguments' => array(2),
+    'route_name' => 'taxonomy.term_feed',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_menu_link_defaults().
  */
 function taxonomy_menu_link_defaults() {
@@ -435,7 +462,7 @@ function taxonomy_vocabulary_get_names() {
 
   if (!isset($names)) {
     $names = array();
-    $config_names = \Drupal::configFactory()->listAll('taxonomy.vocabulary.');
+    $config_names = config_get_storage_names_with_prefix('taxonomy.vocabulary.');
     foreach ($config_names as $config_name) {
       $id = substr($config_name, strlen('taxonomy.vocabulary.'));
       $names[$id] = $id;
@@ -662,8 +689,7 @@ function taxonomy_term_load_multiple_by_name($name, $vocabulary = NULL) {
  * @see entity_load_multiple()
  * @see \Drupal\Core\Entity\Query\EntityQueryInterface
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load_multiple('taxonomy_term', $tids).
+ * @deprecated use entity_load_multiple('taxonomy_term', $tids) instead.
  *
  * @param array $tids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
@@ -685,8 +711,7 @@ function taxonomy_term_load_multiple(array $tids = NULL) {
  *
  * @see entity_load_multiple()
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load_multiple('taxonomy_vocabulary', $vids).
+ * @deprecated use entity_load_multiple('taxonomy_vocabulary', $vids) instead.
  *
  * @param array $vids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
@@ -701,8 +726,7 @@ function taxonomy_vocabulary_load_multiple(array $vids = NULL) {
 /**
  * Return the taxonomy vocabulary entity matching a vocabulary ID.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load('taxonomy_vocabulary', $vid).
+ * @deprecated use entity_load('taxonomy_vocabulary', $vid) instead.
  *
  * @param int $vid
  *   The vocabulary's ID.
@@ -718,8 +742,7 @@ function taxonomy_vocabulary_load($vid) {
 /**
  * Return the taxonomy term entity matching a term ID.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load('taxonomy_term', $tid).
+ * @deprecated use entity_load('taxonomy_term', $tid) instead.
  *
  * @param $tid
  *   A term's ID
@@ -917,3 +940,27 @@ function taxonomy_taxonomy_term_delete(Term $term) {
 /**
  * @} End of "defgroup taxonomy_index".
  */
+
+/**
+ * Implements hook_library_info().
+ */
+function taxonomy_library_info() {
+  $libraries['drupal.taxonomy'] = array(
+    'title' => 'Taxonomy',
+    'version' => \Drupal::VERSION,
+    'js' => array(
+      drupal_get_path('module', 'taxonomy') . '/taxonomy.js' => array(),
+    ),
+    'css' => array(
+      drupal_get_path('module', 'taxonomy') . '/css/taxonomy.module.css' => array(),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+      array('system', 'drupal'),
+      array('system', 'drupalSettings'),
+      array('system', 'drupal.tabledrag'),
+    ),
+  );
+
+  return $libraries;
+}

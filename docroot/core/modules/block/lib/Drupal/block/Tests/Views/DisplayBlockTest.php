@@ -8,7 +8,6 @@
 namespace Drupal\block\Tests\Views;
 
 use Drupal\Component\Utility\String;
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\Core\Template\Attribute;
@@ -146,7 +145,7 @@ class DisplayBlockTest extends ViewTestBase {
 
     // Remove the block display, so both block entities from the first view
     // should both disappear.
-    $view = Views::getView('test_view_block');
+    $view = views_get_view('test_view_block');
     $view->initDisplay();
     $view->displayHandlers->remove('block_1');
     $view->storage->save();
@@ -163,7 +162,7 @@ class DisplayBlockTest extends ViewTestBase {
 
     // Remove the first block display of the second view and ensure the block
     // instance of the second block display still exists.
-    $view = Views::getView('test_view_block2');
+    $view = views_get_view('test_view_block2');
     $view->initDisplay();
     $view->displayHandlers->remove('block_1');
     $view->storage->save();

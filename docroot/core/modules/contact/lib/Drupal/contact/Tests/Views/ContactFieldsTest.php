@@ -25,7 +25,7 @@ class ContactFieldsTest extends ViewTestBase {
   /**
    * Contains the field definition array attached to contact used for this test.
    *
-   * @var \Drupal\field\Entity\FieldConfig
+   * @var \Drupal\field\Entity\Field
    */
   protected $field;
 
@@ -40,14 +40,14 @@ class ContactFieldsTest extends ViewTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->field = entity_create('field_config', array(
+    $this->field = entity_create('field_entity', array(
       'name' => strtolower($this->randomName()),
       'entity_type' => 'contact_message',
       'type' => 'text'
     ));
     $this->field->save();
 
-    entity_create('field_instance_config', array(
+    entity_create('field_instance', array(
       'field_name' => $this->field->name,
       'entity_type' => 'contact_message',
       'bundle' => 'contact_message',

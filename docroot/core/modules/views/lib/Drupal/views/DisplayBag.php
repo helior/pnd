@@ -9,7 +9,7 @@ namespace Drupal\views;
 
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Core\Plugin\DefaultPluginBag;
+use Drupal\Component\Plugin\DefaultPluginBag;
 
 /**
  * A class which wraps the displays of a view so you can lazy-initialize them.

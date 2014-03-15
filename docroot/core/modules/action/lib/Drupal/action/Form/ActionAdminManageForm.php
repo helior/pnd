@@ -65,7 +65,6 @@ class ActionAdminManageForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('Create an advanced action'),
       '#attributes' => array('class' => array('container-inline')),
-      '#open' => TRUE,
     );
     $form['parent']['action'] = array(
       '#type' => 'select',

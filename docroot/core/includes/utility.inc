@@ -20,8 +20,7 @@ use Drupal\Core\Cache\Cache;
  * @return string
  *   The variable exported in a way compatible to Drupal's coding standards.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Component\Utility\Variable::export().
+ * @deprecated Use \Drupal\Component\Utility\Variable::export().
  */
 function drupal_var_export($var, $prefix = '') {
   return Variable::export($var, $prefix);

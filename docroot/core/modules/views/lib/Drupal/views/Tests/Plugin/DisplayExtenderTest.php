@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Plugin;
 
 use Drupal\views\Tests\Plugin\PluginTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests the display extender plugins.
@@ -43,9 +42,9 @@ class DisplayExtenderTest extends PluginTestBase {
    */
   public function testDisplayExtenders() {
     \Drupal::config('views.settings')->set('display_extenders', array('display_extender_test'))->save();
-    $this->assertEqual(count(Views::getEnabledDisplayExtenders()), 1, 'Make sure that there is only one enabled display extender.');
+    $this->assertEqual(count(views_get_enabled_display_extenders()), 1, 'Make sure that there is only one enabled display extender.');
 
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->initDisplay();
 
     $this->assertEqual(count($view->display_handler->extender), 1, 'Make sure that only one extender is initialized.');

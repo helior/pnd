@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Image;
 
-use Drupal\Core\ImageToolkit\ImageToolkitManager;
+use Drupal\Core\ImageToolkit\ImageToolkitInterface;
 
 /**
  * Provides a factory for image objects.
@@ -15,40 +15,33 @@ use Drupal\Core\ImageToolkit\ImageToolkitManager;
 class ImageFactory {
 
   /**
-   * The image toolkit plugin manager.
+   * The image toolkit to use for this factory.
    *
-   * @var \Drupal\Core\ImageToolkit\ImageToolkitManager
+   * @var \Drupal\Core\ImageToolkit\ImageToolkitInterface
    */
-  protected $toolkitManager;
-
-  /**
-   * The image toolkit ID to use for this factory.
-   *
-   * @var string
-   */
-  protected $toolkitId;
+  protected $toolkit;
 
   /**
    * Constructs a new ImageFactory object.
    *
-   * @param \Drupal\Core\ImageToolkit\ImageToolkitManager $toolkit_manager
-   *   The image toolkit plugin manager.
+   * @param \Drupal\Core\ImageToolkit\ImageToolkitInterface $toolkit
+   *   The image toolkit to use for this image factory.
    */
-  public function __construct(ImageToolkitManager $toolkit_manager) {
-    $this->toolkitManager = $toolkit_manager;
+  public function __construct(ImageToolkitInterface $toolkit) {
+    $this->toolkit = $toolkit;
   }
 
   /**
-   * Sets this factory image toolkit ID.
+   * Sets a custom image toolkit.
    *
-   * @param string $toolkit_id
-   *   The image toolkit ID to use for this image factory.
+   * @param \Drupal\Core\ImageToolkit\ImageToolkitInterface $toolkit
+   *   The image toolkit to use for this image factory.
    *
    * @return self
    *   Returns this image.
    */
-  public function setToolkitId($toolkit_id) {
-    $this->toolkitId = $toolkit_id;
+  public function setToolkit(ImageToolkitInterface $toolkit) {
+    $this->toolkit = $toolkit;
     return $this;
   }
 
@@ -62,10 +55,7 @@ class ImageFactory {
    *   The new Image object.
    */
   public function get($source) {
-    if (!$this->toolkitId) {
-      $this->toolkitId = $this->toolkitManager->getDefaultToolkitId();
-    }
-    return new Image($source, $this->toolkitManager->createInstance($this->toolkitId));
+    return new Image($source, $this->toolkit);
   }
 
 }

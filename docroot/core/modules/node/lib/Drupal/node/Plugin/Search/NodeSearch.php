@@ -96,7 +96,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    */
   protected $advanced = array(
     'type' => array('column' => 'n.type'),
-    'language' => array('column' => 'i.langcode'),
+    'langcode' => array('column' => 'i.langcode'),
     'author' => array('column' => 'n.uid'),
     'term' => array('column' => 'ti.tid', 'join' => array('table' => 'taxonomy_index', 'alias' => 'ti', 'condition' => 'n.nid = ti.nid')),
   );
@@ -379,12 +379,14 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $form['advanced'] = array(
       '#type' => 'details',
       '#title' => t('Advanced search'),
+      '#collapsed' => TRUE,
       '#attributes' => array('class' => array('search-advanced')),
       '#access' => $this->account && $this->account->hasPermission('use advanced search'),
     );
     $form['advanced']['keywords-fieldset'] = array(
       '#type' => 'fieldset',
       '#title' => t('Keywords'),
+      '#collapsible' => FALSE,
     );
     $form['advanced']['keywords'] = array(
       '#prefix' => '<div class="criterion">',
@@ -414,6 +416,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $form['advanced']['types-fieldset'] = array(
       '#type' => 'fieldset',
       '#title' => t('Types'),
+      '#collapsible' => FALSE,
     );
     $form['advanced']['types-fieldset']['type'] = array(
       '#type' => 'checkboxes',
@@ -432,8 +435,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
 
     // Add languages.
     $language_options = array();
-    $language_list = \Drupal::languageManager()->getLanguages(Language::STATE_ALL);
-    foreach ($language_list as $langcode => $language) {
+    foreach (language_list(Language::STATE_ALL) as $langcode => $language) {
       // Make locked languages appear special in the list.
       $language_options[$langcode] = $language->locked ? t('- @name -', array('@name' => $language->name)) : $language->name;
     }
@@ -441,6 +443,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       $form['advanced']['lang-fieldset'] = array(
         '#type' => 'fieldset',
         '#title' => t('Languages'),
+        '#collapsible' => FALSE,
+        '#collapsed' => FALSE,
       );
       $form['advanced']['lang-fieldset']['language'] = array(
         '#type' => 'checkboxes',
@@ -552,7 +556,6 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $form['content_ranking'] = array(
       '#type' => 'details',
       '#title' => t('Content ranking'),
-      '#open' => TRUE,
     );
     $form['content_ranking']['#theme'] = 'node_search_admin';
     $form['content_ranking']['info'] = array(
@@ -560,8 +563,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     );
 
     // Note: reversed to reflect that higher number = higher ranking.
-    $range = range(0, 10);
-    $options = array_combine($range, $range);
+    $options = drupal_map_assoc(range(0, 10));
     foreach ($this->getRankings() as $var => $values) {
       $form['content_ranking']['factors']["rankings_$var"] = array(
         '#title' => $values['title'],

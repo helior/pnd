@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests the text area handler.
@@ -42,7 +41,7 @@ class AreaTextTest extends ViewUnitTestBase {
   }
 
   public function testAreaText() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // add a text header

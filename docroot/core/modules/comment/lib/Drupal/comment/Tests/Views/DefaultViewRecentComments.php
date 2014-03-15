@@ -9,7 +9,6 @@ namespace Drupal\comment\Tests\Views;
 
 use Drupal\comment\CommentInterface;
 use Drupal\entity\DatabaseStorageController;
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 
 class DefaultViewRecentComments extends ViewTestBase {
@@ -114,7 +113,7 @@ class DefaultViewRecentComments extends ViewTestBase {
    * Tests the block defined by the comments_recent view.
    */
   public function testBlockDisplay() {
-    $view = Views::getView('comments_recent');
+    $view = views_get_view('comments_recent');
     $view->setDisplay('block_1');
     $this->executeView($view);
 

@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests;
 
 use Drupal\views\Tests\ViewTestBase;
-use Drupal\views\Views;
 
 class ViewRenderTest extends ViewTestBase {
 
@@ -41,7 +40,7 @@ class ViewRenderTest extends ViewTestBase {
     \Drupal::state()->set('views_render.test', 0);
 
     // Make sure that the rendering just calls the preprocess function once.
-    $view = Views::getView('test_view_render');
+    $view = views_get_view('test_view_render');
     $output = $view->preview();
     drupal_render($output);
 

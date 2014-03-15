@@ -27,10 +27,11 @@ use Drupal\picture\PictureMappingInterface;
  *   },
  *   list_path = "admin/config/media/picturemapping",
  *   admin_permission = "administer pictures",
- *   config_prefix = "mappings",
+ *   config_prefix = "picture.mappings",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label"
+ *     "label" = "label",
+ *     "uuid" = "uuid"
  *   },
  *   links = {
  *     "edit-form" = "picture.mapping_page_edit",
@@ -46,6 +47,13 @@ class PictureMapping extends ConfigEntityBase implements PictureMappingInterface
    * @var string
    */
   public $id;
+
+  /**
+   * The picture UUID.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The picture label.

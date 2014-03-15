@@ -7,7 +7,7 @@
 
 namespace Drupal\tour;
 
-use Drupal\Core\Plugin\DefaultPluginBag;
+use Drupal\Component\Plugin\DefaultPluginBag;
 
 /**
  * A collection of tips.

@@ -172,7 +172,7 @@ class PictureFormatter extends ImageFormatterBase {
       $elements[$delta] = array(
         '#theme' => 'picture_formatter',
         '#attached' => array('library' => array(
-          'core/picturefill',
+          array('picture', 'picturefill'),
         )),
         '#item' => $item,
         '#image_style' => $fallback_image_style,

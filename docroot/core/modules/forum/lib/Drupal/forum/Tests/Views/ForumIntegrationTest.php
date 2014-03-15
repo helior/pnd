@@ -7,7 +7,6 @@
 
 namespace Drupal\forum\Tests\Views;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
 
@@ -75,7 +74,7 @@ class ForumIntegrationTest extends ViewTestBase {
       }
     }
 
-    $view = Views::getView('test_forum_index');
+    $view = views_get_view('test_forum_index');
     $this->executeView($view);
 
     $expected_result = array();

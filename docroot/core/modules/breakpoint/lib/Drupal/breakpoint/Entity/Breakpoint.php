@@ -21,9 +21,11 @@ use Drupal\breakpoint\InvalidBreakpointMediaQueryException;
  * @ConfigEntityType(
  *   id = "breakpoint",
  *   label = @Translation("Breakpoint"),
+ *   config_prefix = "breakpoint.breakpoint",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label"
+ *     "label" = "label",
+ *     "uuid" = "uuid"
  *   }
  * )
  */
@@ -50,6 +52,13 @@ class Breakpoint extends ConfigEntityBase implements BreakpointInterface {
    * @var string
    */
   public $id;
+
+  /**
+   * The breakpoint UUID.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The breakpoint name (machine name) as specified by theme or module.

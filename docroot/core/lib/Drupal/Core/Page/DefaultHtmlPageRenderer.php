@@ -17,7 +17,7 @@ class DefaultHtmlPageRenderer implements HtmlPageRendererInterface {
    */
   public function render(HtmlPage $page) {
     $render = array(
-      '#type' => 'html',
+      '#theme' => 'html',
       '#page_object' => $page,
     );
     return drupal_render($render);

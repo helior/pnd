@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests the core Drupal\views\Plugin\views\filter\Equality handler.
@@ -39,7 +38,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('key_value_expire'));
+    $this->installSchema('system', array('menu_router', 'key_value_expire'));
   }
 
   function viewsData() {
@@ -49,7 +48,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
   }
 
   function testEqual() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Change the filtering
@@ -75,7 +74,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
 
   public function testEqualGroupedExposed() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Name, Operator: =, Value: Ringo
@@ -93,7 +92,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
   }
 
   function testNotEqual() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Change the filtering
@@ -128,7 +127,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
 
   public function testEqualGroupedNotExposed() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Name, Operator: !=, Value: Ringo

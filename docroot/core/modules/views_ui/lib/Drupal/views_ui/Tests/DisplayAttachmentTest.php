@@ -7,8 +7,6 @@
 
 namespace Drupal\views_ui\Tests;
 
-use Drupal\views\Views;
-
 /**
  * Tests the UI for the attachment display plugin.
  *
@@ -51,7 +49,7 @@ class DisplayAttachmentTest extends UITestBase {
     $this->assertEqual($result[0]->attributes()->title, t('Page'));
     $this->drupalPostForm(NULL, array(), t('Save'));
 
-    $view = Views::getView('test_attachment_ui');
+    $view = views_get_view('test_attachment_ui');
     $view->initDisplay();
     $this->assertEqual(array_keys(array_filter($view->displayHandlers->get('attachment_1')->getOption('displays'))), array('page_1'), 'The attached displays got saved as expected');
 
@@ -60,7 +58,7 @@ class DisplayAttachmentTest extends UITestBase {
     $this->assertEqual($result[0]->attributes()->title, t('Multiple displays'));
     $this->drupalPostForm(NULL, array(), t('Save'));
 
-    $view = Views::getView('test_attachment_ui');
+    $view = views_get_view('test_attachment_ui');
     $view->initDisplay();
     $this->assertEqual(array_keys($view->displayHandlers->get('attachment_1')->getOption('displays')), array('default', 'page_1'), 'The attached displays got saved as expected');
   }

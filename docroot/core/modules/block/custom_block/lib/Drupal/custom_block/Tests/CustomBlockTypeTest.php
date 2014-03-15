@@ -158,7 +158,7 @@ class CustomBlockTypeTest extends CustomBlockTestBase {
     foreach ($themes as $default_theme) {
       // Change the default theme.
       $theme_settings->set('default', $default_theme)->save();
-      \Drupal::service('router.builder')->rebuild();
+      menu_router_rebuild();
 
       // For each enabled theme, go to its block page and test the redirects.
       $themes = array('bartik', 'stark', 'seven');

@@ -7,9 +7,9 @@
 
 namespace Drupal\field_test\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\Core\Field\FieldItemBase;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\ConfigFieldItemBase;
 
 /**
  * Defines the 'shape_field' entity field item.
@@ -25,19 +25,29 @@ use Drupal\Core\Field\FieldItemBase;
  *   default_formatter = "field_test_default"
  * )
  */
-class ShapeItem extends FieldItemBase {
+class ShapeItem extends ConfigFieldItemBase {
+
+  /**
+   * Property definitions of the contained properties.
+   *
+   * @see ShapeItem::getPropertyDefinitions()
+   *
+   * @var array
+   */
+  static $propertyDefinitions;
 
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties['shape'] = DataDefinition::create('string')
-      ->setLabel(t('Shape'));
+  public function getPropertyDefinitions() {
+    if (!isset(static::$propertyDefinitions)) {
+      static::$propertyDefinitions['shape'] = DataDefinition::create('string')
+        ->setLabel(t('Shape'));
 
-    $properties['color'] = DataDefinition::create('string')
-      ->setLabel(t('Color'));
-
-    return $properties;
+      static::$propertyDefinitions['color'] = DataDefinition::create('string')
+        ->setLabel(t('Color'));
+    }
+    return static::$propertyDefinitions;
   }
 
   /**

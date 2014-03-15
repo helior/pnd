@@ -21,8 +21,7 @@ use Drupal\Core\Field\FormatterBase;
  *   },
  *   settings = {
  *     "test_empty_string" = "**EMPTY FIELD**"
- *   },
- *   weight = -5
+ *   }
  * )
  */
 class TestFieldEmptyFormatter extends FormatterBase {

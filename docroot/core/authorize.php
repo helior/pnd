@@ -37,6 +37,16 @@ require_once __DIR__ . '/vendor/autoload.php';
 const MAINTENANCE_MODE = 'update';
 
 /**
+ * Renders a 403 access denied page for authorize.php.
+ */
+function authorize_access_denied_page() {
+  drupal_add_http_header('Status', '403 Forbidden');
+  watchdog('access denied', 'authorize.php', NULL, WATCHDOG_WARNING);
+  drupal_set_title('Access denied');
+  return t('You are not allowed to access this page.');
+}
+
+/**
  * Determines if the current user is allowed to run authorize.php.
  *
  * The killswitch in settings.php overrides all else, otherwise, the user must
@@ -71,6 +81,9 @@ $module_list['user'] = 'core/modules/user/user.module';
 \Drupal::moduleHandler()->load('system');
 \Drupal::moduleHandler()->load('user');
 
+// Initialize the language system.
+drupal_language_initialize();
+
 // Initialize the maintenance theme for this administrative script.
 drupal_maintenance_theme();
 
@@ -84,11 +97,11 @@ if (authorize_access_allowed()) {
   // Load the code that drives the authorize process.
   require_once __DIR__ . '/includes/authorize.inc';
 
-  if (isset($_SESSION['authorize_page_title'])) {
-    $page_title = $_SESSION['authorize_page_title'];
+  if (isset($_SESSION['authorize_operation']['page_title'])) {
+    drupal_set_title($_SESSION['authorize_operation']['page_title']);
   }
   else {
-    $page_title = t('Authorize file system changes');
+    drupal_set_title(t('Authorize file system changes'));
   }
 
   // See if we've run the operation and need to display a report.
@@ -100,7 +113,7 @@ if (authorize_access_allowed()) {
     unset($_SESSION['authorize_filetransfer_info']);
 
     if (!empty($results['page_title'])) {
-      $page_title = $results['page_title'];
+      drupal_set_title($results['page_title']);
     }
     if (!empty($results['page_message'])) {
       drupal_set_message($results['page_message']['message'], $results['page_message']['type']);
@@ -148,18 +161,12 @@ if (authorize_access_allowed()) {
   $show_messages = !(($batch = batch_get()) && isset($batch['running']));
 }
 else {
-  drupal_add_http_header('Status', '403 Forbidden');
-  watchdog('access denied', 'authorize.php', NULL, WATCHDOG_WARNING);
-  $page_title = t('Access denied');
-  $output = t('You are not allowed to access this page.');
+  $output = authorize_access_denied_page();
 }
 
 if (!empty($output)) {
   drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
   $maintenance_page = array(
-    '#page' => array(
-      '#title' => $page_title,
-    ),
     '#theme' => 'maintenance_page',
     '#content' => $output,
     '#show_messages' => $show_messages,

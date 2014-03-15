@@ -7,8 +7,6 @@
 
 namespace Drupal\search\Tests;
 
-use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-
 /**
  * Indexes content and tests ranking factors.
  */
@@ -58,7 +56,7 @@ class SearchRankingTest extends SearchTestBase {
       $settings = array(
         'type' => 'page',
         'comment' => array(array(
-          'status' => CommentItemInterface::HIDDEN,
+          'status' => COMMENT_HIDDEN,
         )),
         'title' => 'Drupal rocks',
         'body' => array(array('value' => "Drupal's search rocks")),
@@ -77,7 +75,7 @@ class SearchRankingTest extends SearchTestBase {
               $settings['created'] = REQUEST_TIME + 3600;
               break;
             case 'comments':
-              $settings['comment'][0]['status'] = CommentItemInterface::OPEN;
+              $settings['comment'][0]['status'] = COMMENT_OPEN;
               break;
           }
         }

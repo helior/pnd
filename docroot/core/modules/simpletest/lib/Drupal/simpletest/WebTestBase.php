@@ -236,7 +236,8 @@ abstract class WebTestBase extends TestBase {
    *       );
    *     @endcode
    *   - title: Random string.
-   *   - comment: CommentItemInterface::OPEN.
+   *   - comment: COMMENT_OPEN.
+   *   - changed: REQUEST_TIME.
    *   - promote: NODE_NOT_PROMOTED.
    *   - log: Empty string.
    *   - status: NODE_PUBLISHED.
@@ -255,6 +256,7 @@ abstract class WebTestBase extends TestBase {
     $settings += array(
       'body'      => array(array()),
       'title'     => $this->randomName(8),
+      'changed'   => REQUEST_TIME,
       'promote'   => NODE_NOT_PROMOTED,
       'revision'  => 1,
       'log'       => '',
@@ -276,7 +278,7 @@ abstract class WebTestBase extends TestBase {
         $settings['uid'] = $this->loggedInUser->id();
       }
       else {
-        $user = \Drupal::currentUser() ?: drupal_anonymous_user();
+        $user = \Drupal::currentUser() ?: $GLOBALS['user'];
         $settings['uid'] = $user->id();
       }
     }
@@ -322,9 +324,9 @@ abstract class WebTestBase extends TestBase {
     );
     $type = entity_create('node_type', $values);
     $status = $type->save();
-    \Drupal::service('router.builder')->rebuild();
+    menu_router_rebuild();
 
-    $this->assertEqual($status, SAVED_NEW, String::format('Created content type %type.', array('%type' => $type->id())));
+    $this->assertEqual($status, SAVED_NEW, t('Created content type %type.', array('%type' => $type->id())));
 
     // Reset permissions so that permissions for this content type are
     // available.
@@ -335,6 +337,9 @@ abstract class WebTestBase extends TestBase {
 
   /**
    * Creates a block instance based on default settings.
+   *
+   * Note: Until this can be done programmatically, the active user account
+   * must have permission to administer blocks.
    *
    * @param string $plugin_id
    *   The plugin ID of the block type for this block instance.
@@ -577,10 +582,10 @@ abstract class WebTestBase extends TestBase {
     }
     $result = $role->save();
 
-    $this->assertIdentical($result, SAVED_NEW, String::format('Created role ID @rid with name @name.', array(
+    $this->assertIdentical($result, SAVED_NEW, t('Created role ID @rid with name @name.', array(
       '@name' => var_export($role->label(), TRUE),
       '@rid' => var_export($role->id(), TRUE),
-    )), 'Role');
+    )), t('Role'));
 
     if ($result === SAVED_NEW) {
       // Grant the specified permissions to the role, if any.
@@ -589,10 +594,10 @@ abstract class WebTestBase extends TestBase {
         $assigned_permissions = entity_load('user_role', $role->id())->permissions;
         $missing_permissions = array_diff($permissions, $assigned_permissions);
         if (!$missing_permissions) {
-          $this->pass(String::format('Created permissions: @perms', array('@perms' => implode(', ', $permissions))), 'Role');
+          $this->pass(t('Created permissions: @perms', array('@perms' => implode(', ', $permissions))), t('Role'));
         }
         else {
-          $this->fail(String::format('Failed to create permissions: @perms', array('@perms' => implode(', ', $missing_permissions))), 'Role');
+          $this->fail(t('Failed to create permissions: @perms', array('@perms' => implode(', ', $missing_permissions))), t('Role'));
         }
       }
       return $role->id();
@@ -617,13 +622,13 @@ abstract class WebTestBase extends TestBase {
     $available = &drupal_static(__FUNCTION__);
 
     if (!isset($available) || $reset) {
-      $available = array_keys(\Drupal::moduleHandler()->invokeAll('permission'));
+      $available = array_keys(module_invoke_all('permission'));
     }
 
     $valid = TRUE;
     foreach ($permissions as $permission) {
       if (!in_array($permission, $available)) {
-        $this->fail(String::format('Invalid permission %permission.', array('%permission' => $permission)), 'Role');
+        $this->fail(t('Invalid permission %permission.', array('%permission' => $permission)), t('Role'));
         $valid = FALSE;
       }
     }
@@ -636,7 +641,7 @@ abstract class WebTestBase extends TestBase {
    * If a user is already logged in, then the current user is logged out before
    * logging in the specified user.
    *
-   * Please note that neither the current user nor the passed-in user object is
+   * Please note that neither the global $user nor the passed-in user object is
    * populated with data of the logged in user. If you need full access to the
    * user object after logging in, it must be updated manually. If you also need
    * access to the plain-text password of the user (set by drupalCreateUser()),
@@ -787,7 +792,7 @@ abstract class WebTestBase extends TestBase {
       'required' => TRUE,
     );
     // Add the parent profile's search path to the child site's search paths.
-    // @see \Drupal\Core\Extension\ExtensionDiscovery::getProfileDirectories()
+    // @see drupal_system_listing()
     $settings['conf']['simpletest.settings']['parent_profile'] = (object) array(
       'value' => $this->originalProfile,
       'required' => TRUE,
@@ -835,7 +840,7 @@ abstract class WebTestBase extends TestBase {
     // While this should be enforced via settings.php prior to installation,
     // some tests expect to be able to test mail system implementations.
     \Drupal::config('system.mail')
-      ->set('interface.default', 'test_mail_collector')
+      ->set('interface.default', 'Drupal\Core\Mail\TestMailCollector')
       ->save();
 
     // Restore the original Simpletest batch.
@@ -854,7 +859,7 @@ abstract class WebTestBase extends TestBase {
     if ($modules) {
       $modules = array_unique($modules);
       $success = \Drupal::moduleHandler()->install($modules, TRUE);
-      $this->assertTrue($success, String::format('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
+      $this->assertTrue($success, t('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
       $this->rebuildContainer();
     }
 
@@ -1050,7 +1055,6 @@ abstract class WebTestBase extends TestBase {
     // Clear the tag cache.
     drupal_static_reset('Drupal\Core\Cache\CacheBackendInterface::tagCache');
     drupal_static_reset('Drupal\Core\Cache\DatabaseBackend::deletedTags');
-    drupal_static_reset('Drupal\Core\Cache\DatabaseBackend::invalidatedTags');
 
     $this->container->get('config.factory')->reset();
     $this->container->get('state')->resetCache();
@@ -1344,14 +1348,14 @@ abstract class WebTestBase extends TestBase {
       $htmlDom = new \DOMDocument();
       @$htmlDom->loadHTML('<?xml encoding="UTF-8">' . $this->drupalGetContent());
       if ($htmlDom) {
-        $this->pass(String::format('Valid HTML found on "@path"', array('@path' => $this->getUrl())), 'Browser');
+        $this->pass(t('Valid HTML found on "@path"', array('@path' => $this->getUrl())), t('Browser'));
         // It's much easier to work with simplexml than DOM, luckily enough
         // we can just simply import our DOM tree.
         $this->elements = simplexml_import_dom($htmlDom);
       }
     }
     if (!$this->elements) {
-      $this->fail('Parsed page successfully.', 'Browser');
+      $this->fail(t('Parsed page successfully.'), t('Browser'));
     }
 
     return $this->elements;
@@ -1599,7 +1603,7 @@ abstract class WebTestBase extends TestBase {
       }
       // We have not found a form which contained all fields of $edit.
       foreach ($edit as $name => $value) {
-        $this->fail(String::format('Failed to set field @name to @value', array('@name' => $name, '@value' => $value)));
+        $this->fail(t('Failed to set field @name to @value', array('@name' => $name, '@value' => $value)));
       }
       if (!$ajax && isset($submit)) {
         $this->assertTrue($submit_matches, format_string('Found the @submit button', array('@submit' => $submit)));
@@ -2282,7 +2286,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertLink($label, $index = 0, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[normalize-space(text())=:label]', array(':label' => $label));
-    $message = ($message ?  $message : String::format('Link with label %label found.', array('%label' => $label)));
+    $message = ($message ?  $message : t('Link with label %label found.', array('%label' => $label)));
     return $this->assert(isset($links[$index]), $message, $group);
   }
 
@@ -2308,7 +2312,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoLink($label, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[normalize-space(text())=:label]', array(':label' => $label));
-    $message = ($message ?  $message : String::format('Link with label %label not found.', array('%label' => $label)));
+    $message = ($message ?  $message : t('Link with label %label not found.', array('%label' => $label)));
     return $this->assert(empty($links), $message, $group);
   }
 
@@ -2334,7 +2338,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertLinkByHref($href, $index = 0, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[contains(@href, :href)]', array(':href' => $href));
-    $message = ($message ?  $message : String::format('Link containing href %href found.', array('%href' => $href)));
+    $message = ($message ?  $message : t('Link containing href %href found.', array('%href' => $href)));
     return $this->assert(isset($links[$index]), $message, $group);
   }
 
@@ -2358,7 +2362,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoLinkByHref($href, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[contains(@href, :href)]', array(':href' => $href));
-    $message = ($message ?  $message : String::format('No link containing href %href found.', array('%href' => $href)));
+    $message = ($message ?  $message : t('No link containing href %href found.', array('%href' => $href)));
     return $this->assert(empty($links), $message, $group);
   }
 
@@ -2618,7 +2622,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertUrl($path, array $options = array(), $message = '', $group = 'Other') {
     if (!$message) {
-      $message = String::format('Current URL is @url.', array(
+      $message = t('Current URL is @url.', array(
         '@url' => var_export($this->container->get('url_generator')->generateFromPath($path, $options), TRUE),
       ));
     }
@@ -2652,7 +2656,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertRaw($raw, $message = '', $group = 'Other') {
     if (!$message) {
-      $message = String::format('Raw "@raw" found', array('@raw' => $raw));
+      $message = t('Raw "@raw" found', array('@raw' => $raw));
     }
     return $this->assert(strpos($this->drupalGetContent(), $raw) !== FALSE, $message, $group);
   }
@@ -2679,7 +2683,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoRaw($raw, $message = '', $group = 'Other') {
     if (!$message) {
-      $message = String::format('Raw "@raw" not found', array('@raw' => $raw));
+      $message = t('Raw "@raw" not found', array('@raw' => $raw));
     }
     return $this->assert(strpos($this->drupalGetContent(), $raw) === FALSE, $message, $group);
   }
@@ -2763,7 +2767,7 @@ abstract class WebTestBase extends TestBase {
       $this->plainTextContent = filter_xss($this->drupalGetContent(), array());
     }
     if (!$message) {
-      $message = !$not_exists ? String::format('"@text" found', array('@text' => $text)) : String::format('"@text" not found', array('@text' => $text));
+      $message = !$not_exists ? t('"@text" found', array('@text' => $text)) : t('"@text" not found', array('@text' => $text));
     }
     return $this->assert($not_exists == (strpos($this->plainTextContent, $text) === FALSE), $message, $group);
   }
@@ -2879,7 +2883,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertPattern($pattern, $message = '', $group = 'Other') {
     if (!$message) {
-      $message = String::format('Pattern "@pattern" found', array('@pattern' => $pattern));
+      $message = t('Pattern "@pattern" found', array('@pattern' => $pattern));
     }
     return $this->assert((bool) preg_match($pattern, $this->drupalGetContent()), $message, $group);
   }
@@ -2904,7 +2908,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoPattern($pattern, $message = '', $group = 'Other') {
     if (!$message) {
-      $message = String::format('Pattern "@pattern" not found', array('@pattern' => $pattern));
+      $message = t('Pattern "@pattern" not found', array('@pattern' => $pattern));
     }
     return $this->assert(!preg_match($pattern, $this->drupalGetContent()), $message, $group);
   }
@@ -2930,7 +2934,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertTitle($title, $message = '', $group = 'Other') {
     $actual = (string) current($this->xpath('//title'));
     if (!$message) {
-      $message = String::format('Page title @actual is equal to @expected.', array(
+      $message = t('Page title @actual is equal to @expected.', array(
         '@actual' => var_export($actual, TRUE),
         '@expected' => var_export($title, TRUE),
       ));
@@ -2959,7 +2963,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertNoTitle($title, $message = '', $group = 'Other') {
     $actual = (string) current($this->xpath('//title'));
     if (!$message) {
-      $message = String::format('Page title @actual is not equal to @unexpected.', array(
+      $message = t('Page title @actual is not equal to @unexpected.', array(
         '@actual' => var_export($actual, TRUE),
         '@unexpected' => var_export($title, TRUE),
       ));
@@ -3038,16 +3042,15 @@ abstract class WebTestBase extends TestBase {
           }
           elseif (isset($field->option)) {
             // Select element found.
-            $selected = $this->getSelectedItem($field);
-            if ($selected === FALSE) {
+            if ($this->getSelectedItem($field) == $value) {
+              $found = TRUE;
+            }
+            else {
               // No item selected so use first item.
               $items = $this->getAllOptions($field);
               if (!empty($items) && $items[0]['value'] == $value) {
                 $found = TRUE;
               }
-            }
-            elseif ($selected == $value) {
-              $found = TRUE;
             }
           }
           elseif ((string) $field == $value) {
@@ -3144,12 +3147,12 @@ abstract class WebTestBase extends TestBase {
   protected function assertFieldByName($name, $value = NULL, $message = NULL, $group = 'Browser') {
     if (!isset($message)) {
       if (!isset($value)) {
-        $message = String::format('Found field with name @name', array(
+        $message = t('Found field with name @name', array(
           '@name' => var_export($name, TRUE),
         ));
       }
       else {
-        $message = String::format('Found field with name @name and value @value', array(
+        $message = t('Found field with name @name and value @value', array(
           '@name' => var_export($name, TRUE),
           '@value' => var_export($value, TRUE),
         ));
@@ -3179,7 +3182,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertNoFieldByName($name, $value = '', $message = '', $group = 'Browser') {
-    return $this->assertNoFieldByXPath($this->constructFieldXpath('name', $name), $value, $message ? $message : String::format('Did not find field by name @name', array('@name' => $name)), $group);
+    return $this->assertNoFieldByXPath($this->constructFieldXpath('name', $name), $value, $message ? $message : t('Did not find field by name @name', array('@name' => $name)), $group);
   }
 
   /**
@@ -3203,7 +3206,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertFieldById($id, $value = '', $message = '', $group = 'Browser') {
-    return $this->assertFieldByXPath($this->constructFieldXpath('id', $id), $value, $message ? $message : String::format('Found field by id @id', array('@id' => $id)), $group);
+    return $this->assertFieldByXPath($this->constructFieldXpath('id', $id), $value, $message ? $message : t('Found field by id @id', array('@id' => $id)), $group);
   }
 
   /**
@@ -3227,7 +3230,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertNoFieldById($id, $value = '', $message = '', $group = 'Browser') {
-    return $this->assertNoFieldByXPath($this->constructFieldXpath('id', $id), $value, $message ? $message : String::format('Did not find field by id @id', array('@id' => $id)), $group);
+    return $this->assertNoFieldByXPath($this->constructFieldXpath('id', $id), $value, $message ? $message : t('Did not find field by id @id', array('@id' => $id)), $group);
   }
 
   /**
@@ -3250,7 +3253,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertFieldChecked($id, $message = '', $group = 'Browser') {
     $elements = $this->xpath('//input[@id=:id]', array(':id' => $id));
-    return $this->assertTrue(isset($elements[0]) && !empty($elements[0]['checked']), $message ? $message : String::format('Checkbox field @id is checked.', array('@id' => $id)), $group);
+    return $this->assertTrue(isset($elements[0]) && !empty($elements[0]['checked']), $message ? $message : t('Checkbox field @id is checked.', array('@id' => $id)), $group);
   }
 
   /**
@@ -3273,7 +3276,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoFieldChecked($id, $message = '', $group = 'Browser') {
     $elements = $this->xpath('//input[@id=:id]', array(':id' => $id));
-    return $this->assertTrue(isset($elements[0]) && empty($elements[0]['checked']), $message ? $message : String::format('Checkbox field @id is not checked.', array('@id' => $id)), $group);
+    return $this->assertTrue(isset($elements[0]) && empty($elements[0]['checked']), $message ? $message : t('Checkbox field @id is not checked.', array('@id' => $id)), $group);
   }
 
   /**
@@ -3298,7 +3301,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertOption($id, $option, $message = '', $group = 'Browser') {
     $options = $this->xpath('//select[@id=:id]/option[@value=:option]', array(':id' => $id, ':option' => $option));
-    return $this->assertTrue(isset($options[0]), $message ? $message : String::format('Option @option for field @id exists.', array('@option' => $option, '@id' => $id)), $group);
+    return $this->assertTrue(isset($options[0]), $message ? $message : t('Option @option for field @id exists.', array('@option' => $option, '@id' => $id)), $group);
   }
 
   /**
@@ -3324,7 +3327,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertNoOption($id, $option, $message = '', $group = 'Browser') {
     $selects = $this->xpath('//select[@id=:id]', array(':id' => $id));
     $options = $this->xpath('//select[@id=:id]/option[@value=:option]', array(':id' => $id, ':option' => $option));
-    return $this->assertTrue(isset($selects[0]) && !isset($options[0]), $message ? $message : String::format('Option @option for field @id does not exist.', array('@option' => $option, '@id' => $id)), $group);
+    return $this->assertTrue(isset($selects[0]) && !isset($options[0]), $message ? $message : t('Option @option for field @id does not exist.', array('@option' => $option, '@id' => $id)), $group);
   }
 
   /**
@@ -3351,7 +3354,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertOptionSelected($id, $option, $message = '', $group = 'Browser') {
     $elements = $this->xpath('//select[@id=:id]//option[@value=:option]', array(':id' => $id, ':option' => $option));
-    return $this->assertTrue(isset($elements[0]) && !empty($elements[0]['selected']), $message ? $message : String::format('Option @option for field @id is selected.', array('@option' => $option, '@id' => $id)), $group);
+    return $this->assertTrue(isset($elements[0]) && !empty($elements[0]['selected']), $message ? $message : t('Option @option for field @id is selected.', array('@option' => $option, '@id' => $id)), $group);
   }
 
   /**
@@ -3376,7 +3379,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoOptionSelected($id, $option, $message = '', $group = 'Browser') {
     $elements = $this->xpath('//select[@id=:id]//option[@value=:option]', array(':id' => $id, ':option' => $option));
-    return $this->assertTrue(isset($elements[0]) && empty($elements[0]['selected']), $message ? $message : String::format('Option @option for field @id is not selected.', array('@option' => $option, '@id' => $id)), $group);
+    return $this->assertTrue(isset($elements[0]) && empty($elements[0]['selected']), $message ? $message : t('Option @option for field @id is not selected.', array('@option' => $option, '@id' => $id)), $group);
   }
 
   /**
@@ -3451,7 +3454,7 @@ abstract class WebTestBase extends TestBase {
     foreach ($this->xpath('//*[@id]') as $element) {
       $id = (string) $element['id'];
       if (isset($seen_ids[$id]) && !in_array($id, $ids_to_skip)) {
-        $this->fail(String::format('The HTML ID %id is unique.', array('%id' => $id)), $group);
+        $this->fail(t('The HTML ID %id is unique.', array('%id' => $id)), $group);
         $status = FALSE;
       }
       $seen_ids[$id] = TRUE;
@@ -3497,7 +3500,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertResponse($code, $message = '', $group = 'Browser') {
     $curl_code = curl_getinfo($this->curlHandle, CURLINFO_HTTP_CODE);
     $match = is_array($code) ? in_array($curl_code, $code) : $curl_code == $code;
-    return $this->assertTrue($match, $message ? $message : String::format('HTTP response expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
+    return $this->assertTrue($match, $message ? $message : t('HTTP response expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
   }
 
   /**
@@ -3522,7 +3525,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertNoResponse($code, $message = '', $group = 'Browser') {
     $curl_code = curl_getinfo($this->curlHandle, CURLINFO_HTTP_CODE);
     $match = is_array($code) ? in_array($curl_code, $code) : $curl_code == $code;
-    return $this->assertFalse($match, $message ? $message : String::format('HTTP response not expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
+    return $this->assertFalse($match, $message ? $message : t('HTTP response not expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
   }
 
   /**
@@ -3636,7 +3639,7 @@ abstract class WebTestBase extends TestBase {
     $mails = $this->drupalGetMails();
     for ($i = count($mails) -1; $i >= count($mails) - $count && $i >= 0; $i--) {
       $mail = $mails[$i];
-      $this->verbose('Email:<pre>' . print_r($mail, TRUE) . '</pre>');
+      $this->verbose(t('Email:') . '<pre>' . print_r($mail, TRUE) . '</pre>');
     }
   }
 

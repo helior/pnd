@@ -9,7 +9,7 @@ namespace Drupal\aggregator_test\Plugin\aggregator\fetcher;
 
 use Drupal\aggregator\Plugin\FetcherInterface;
 use Drupal\aggregator\Plugin\aggregator\fetcher\DefaultFetcher;
-use Drupal\aggregator\FeedInterface;
+use Drupal\aggregator\Entity\Feed;
 use Guzzle\Http\Exception\BadResponseException;
 
 /**
@@ -28,7 +28,7 @@ class TestFetcher extends DefaultFetcher implements FetcherInterface {
   /**
    * Implements \Drupal\aggregator\Plugin\FetcherInterface::fetch().
    */
-  public function fetch(FeedInterface $feed) {
+  public function fetch(Feed $feed) {
     if ($feed->label() == 'Do not fetch') {
       return FALSE;
     }

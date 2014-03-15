@@ -34,12 +34,7 @@ function _drupal_maintenance_theme() {
 
   // Install and update pages are treated differently to prevent theming overrides.
   if (defined('MAINTENANCE_MODE') && (MAINTENANCE_MODE == 'install' || MAINTENANCE_MODE == 'update')) {
-    if (drupal_installation_attempted()) {
-      $custom_theme = $GLOBALS['install_state']['theme'];
-    }
-    else {
-      $custom_theme = settings()->get('maintenance_theme', 'seven');
-    }
+    $custom_theme = settings()->get('maintenance_theme', 'seven');
   }
   else {
     // The bootstrap was not complete. So we are operating in a crippled
@@ -80,10 +75,9 @@ function _drupal_maintenance_theme() {
 
   $themes = list_themes();
 
-  // list_themes() triggers a \Drupal\Core\Extension\ModuleHandler::alter() in
-  // maintenance mode, but we can't let themes alter the .info.yml data until
-  // we know a theme's base themes. So don't set global $theme until after
-  // list_themes() builds its cache.
+  // list_themes() triggers a drupal_alter() in maintenance mode, but we can't
+  // let themes alter the .info.yml data until we know a theme's base themes. So
+  // don't set global $theme until after list_themes() builds its cache.
   $theme = $custom_theme;
 
   // Store the identifier for retrieving theme settings with.
@@ -96,6 +90,7 @@ function _drupal_maintenance_theme() {
     $base_theme[] = $new_base_theme = $themes[$themes[$ancestor]->base_theme];
     $ancestor = $themes[$ancestor]->base_theme;
   }
+  _drupal_theme_initialize($themes[$theme], array_reverse($base_theme), '_theme_load_offline_registry');
   _drupal_theme_initialize($themes[$theme], array_reverse($base_theme));
   // Prime the theme registry.
   // @todo Remove global theme variables.

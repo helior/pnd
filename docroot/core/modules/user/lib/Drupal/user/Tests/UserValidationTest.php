@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\user\Tests\UserValidationTest.
+ * Definition of Drupal\user\Tests\UserValidationTest.
  */
 
 namespace Drupal\user\Tests;
@@ -112,7 +112,7 @@ class UserValidationTest extends DrupalUnitTestBase {
     $violations = $user->validate();
     // @todo There are two violations because EmailItem::getConstraints()
     //   overlaps with the implicit constraint of the 'email' property type used
-    //   in EmailItem::propertyDefinitions(). Resolve this in
+    //   in EmailItem::getPropertyDefinitions(). Resolve this in
     //   https://drupal.org/node/2023465.
     $this->assertEqual(count($violations), 2, 'Violations found when email is too long');
     $this->assertEqual($violations[0]->getPropertyPath(), 'mail.0.value');
@@ -142,14 +142,7 @@ class UserValidationTest extends DrupalUnitTestBase {
     $this->assertEqual($violations[0]->getPropertyPath(), 'init.0.value');
     $this->assertEqual($violations[0]->getMessage(), t('This value is not a valid email address.'));
 
-    // Test cardinality of user roles.
-    $user = entity_create('user', array(
-      'name' => 'role_test',
-      'roles' => array('role1', 'role2'),
-    ));
-    $violations = $user->validate();
-    $this->assertEqual(count($violations), 0);
-    // @todo Test user role validation once https://drupal.org/node/2044859 got
+    // @todo Test user role validation once https://drupal.org/node/2015701 got
     // committed.
   }
 
@@ -167,8 +160,6 @@ class UserValidationTest extends DrupalUnitTestBase {
     $violations = $entity->validate();
     $this->assertEqual(count($violations), 1, "Violation found when $field_name is too long.");
     $this->assertEqual($violations[0]->getPropertyPath(), "$field_name.0.value");
-    $field_label = $entity->get($field_name)->getFieldDefinition()->getLabel();
-    $this->assertEqual($violations[0]->getMessage(), t('%name: may not be longer than @max characters.', array('%name' => $field_label, '@max' => $length)));
+    $this->assertEqual($violations[0]->getMessage(), t('This value is too long. It should have %limit characters or less.', array('%limit' => $length)));
   }
-
 }

@@ -7,8 +7,6 @@
 
 namespace Drupal\user\Tests\Views;
 
-use Drupal\views\Views;
-
 /**
  * Tests views user uid argument handler.
  */
@@ -33,7 +31,7 @@ class HandlerArgumentUserUidTest extends UserTestBase {
    * Tests the generated title of an user: uid argument.
    */
   public function testArgumentTitle() {
-    $view = Views::getView('test_user_uid_argument');
+    $view = views_get_view('test_user_uid_argument');
 
     // Tests an invalid user uid.
     $this->executeView($view, array(rand(1000, 10000)));

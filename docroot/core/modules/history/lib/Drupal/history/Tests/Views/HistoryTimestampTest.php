@@ -7,7 +7,6 @@
 
 namespace Drupal\history\Tests\Views;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 
 /**
@@ -72,7 +71,7 @@ class HistoryTimestampTest extends ViewTestBase {
     );
 
     // Test the history field.
-    $view = Views::getView('test_history');
+    $view = views_get_view('test_history');
     $view->setDisplay('page_1');
     $this->executeView($view);
     $this->assertEqual(count($view->result), 2);
@@ -82,7 +81,7 @@ class HistoryTimestampTest extends ViewTestBase {
     $this->assertEqual(count($result), 1, 'Just one node is marked as new');
 
     // Test the history filter.
-    $view = Views::getView('test_history');
+    $view = views_get_view('test_history');
     $view->setDisplay('page_2');
     $this->executeView($view);
     $this->assertEqual(count($view->result), 1);

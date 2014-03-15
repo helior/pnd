@@ -10,7 +10,7 @@ namespace Drupal\file\Tests;
 /**
  *  This will run tests against the file validation functions (file_validate_*).
  */
-class ValidatorTest extends FileManagedUnitTestBase {
+class ValidatorTest extends FileManagedTestBase {
   public static function getInfo() {
     return array(
       'name' => 'File validator tests',
@@ -79,7 +79,7 @@ class ValidatorTest extends FileManagedUnitTestBase {
     $this->assertEqual(count($errors), 1, 'Small images report an error.', 'File');
 
     // Maximum size.
-    if ($this->container->has('image.toolkit.manager')) {
+    if ($this->container->has('image.toolkit')) {
       // Copy the image so that the original doesn't get resized.
       copy('core/misc/druplicon.png', 'temporary://druplicon.png');
       $this->image->setFileUri('temporary://druplicon.png');
@@ -129,11 +129,12 @@ class ValidatorTest extends FileManagedUnitTestBase {
    * Test file_validate_size().
    */
   function testFileValidateSize() {
+    $user = $this->container->get('current_user');
+    $original_user = $user;
+    drupal_save_session(FALSE);
+
     // Run these tests as a regular user.
-    $user = entity_create('user', array('uid' => 2, 'name' => $this->randomName()));
-    $user->enforceIsNew();
-    $user->save();
-    $this->container->set('current_user', $user);
+    $user = $this->drupalCreateUser();
 
     // Create a file with a size of 1000 bytes, and quotas of only 1 byte.
     $file = entity_create('file', array('filesize' => 1000));
@@ -145,5 +146,8 @@ class ValidatorTest extends FileManagedUnitTestBase {
     $this->assertEqual(count($errors), 1, 'Error for the user being over their limit.', 'File');
     $errors = file_validate_size($file, 1, 1);
     $this->assertEqual(count($errors), 2, 'Errors for both the file and their limit.', 'File');
+
+    $user = $original_user;
+    drupal_save_session(TRUE);
   }
 }

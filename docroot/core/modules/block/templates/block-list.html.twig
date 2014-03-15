@@ -13,9 +13,10 @@
  * @ingroup themeable
  */
 #}
+{% hide(form.place_blocks) %}
 <div class="layout-block-list clearfix">
   <div class="layout-region block-list-primary">
-    {{ form|without('place_blocks') }}
+    {{ form }}
   </div>
   <div class="layout-region block-list-secondary">
     {{ form.place_blocks }}

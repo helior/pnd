@@ -32,7 +32,7 @@ class TreeOutputTest extends DrupalUnitTestBase {
   function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('router'));
+    $this->installSchema('system', array('router', 'menu_router'));
   }
 
   /**

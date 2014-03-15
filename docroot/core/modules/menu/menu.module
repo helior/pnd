@@ -63,6 +63,36 @@ function menu_permission() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function menu_menu() {
+  $items['admin/structure/menu'] = array(
+    'title' => 'Menus',
+    'description' => 'Add new menus to your site, edit existing menus, and rename and reorganize menu links.',
+    'route_name' => 'menu.overview_page',
+  );
+  $items['admin/structure/menu/manage/%menu'] = array(
+    'title' => 'Edit menu',
+    'route_name' => 'menu.menu_edit',
+    'title callback' => 'entity_page_label',
+    'title arguments' => array(4),
+  );
+  $items['admin/structure/menu/item/%menu_link/edit'] = array(
+    'title' => 'Edit menu link',
+    'route_name' => 'menu.link_edit',
+  );
+  $items['admin/structure/menu/item/%menu_link/reset'] = array(
+    'title' => 'Reset menu link',
+    'route_name' => 'menu.link_reset',
+  );
+  $items['admin/structure/menu/item/%menu_link/delete'] = array(
+    'title' => 'Delete menu link',
+    'route_name' => 'menu.link_delete',
+  );
+  return $items;
+}
+
+/**
  * Implements hook_menu_link_defaults().
  */
 function menu_menu_link_defaults() {
@@ -76,11 +106,11 @@ function menu_menu_link_defaults() {
 }
 
 /**
- * Implements hook_entity_type_build().
+ * Implements hook_entity_info().
  */
-function menu_entity_type_build(array &$entity_types) {
-  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
-  $entity_types['menu']
+function menu_entity_info(&$entity_info) {
+  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_info['menu']
     ->setFormClass('add', 'Drupal\menu\MenuFormController')
     ->setFormClass('edit', 'Drupal\menu\MenuFormController')
     ->setFormClass('delete', 'Drupal\menu\Form\MenuDeleteForm')
@@ -89,7 +119,7 @@ function menu_entity_type_build(array &$entity_types) {
     ->setLinkTemplate('delete-form', 'menu.delete_menu')
     ->setLinkTemplate('edit-form', 'menu.menu_edit');
 
-  $entity_types['menu_link']
+  $entity_info['menu_link']
     ->setFormClass('delete', 'Drupal\menu\Form\MenuLinkDeleteForm')
     ->setFormClass('reset', 'Drupal\menu\Form\MenuLinkResetForm')
     ->setLinkTemplate('delete-form', 'menu.link_delete');
@@ -100,7 +130,7 @@ function menu_entity_type_build(array &$entity_types) {
  */
 function menu_entity_bundle_info() {
   $bundles = array();
-  $config_names = \Drupal::configFactory()->listAll('system.menu.');
+  $config_names = config_get_storage_names_with_prefix('system.menu.');
   foreach ($config_names as $config_name) {
     $config = \Drupal::config($config_name);
     $bundles['menu_link'][$config->get('id')] = array(
@@ -474,10 +504,10 @@ function menu_form_node_form_alter(&$form, $form_state) {
     '#type' => 'details',
     '#title' => t('Menu settings'),
     '#access' => \Drupal::currentUser()->hasPermission('administer menu'),
-    '#open' => !empty($link['link_title']),
+    '#collapsed' => !$link['link_title'],
     '#group' => 'advanced',
     '#attached' => array(
-      'library' => array('menu/drupal.menu'),
+      'library' => array(array('menu', 'drupal.menu')),
     ),
     '#tree' => TRUE,
     '#weight' => -2,
@@ -593,8 +623,9 @@ function menu_form_node_type_form_alter(&$form, $form_state) {
   $form['menu'] = array(
     '#type' => 'details',
     '#title' => t('Menu settings'),
+    '#collapsed' => TRUE,
     '#attached' => array(
-      'library' => array('menu/drupal.menu.admin'),
+      'library' => array(array('menu', 'drupal.menu.admin')),
     ),
     '#group' => 'additional_settings',
   );
@@ -666,4 +697,35 @@ function menu_preprocess_block(&$variables) {
   if ($variables['configuration']['module'] == 'menu') {
     $variables['attributes']['role'] = 'navigation';
   }
+}
+
+/**
+ * Implements hook_library_info().
+ */
+function menu_library_info() {
+  $libraries['drupal.menu'] = array(
+    'title' => 'Menu',
+    'version' => \Drupal::VERSION,
+    'js' => array(
+      drupal_get_path('module', 'menu') . '/menu.js' => array(),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+      array('system', 'drupal'),
+      array('system', 'drupal.form'),
+    ),
+  );
+  $libraries['drupal.menu.admin'] = array(
+    'title' => 'Menu admin',
+    'version' => \Drupal::VERSION,
+    'js' => array(
+      drupal_get_path('module', 'menu') . '/menu.admin.js' => array(),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+      array('system', 'drupal'),
+    ),
+  );
+
+  return $libraries;
 }

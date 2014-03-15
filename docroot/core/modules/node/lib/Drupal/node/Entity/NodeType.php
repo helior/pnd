@@ -29,11 +29,12 @@ use Drupal\node\NodeTypeInterface;
  *     "list" = "Drupal\node\NodeTypeListController",
  *   },
  *   admin_permission = "administer content types",
- *   config_prefix = "type",
+ *   config_prefix = "node.type",
  *   bundle_of = "node",
  *   entity_keys = {
  *     "id" = "type",
- *     "label" = "name"
+ *     "label" = "name",
+ *     "uuid" = "uuid"
  *   },
  *   links = {
  *     "add-form" = "node.add",
@@ -52,6 +53,13 @@ class NodeType extends ConfigEntityBase implements NodeTypeInterface {
    * @todo Rename to $id.
    */
   public $type;
+
+  /**
+   * The UUID of the node type.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The human-readable name of the node type.

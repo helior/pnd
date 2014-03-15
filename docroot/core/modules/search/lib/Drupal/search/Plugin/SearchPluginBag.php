@@ -7,7 +7,7 @@
 
 namespace Drupal\search\Plugin;
 
-use Drupal\Core\Plugin\DefaultSinglePluginBag;
+use Drupal\Component\Plugin\DefaultSinglePluginBag;
 use Drupal\Component\Plugin\PluginManagerInterface;
 
 /**
@@ -23,19 +23,10 @@ class SearchPluginBag extends DefaultSinglePluginBag {
   protected $searchPageId;
 
   /**
-   * Constructs a new SearchPluginBag.
-   *
-   * @param \Drupal\Component\Plugin\PluginManagerInterface $manager
-   *   The manager to be used for instantiating plugins.
-   * @param string $instance_id
-   *   The ID of the plugin instance.
-   * @param array $configuration
-   *   An array of configuration.
-   * @param string $search_page_id
-   *   The unique ID of the search page using this plugin.
+   * {@inheritdoc}
    */
-  public function __construct(PluginManagerInterface $manager, $instance_id, array $configuration, $search_page_id) {
-    parent::__construct($manager, $instance_id, $configuration);
+  public function __construct(PluginManagerInterface $manager, array $instance_ids, array $configuration, $search_page_id) {
+    parent::__construct($manager, $instance_ids, $configuration);
 
     $this->searchPageId = $search_page_id;
   }

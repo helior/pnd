@@ -7,12 +7,12 @@
 
 namespace Drupal\file\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldItemList;
+use Drupal\Core\Field\ConfigFieldItemList;
 
 /**
  * Represents a configurable entity file field.
  */
-class FileFieldItemList extends FieldItemList {
+class FileFieldItemList extends ConfigFieldItemList {
 
   /**
    * {@inheritdoc}

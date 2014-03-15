@@ -7,7 +7,7 @@
 
 namespace Drupal\book\Form;
 
-use Drupal\book\BookManagerInterface;
+use Drupal\book\BookManager;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,7 +20,7 @@ class BookRemoveForm extends ConfirmFormBase {
   /**
    * The book manager.
    *
-   * @var \Drupal\book\BookManagerInterface
+   * @var \Drupal\book\BookManager
    */
   protected $bookManager;
 
@@ -34,10 +34,10 @@ class BookRemoveForm extends ConfirmFormBase {
   /**
    * Constructs a BookRemoveForm object.
    *
-   * @param \Drupal\book\BookManagerInterface $book_manager
+   * @param \Drupal\book\BookManager $book_manager
    *   The book manager.
    */
-  public function __construct(BookManagerInterface $book_manager) {
+  public function __construct(BookManager $book_manager) {
     $this->bookManager = $book_manager;
   }
 
@@ -109,7 +109,8 @@ class BookRemoveForm extends ConfirmFormBase {
    */
   public function submitForm(array &$form, array &$form_state) {
     if ($this->bookManager->checkNodeIsRemovable($this->node)) {
-      $this->bookManager->deleteFromBook($this->node->id());
+      menu_link_delete($this->node->book['mlid']);
+      $this->bookManager->deleteBook($this->node->id());
       drupal_set_message($this->t('The post has been removed from the book.'));
     }
     $form_state['redirect_route'] = array(

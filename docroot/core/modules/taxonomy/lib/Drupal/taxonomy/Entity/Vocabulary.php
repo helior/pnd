@@ -9,7 +9,6 @@ namespace Drupal\taxonomy\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\field\Field;
 use Drupal\taxonomy\VocabularyInterface;
 
 /**
@@ -28,12 +27,13 @@ use Drupal\taxonomy\VocabularyInterface;
  *     }
  *   },
  *   admin_permission = "administer taxonomy",
- *   config_prefix = "vocabulary",
+ *   config_prefix = "taxonomy.vocabulary",
  *   bundle_of = "taxonomy_term",
  *   entity_keys = {
  *     "id" = "vid",
  *     "label" = "name",
- *     "weight" = "weight"
+ *     "weight" = "weight",
+ *     "uuid" = "uuid"
  *   },
  *   links = {
  *     "add-form" = "taxonomy.term_add",
@@ -52,6 +52,13 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
    * @var string
    */
   public $vid;
+
+  /**
+   * The vocabulary UUID.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * Name of the vocabulary.
@@ -105,30 +112,19 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
     elseif ($this->getOriginalId() != $this->id()) {
       // Reflect machine name changes in the definitions of existing 'taxonomy'
       // fields.
-      $field_ids = array();
-      $field_map = Field::fieldInfo()->getFieldMap();
-      foreach ($field_map as $entity_type => $fields) {
-        foreach ($fields as $field => $info) {
-          if ($info['type'] == 'taxonomy_term_reference') {
-            $field_ids[] = $entity_type . '.' . $field;
-          }
-        }
-      }
-
-      $fields = \Drupal::entityManager()->getStorageController('field_config')->loadMultiple($field_ids);
-
+      $fields = entity_load_multiple('field_entity');
       foreach ($fields as $field) {
         $update_field = FALSE;
-
-        foreach ($field->settings['allowed_values'] as &$value) {
-          if ($value['vocabulary'] == $this->getOriginalId()) {
-            $value['vocabulary'] = $this->id();
-            $update_field = TRUE;
+        if ($field->getType() == 'taxonomy_term_reference') {
+          foreach ($field->settings['allowed_values'] as &$value) {
+            if ($value['vocabulary'] == $this->getOriginalId()) {
+              $value['vocabulary'] = $this->id();
+              $update_field = TRUE;
+            }
           }
-        }
-
-        if ($update_field) {
-          $field->save();
+          if ($update_field) {
+            $field->save();
+          }
         }
       }
       // Update bundles.
@@ -159,7 +155,7 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
     }
     // Load all Taxonomy module fields and delete those which use only this
     // vocabulary.
-    $taxonomy_fields = entity_load_multiple_by_properties('field_config', array('module' => 'taxonomy'));
+    $taxonomy_fields = entity_load_multiple_by_properties('field_entity', array('module' => 'taxonomy'));
     foreach ($taxonomy_fields as $taxonomy_field) {
       $modified_field = FALSE;
       // Term reference fields may reference terms from more than one

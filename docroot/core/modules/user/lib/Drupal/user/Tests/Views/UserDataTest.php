@@ -7,8 +7,6 @@
 
 namespace Drupal\user\Tests\Views;
 
-use Drupal\views\Views;
-
 /**
  * Tests the user data service field handler.
  *
@@ -47,7 +45,7 @@ class UserDataTest extends UserTestBase {
     $random_value = $this->randomName();
     $this->userData->set('views_test_config', $this->users[0]->id(), 'test_value_name', $random_value);
 
-    $view = Views::getView('test_user_data');
+    $view = views_get_view('test_user_data');
     $this->executeView($view);
 
     $output = $view->field['data']->render($view->result[0]);

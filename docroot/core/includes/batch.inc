@@ -47,38 +47,42 @@ function _batch_page(Request $request) {
   // Register database update for the end of processing.
   drupal_register_shutdown_function('_batch_shutdown');
 
-  $build = array();
-
   // Add batch-specific CSS.
+  $attached = array('#attached' => array('css' => array()));
   foreach ($batch['sets'] as $batch_set) {
     if (isset($batch_set['css'])) {
       foreach ($batch_set['css'] as $css) {
-        $build['#attached']['css'][$css] = array();
+        $attached['#attached']['css'][$css] = array();
       }
     }
   }
+  drupal_render($attached);
 
   $op = $request->get('op', '');
+  $output = NULL;
   switch ($op) {
     case 'start':
-    case 'do_nojs':
       // Display the full progress page on startup and on each additional
       // non-JavaScript iteration.
-      $current_set = _batch_current_set();
-      $build['#title'] = $current_set['title'];
-      $build['content'] = _batch_progress_page();
+      $output = _batch_progress_page();
       break;
 
     case 'do':
       // JavaScript-based progress page callback.
-      return _batch_do();
+      $output = _batch_do();
+      break;
+
+    case 'do_nojs':
+      // Non-JavaScript-based progress page.
+      $output = _batch_progress_page();
+      break;
 
     case 'finished':
-      // _batch_finished() returns a RedirectResponse.
-      return _batch_finished();
+      $output = _batch_finished();
+      break;
   }
 
-  return $build;
+  return $output;
 }
 
 /**
@@ -103,6 +107,7 @@ function _batch_progress_page() {
   $batch = &batch_get();
 
   $current_set = _batch_current_set();
+  drupal_set_title($current_set['title'], PASS_THROUGH);
 
   $new_op = 'do_nojs';
 
@@ -123,7 +128,6 @@ function _batch_progress_page() {
     $fallback = $current_set['error_message'] . '<br />' . $batch['error_message'];
     $fallback = array(
       '#theme' => 'maintenance_page',
-      '#title' => $current_set['title'],
       '#content' => $fallback,
       '#show_messages' => FALSE,
     );
@@ -187,11 +191,11 @@ function _batch_progress_page() {
         ),
       ),
       'library' => array(
-        'core/drupal.batch',
+        array('system', 'drupal.batch'),
       ),
     ),
   );
-  return $build;
+  return drupal_render($build);
 }
 
 /**
@@ -407,7 +411,7 @@ function _batch_finished() {
       if (is_callable($batch_set['finished'])) {
         $queue = _batch_queue($batch_set);
         $operations = $queue->getAllItems();
-        call_user_func_array($batch_set['finished'], array($batch_set['success'], $batch_set['results'], $operations, format_interval($batch_set['elapsed'] / 1000)));
+        $batch_set['finished']($batch_set['success'], $batch_set['results'], $operations, format_interval($batch_set['elapsed'] / 1000));
       }
     }
   }

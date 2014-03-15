@@ -22,6 +22,16 @@ class LocaleForm {
   }
 
   /**
+   * Wraps locale_translate_export_form().
+   *
+   * @todo Remove locale_translate_export_form().
+   */
+  public function export() {
+    module_load_include('bulk.inc', 'locale');
+    return drupal_get_form('locale_translate_export_form');
+  }
+
+  /**
    * Wraps locale_translation_status_form().
    *
    * @todo Remove locale_translation_status_form().

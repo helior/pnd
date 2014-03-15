@@ -8,7 +8,7 @@
 namespace Drupal\aggregator\Plugin\aggregator\parser;
 
 use Drupal\aggregator\Plugin\ParserInterface;
-use Drupal\aggregator\FeedInterface;
+use Drupal\aggregator\Entity\Feed;
 use Drupal\Core\Cache\Cache;
 use Zend\Feed\Reader\Reader;
 use Zend\Feed\Reader\Exception\ExceptionInterface;
@@ -29,7 +29,7 @@ class DefaultParser implements ParserInterface {
   /**
    * {@inheritdoc}
    */
-  public function parse(FeedInterface $feed) {
+  public function parse(Feed $feed) {
     // Set our bridge extension manager to Zend Feed.
     Reader::setExtensionManager(\Drupal::service('feed.bridge.reader'));
     try {

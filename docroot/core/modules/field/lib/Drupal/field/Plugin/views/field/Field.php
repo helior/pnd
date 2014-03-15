@@ -7,6 +7,7 @@
 
 namespace Drupal\field\Plugin\views\field;
 
+use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
@@ -42,7 +43,7 @@ class Field extends FieldPluginBase {
   /**
    * The field information as returned by field_info_field().
    *
-   * @var \Drupal\field\FieldConfigInterface
+   * @var \Drupal\field\FieldInterface
    */
   public $field_info;
 
@@ -413,7 +414,7 @@ class Field extends FieldPluginBase {
       $form['click_sort_column'] = array(
         '#type' => 'select',
         '#title' => t('Column used for click sorting'),
-        '#options' => array_combine($column_names, $column_names),
+        '#options' => drupal_map_assoc($column_names),
         '#default_value' => $this->options['click_sort_column'],
         '#description' => t('Used by Style: Table to determine the actual column to click sort the field on. The default is usually fine.'),
       );
@@ -477,6 +478,7 @@ class Field extends FieldPluginBase {
     $form['multiple_field_settings'] = array(
       '#type' => 'details',
       '#title' => t('Multiple field settings'),
+      '#collapsed' => TRUE,
       '#weight' => 5,
     );
 
@@ -499,8 +501,7 @@ class Field extends FieldPluginBase {
     }
     else {
       $type = 'select';
-      $range = range(1, $field->getCardinality());
-      $options = array_combine($range, $range);
+      $options = drupal_map_assoc(range(1, $field->getCardinality()));
       $size = 1;
     }
     $form['multi_type'] = array(
@@ -599,10 +600,9 @@ class Field extends FieldPluginBase {
     // With "field API" fields, the column target of the grouping function
     // and any additional grouping columns must be specified.
 
-    $field_columns = array_keys($this->field_info->getColumns());
     $group_columns = array(
       'entity_id' => t('Entity ID'),
-    ) + array_map('ucfirst', array_combine($field_columns, $field_columns));
+    ) + MapArray::copyValuesToKeys(array_keys($this->field_info->getColumns()), 'ucfirst');
 
     $form['group_column'] = array(
       '#type' => 'select',
@@ -612,11 +612,8 @@ class Field extends FieldPluginBase {
       '#options' => $group_columns,
     );
 
-    $options = array(
-      'bundle' => 'Bundle',
-      'language' => 'Language',
-      'entity_type' => 'Entity_type',
-    );
+    $options = MapArray::copyValuesToKeys(array('bundle', 'language', 'entity_type'), 'ucfirst');
+
     // Add on defined fields, noting that they're prefixed with the field name.
     $form['group_columns'] = array(
       '#type' => 'checkboxes',
@@ -685,7 +682,9 @@ class Field extends FieldPluginBase {
       'views_field' => $this,
       'views_row_id' => $this->view->row_index,
     );
-    $render_array = $entity->get($this->definition['field_name'])->view($display);
+
+    $langcode = $this->field_langcode($entity);
+    $render_array = field_view_field($entity, $this->definition['field_name'], $display, $langcode);
 
     $items = array();
     if ($this->options['field_api_classes']) {
@@ -694,10 +693,10 @@ class Field extends FieldPluginBase {
 
     foreach (element_children($render_array) as $count) {
       $items[$count]['rendered'] = $render_array[$count];
-      // FieldItemListInterface::view() adds an #access property to the render
-      // array that determines whether or not the current user is allowed to
-      // view the field in the context of the current entity. We need to respect
-      // this parameter when we pull out the children of the field array for
+      // field_view_field() adds an #access property to the render array that
+      // determines whether or not the current user is allowed to view the
+      // field in the context of the current entity. We need to respect this
+      // parameter when we pull out the children of the field array for
       // rendering.
       if (isset($render_array['#access'])) {
         $items[$count]['rendered']['#access'] = $render_array['#access'];
@@ -725,10 +724,7 @@ class Field extends FieldPluginBase {
    */
   function process_entity(EntityInterface $entity) {
     $processed_entity = clone $entity;
-
     $langcode = $this->field_langcode($processed_entity);
-    $processed_entity = $processed_entity->getTranslation($langcode);
-
     // If we are grouping, copy our group fields into the cloned entity.
     // It's possible this will cause some weirdness, but there's only
     // so much we can hope to do.
@@ -753,10 +749,10 @@ class Field extends FieldPluginBase {
       if ($data) {
         // Now, overwrite the original value with our aggregated value.
         // This overwrites it so there is always just one entry.
-        $processed_entity->{$this->definition['field_name']} = array($base_value);
+        $processed_entity->getTranslation($langcode)->{$this->definition['field_name']} = array($base_value);
       }
       else {
-        $processed_entity->{$this->definition['field_name']} = array();
+        $processed_entity->getTranslation($langcode)->{$this->definition['field_name']} = array();
       }
     }
 
@@ -767,7 +763,7 @@ class Field extends FieldPluginBase {
 
     // We are supposed to show only certain deltas.
     if ($this->limit_values && !empty($processed_entity->{$this->definition['field_name']})) {
-      $all_values = !empty($processed_entity->{$this->definition['field_name']}) ? $processed_entity->{$this->definition['field_name']}->getValue() : array();
+      $all_values = !empty($processed_entity->getTranslation($langcode)->{$this->definition['field_name']}) ? $processed_entity->getTranslation($langcode)->{$this->definition['field_name']}->getValue() : array();
       if ($this->options['delta_reversed']) {
         $all_values = array_reverse($all_values);
       }
@@ -813,7 +809,7 @@ class Field extends FieldPluginBase {
           }
         }
       }
-      $processed_entity->{$this->definition['field_name']} = $new_values;
+      $processed_entity->getTranslation($langcode)->{$this->definition['field_name']} = $new_values;
     }
 
     return $processed_entity;
@@ -867,9 +863,9 @@ class Field extends FieldPluginBase {
 
       // Give the Entity Field API a chance to fallback to a different language
       // (or Language::LANGCODE_NOT_SPECIFIED), in case the field has no data
-      // for the selected language. FieldItemListInterface::view() does this as
-      // well, but since the returned language code is used before calling it,
-      // the fallback needs to happen explicitly.
+      // for the selected language. field_view_field() does this as well, but
+      // since the returned language code is used before calling it, the
+      // fallback needs to happen explicitly.
       $langcode = $this->entityManager->getTranslationFromContext($entity, $langcode)->language()->id;
 
       return $langcode;

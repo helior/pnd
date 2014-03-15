@@ -7,7 +7,6 @@
 
 namespace Drupal\views\Tests\Plugin;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views_test_data\Plugin\views\row\RowTest;
 use Drupal\views\Plugin\views\row\Fields;
@@ -54,7 +53,7 @@ class StyleTest extends ViewTestBase {
    */
   public function testStyle() {
     // This run use the test row plugin and render with it.
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
     $style = $view->display_handler->getOption('style');
     $style['type'] = 'test_style';
@@ -76,7 +75,7 @@ class StyleTest extends ViewTestBase {
     $this->assertTrue(strpos($output, $random_text) !== FALSE, 'Make sure that the rendering of the row plugin appears in the output of the view.');
 
     // Test without row plugin support.
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
     $style = $view->display_handler->getOption('style');
     $style['type'] = 'test_style';
@@ -105,7 +104,7 @@ class StyleTest extends ViewTestBase {
    * Tests the grouping features of styles.
    */
   function _testGrouping($stripped = FALSE) {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
     // Setup grouping by the job and the age field.
     $view->initStyle();
@@ -224,7 +223,7 @@ class StyleTest extends ViewTestBase {
    * Tests custom css classes.
    */
   function testCustomRowClasses() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Setup some random css class.

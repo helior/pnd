@@ -25,14 +25,14 @@ class EmailFieldTest extends WebTestBase {
   /**
    * A field to use in this test class.
    *
-   * @var \Drupal\field\Entity\FieldConfig
+   * @var \Drupal\field\Entity\Field
    */
   protected $field;
 
   /**
    * The instance used in this test class.
    *
-   * @var \Drupal\field\Entity\FieldInstanceConfig
+   * @var \Drupal\field\Entity\FieldInstance
    */
   protected $instance;
 
@@ -61,13 +61,13 @@ class EmailFieldTest extends WebTestBase {
   function testEmailField() {
     // Create a field with settings to validate.
     $field_name = drupal_strtolower($this->randomName());
-    $this->field = entity_create('field_config', array(
+    $this->field = entity_create('field_entity', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'email',
     ));
     $this->field->save();
-    $this->instance = entity_create('field_instance_config', array(
+    $this->instance = entity_create('field_instance', array(
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',

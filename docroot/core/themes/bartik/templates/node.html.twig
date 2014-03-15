@@ -18,8 +18,8 @@
  * - label: The title of the node.
  * - content: All node items. Use {{ content }} to print them all,
  *   or print a subset such as {{ content.field_example }}. Use
- *   {{ content|without('field_example') }} to exclude the printing of a
- *   given child element.
+ *   {% hide(content.field_example) %} to temporarily suppress the printing
+ *   of a given element.
  * - user_picture: The node author's picture from user-picture.html.twig.
  * - date: Formatted creation date. Preprocess functions can reformat it by
  *   calling format_date() with the desired parameters on
@@ -91,7 +91,9 @@
   </header>
 
   <div class="content clearfix"{{ content_attributes }}>
-    {{ content|without('links') }}
+    {# We hide links now so that we can render them later. #}
+    {% hide(content.links) %}
+    {{ content }}
   </div>
 
   {% if content.links %}

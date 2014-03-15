@@ -7,7 +7,6 @@
 
 namespace Drupal\image\Form;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\image\ConfigurableImageEffectInterface;
 use Drupal\image\ImageEffectManager;
@@ -245,18 +244,6 @@ class ImageStyleEditForm extends ImageStyleFormBase {
     foreach ($effects as $uuid => $effect_data) {
       if ($this->entity->getEffects()->has($uuid)) {
         $this->entity->getEffect($uuid)->setWeight($effect_data['weight']);
-      }
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function copyFormValuesToEntity(EntityInterface $entity, array $form_state) {
-    foreach ($form_state['values'] as $key => $value) {
-      // Do not copy effects here, see self::updateEffectWeights().
-      if ($key != 'effects') {
-        $entity->set($key, $value);
       }
     }
   }

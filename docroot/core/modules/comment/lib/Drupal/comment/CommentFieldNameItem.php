@@ -7,7 +7,6 @@
 
 namespace Drupal\comment;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\StringItem;
 use Drupal\Core\TypedData\DataDefinition;
 
@@ -17,15 +16,26 @@ use Drupal\Core\TypedData\DataDefinition;
 class CommentFieldNameItem extends StringItem {
 
   /**
+   * Definitions of the contained properties.
+   *
+   * @see self::getPropertyDefinitions()
+   *
+   * @var array
+   */
+  static $propertyDefinitions;
+
+  /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
-    $properties['value'] = DataDefinition::create('string')
-      ->setLabel(t('String value'))
-      ->setClass('\Drupal\comment\CommentFieldNameValue')
-      ->setComputed(TRUE);
+  public function getPropertyDefinitions() {
 
-    return $properties;
+    if (!isset(static::$propertyDefinitions)) {
+      static::$propertyDefinitions['value'] = DataDefinition::create('string')
+        ->setLabel(t('String value'))
+        ->setClass('\Drupal\comment\CommentFieldNameValue')
+        ->setComputed(TRUE);
+    }
+    return static::$propertyDefinitions;
   }
 
 }

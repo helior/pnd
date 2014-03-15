@@ -75,15 +75,14 @@ class ToolkitGdTest extends DrupalUnitTestBase {
    * Function for finding a pixel's RGBa values.
    */
   function getPixelColor(ImageInterface $image, $x, $y) {
-    $toolkit = $image->getToolkit();
-    $color_index = imagecolorat($toolkit->getResource(), $x, $y);
+    $color_index = imagecolorat($image->getResource(), $x, $y);
 
-    $transparent_index = imagecolortransparent($toolkit->getResource());
+    $transparent_index = imagecolortransparent($image->getResource());
     if ($color_index == $transparent_index) {
       return array(0, 0, 0, 127);
     }
 
-    return array_values(imagecolorsforindex($toolkit->getResource(), $color_index));
+    return array_values(imagecolorsforindex($image->getResource(), $color_index));
   }
 
   /**
@@ -211,19 +210,19 @@ class ToolkitGdTest extends DrupalUnitTestBase {
       );
     }
 
-    $image_factory = $this->container->get('image.factory')->setToolkitId('gd');
+    $toolkit = $this->container->get('image.toolkit.manager')->createInstance('gd');
+    $image_factory = $this->container->get('image.factory')->setToolkit($toolkit);
     foreach ($files as $file) {
       foreach ($operations as $op => $values) {
         // Load up a fresh image.
         $image = $image_factory->get(drupal_get_path('module', 'simpletest') . '/files/' . $file);
-        $toolkit = $image->getToolkit();
         if (!$image) {
           $this->fail(String::format('Could not load image %file.', array('%file' => $file)));
           continue 2;
         }
 
         // All images should be converted to truecolor when loaded.
-        $image_truecolor = imageistruecolor($toolkit->getResource());
+        $image_truecolor = imageistruecolor($image->getResource());
         $this->assertTrue($image_truecolor, String::format('Image %file after load is a truecolor image.', array('%file' => $file)));
 
         if ($image->getType() == IMAGETYPE_GIF) {
@@ -242,7 +241,7 @@ class ToolkitGdTest extends DrupalUnitTestBase {
         $correct_dimensions_object = TRUE;
 
         // Check the real dimensions of the image first.
-        if (imagesy($toolkit->getResource()) != $values['height'] || imagesx($toolkit->getResource()) != $values['width']) {
+        if (imagesy($image->getResource()) != $values['height'] || imagesx($image->getResource()) != $values['width']) {
           $correct_dimensions_real = FALSE;
         }
 

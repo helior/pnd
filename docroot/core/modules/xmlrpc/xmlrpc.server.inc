@@ -14,8 +14,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * @return \Symfony\Component\HttpFoundation\Response
  *   A Response object.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\xmlrpc\Controller\XmlrpcController::php().
+ * @deprecated Use \Drupal\xmlrpc\Controller\XmlrpcController::php()
  */
 function xmlrpc_server_page() {
   module_load_include('inc', 'xmlrpc');
@@ -65,7 +64,7 @@ function xmlrpc_server($callbacks) {
   // with those defined by modules implementing the _xmlrpc hook.
   // Built-in methods are overridable.
   $callbacks = array_merge($defaults, (array) $callbacks);
-  \Drupal::moduleHandler()->alter('xmlrpc', $callbacks);
+  drupal_alter('xmlrpc', $callbacks);
   foreach ($callbacks as $key => $callback) {
     // we could check for is_array($callback)
     if (is_int($key)) {

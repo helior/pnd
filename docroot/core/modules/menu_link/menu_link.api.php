@@ -111,7 +111,7 @@ function hook_menu_link_insert(\Drupal\menu_link\Entity\MenuLink $menu_link) {
   $record['mlid'] = $menu_link->id();
   $record['menu_name'] = $menu_link->menu_name;
   $record['status'] = 0;
-  db_insert('menu_example')->fields($record)->execute();
+  drupal_write_record('menu_example', $record);
 }
 
 /**

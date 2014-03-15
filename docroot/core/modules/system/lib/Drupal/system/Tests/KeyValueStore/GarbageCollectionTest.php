@@ -52,7 +52,7 @@ class GarbageCollectionTest extends UnitTestBase {
     // Manually expire the data.
     for ($i = 0; $i <= 3; $i++) {
       db_merge('key_value_expire')
-        ->keys(array(
+        ->key(array(
             'name' => 'key_' . $i,
             'collection' => $collection,
           ))

@@ -22,8 +22,7 @@ use Drupal\Core\TypedData\TypedDataInterface;
  *
  * @DataType(
  *   id = "list",
- *   label = @Translation("List of items"),
- *   definition_class = "\Drupal\Core\TypedData\ListDataDefinition"
+ *   label = @Translation("List of items")
  * )
  */
 class ItemList extends TypedData implements \IteratorAggregate, ListInterface {

@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests the numeric filter handler.
@@ -40,7 +39,7 @@ class FilterNumericTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('key_value_expire'));
+    $this->installSchema('system', array('menu_router', 'key_value_expire'));
   }
 
   function viewsData() {
@@ -52,7 +51,7 @@ class FilterNumericTest extends ViewUnitTestBase {
   }
 
   public function testFilterNumericSimple() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Change the filtering
@@ -79,7 +78,7 @@ class FilterNumericTest extends ViewUnitTestBase {
 
   public function testFilterNumericExposedGroupedSimple() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: =, Value: 28
@@ -98,7 +97,7 @@ class FilterNumericTest extends ViewUnitTestBase {
   }
 
   public function testFilterNumericBetween() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Change the filtering
@@ -172,7 +171,7 @@ class FilterNumericTest extends ViewUnitTestBase {
 
   public function testFilterNumericExposedGroupedBetween() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: between, Value: 26 and 29
@@ -200,7 +199,7 @@ class FilterNumericTest extends ViewUnitTestBase {
 
   public function testFilterNumericExposedGroupedNotBetween() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: between, Value: 26 and 29
@@ -227,7 +226,7 @@ class FilterNumericTest extends ViewUnitTestBase {
   }
 
   public function testFilterNumericEmpty() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     // Change the filtering
@@ -288,7 +287,7 @@ class FilterNumericTest extends ViewUnitTestBase {
 
   public function testFilterNumericExposedGroupedEmpty() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: empty, Value:
@@ -304,7 +303,7 @@ class FilterNumericTest extends ViewUnitTestBase {
 
   public function testFilterNumericExposedGroupedNotEmpty() {
     $filters = $this->getGroupedExposedFilters();
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: empty, Value:
@@ -339,7 +338,7 @@ class FilterNumericTest extends ViewUnitTestBase {
   }
 
   public function testAllowEmpty() {
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->setDisplay();
 
     $view->displayHandlers->get('default')->overrideOption('filters', array(

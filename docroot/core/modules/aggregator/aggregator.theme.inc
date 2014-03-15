@@ -6,7 +6,6 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Component\Utility\String;
 
 /**
  * Prepares variables for aggregator item templates.
@@ -22,7 +21,7 @@ function template_preprocess_aggregator_item(&$variables) {
   $item = $variables['aggregator_item'];
 
   $variables['feed_url'] = check_url($item->getLink());
-  $variables['feed_title'] = String::checkPlain($item->getTitle());
+  $variables['feed_title'] = check_plain($item->getTitle());
   $variables['content'] = aggregator_filter_xss($item->getDescription());
 
   $variables['source_url'] = '';
@@ -30,7 +29,7 @@ function template_preprocess_aggregator_item(&$variables) {
   $fid = $item->getFeedId();
   if (isset($item->ftitle) && $fid !== NULL) {
     $variables['source_url'] = url('aggregator/sources/' . $fid);
-    $variables['source_title'] = String::checkPlain($item->ftitle);
+    $variables['source_title'] = check_plain($item->ftitle);
   }
   if (date('Ymd', $item->getPostedTime()) == date('Ymd')) {
     $variables['source_date'] = t('%ago ago', array('%ago' => format_interval(REQUEST_TIME - $item->getPostedTime())));
@@ -60,12 +59,12 @@ function theme_aggregator_page_opml($variables) {
   $output  = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
   $output .= "<opml version=\"1.1\">\n";
   $output .= "<head>\n";
-  $output .= '<title>' . String::checkPlain(\Drupal::config('system.site')->get('name')) . "</title>\n";
+  $output .= '<title>' . check_plain(\Drupal::config('system.site')->get('name')) . "</title>\n";
   $output .= '<dateModified>' . gmdate(DATE_RFC2822, REQUEST_TIME) . "</dateModified>\n";
   $output .= "</head>\n";
   $output .= "<body>\n";
   foreach ($feeds as $feed) {
-    $output .= '<outline text="' . String::checkPlain($feed->title) . '" xmlUrl="' . check_url($feed->url) . "\" />\n";
+    $output .= '<outline text="' . check_plain($feed->title) . '" xmlUrl="' . check_url($feed->url) . "\" />\n";
   }
   $output .= "</body>\n";
   $output .= "</opml>\n";
@@ -80,12 +79,12 @@ function theme_aggregator_page_opml($variables) {
  *
  * @param array $variables
  *   An associative array containing:
- *   - source: A Drupal\aggregator\FeedInterface object representing the feed
- *     source.
+ *   - source: A Drupal\aggregator\Entity\Feed instance representing
+ *     the feed source.
  *   - summary_items: An array of feed items.
  */
 function template_preprocess_aggregator_summary_items(&$variables) {
-  $variables['title'] = String::checkPlain($variables['source'] instanceof EntityInterface ? $variables['source']->label() : $variables['source']->title);
+  $variables['title'] = check_plain($variables['source'] instanceof EntityInterface ? $variables['source']->label() : $variables['source']->title);
   $summary_items = array();
   foreach (element_children($variables['summary_items']) as $key) {
     $summary_items[] = $variables['summary_items'][$key];
@@ -110,7 +109,7 @@ function template_preprocess_aggregator_summary_items(&$variables) {
 function template_preprocess_aggregator_summary_item(&$variables) {
   $item = $variables['aggregator_item'];
 
-  $variables['url'] = l(String::checkPlain($item->label()), check_url(url($item->getLink(), array('absolute' => TRUE))), array(
+  $variables['url'] = l(check_plain($item->label()), check_url(url($item->getLink(), array('absolute' => TRUE))), array(
     'attributes' => array(
       'class' => array('feed-item-url'),
     ),
@@ -133,8 +132,8 @@ function template_preprocess_aggregator_summary_item(&$variables) {
  *
  * @param array $variables
  *   An associative array containing:
- *   - aggregator_feed: A Drupal\aggregator\FeedInterface object representing
- *     the feed source.
+ *   - aggregator_feed: A Drupal\aggregator\Entity\Feed instance
+ *     representing the feed source.
  */
 function template_preprocess_aggregator_feed_source(&$variables) {
   $feed = $variables['aggregator_feed'];
@@ -187,5 +186,5 @@ function template_preprocess_aggregator_feed_source(&$variables) {
 function template_preprocess_aggregator_block_item(&$variables) {
   // Display the external link to the item.
   $variables['url'] = check_url($variables['item']->link);
-  $variables['title'] = String::checkPlain($variables['item']->title);
+  $variables['title'] = check_plain($variables['item']->title);
 }

@@ -45,24 +45,11 @@ class TypedDataManager extends DefaultPluginManager {
    */
   protected $prototypes = array();
 
- /**
-  * Constructs a new TypedDataManager.
-  *
-  * @param \Traversable $namespaces
-  *   An object that implements \Traversable which contains the root paths
-  *   keyed by the corresponding namespace to look for plugin implementations.
-  * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
-  *   Cache backend instance to use.
-  * @param \Drupal\Core\Language\LanguageManager $language_manager
-  *   The language manager.
-  * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-  *   The module handler.
-  */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, LanguageManager $language_manager, ModuleHandlerInterface $module_handler) {
-    $this->alterInfo('data_type_info');
+    $this->alterInfo($module_handler, 'data_type_info');
     $this->setCacheBackend($cache_backend, $language_manager, 'typed_data_types_plugins');
 
-    parent::__construct('Plugin/DataType', $namespaces, $module_handler, 'Drupal\Core\TypedData\Annotation\DataType');
+    parent::__construct('Plugin/DataType', $namespaces, 'Drupal\Core\TypedData\Annotation\DataType');
   }
 
   /**
@@ -83,7 +70,7 @@ class TypedDataManager extends DefaultPluginManager {
    * @return \Drupal\Core\TypedData\TypedDataInterface
    *   The instantiated typed data object.
    */
-  public function createInstance($data_type, array $configuration = array()) {
+  public function createInstance($data_type, array $configuration) {
     $data_definition = $configuration['data_definition'];
     $type_definition = $this->getDefinition($data_type);
 
@@ -146,56 +133,6 @@ class TypedDataManager extends DefaultPluginManager {
   }
 
   /**
-   * Creates a new data definition object.
-   *
-   * While data definitions objects may be created directly if the definition
-   * class used by a data type is known, this method allows the creation of data
-   * definitions for any given data type.
-   *
-   * E.g., if a definition for a map is to be created, the following code
-   * could be used instead of calling this method with the argument 'map':
-   * @code
-   *   $map_definition = \Drupal\Core\TypedData\MapDataDefinition::create();
-   * @endcode
-   *
-   * @param string $data_type
-   *   The data type, for which a data definition should be created.
-   *
-   * @return \Drupal\Core\TypedData\DataDefinitionInterface
-   *   A data definition for the given data type.
-   *
-   * @see \Drupal\Core\TypedData\TypedDataManager::createListDataDefinition()
-   */
-  public function createDataDefinition($data_type) {
-    $type_definition = $this->getDefinition($data_type);
-    if (!isset($type_definition)) {
-      throw new \InvalidArgumentException(format_string('Invalid data type %plugin_id has been given.', array('%plugin_id' => $data_type)));
-    }
-    $class = $type_definition['definition_class'];
-    return $class::createFromDataType($data_type);
-  }
-
-  /**
-   * Creates a new list data definition for items of the given data type.
-   *
-   * @param string $item_type
-   *   The item type, for which a list data definition should be created.
-   *
-   * @return \Drupal\Core\TypedData\ListDataDefinitionInterface
-   *   A list definition for items of the given data type.
-   *
-   * @see \Drupal\Core\TypedData\TypedDataManager::createDataDefinition()
-   */
-  public function createListDataDefinition($item_type) {
-    $type_definition = $this->getDefinition($item_type);
-    if (!isset($type_definition)) {
-      throw new \InvalidArgumentException(format_string('Invalid data type %plugin_id has been given.', array('%plugin_id' => $item_type)));
-    }
-    $class = $type_definition['list_definition_class'];
-    return $class::createFromItemType($item_type);
-  }
-
-  /**
    * Implements \Drupal\Component\Plugin\PluginManagerInterface::getInstance().
    *
    * @param array $options
@@ -251,10 +188,10 @@ class TypedDataManager extends DefaultPluginManager {
    * @see \Drupal\Core\TypedData\TypedDataManager::create()
    */
   public function getPropertyInstance(TypedDataInterface $object, $property_name, $value = NULL) {
-    $definition = $object->getRoot()->getDataDefinition();
+    $definition = $object->getRoot()->getDefinition();
     // If the definition is a list, we need to look at the data type and the
     // settings of its item definition.
-    if ($definition instanceof ListDataDefinition) {
+    if ($definition instanceof ListDefinition) {
       $definition = $definition->getItemDefinition();
     }
     $key = $definition->getDataType();
@@ -272,7 +209,7 @@ class TypedDataManager extends DefaultPluginManager {
       // Create the initial prototype. For that we need to fetch the definition
       // of the to be created property instance from the parent.
       if ($object instanceof ComplexDataInterface) {
-        $definition = $object->getDataDefinition()->getPropertyDefinition($property_name);
+        $definition = $object->getPropertyDefinition($property_name);
       }
       elseif ($object instanceof ListInterface) {
         $definition = $object->getItemDefinition();
@@ -428,22 +365,7 @@ class TypedDataManager extends DefaultPluginManager {
     if (is_subclass_of($class,'Drupal\Core\TypedData\AllowedValuesInterface')) {
       $constraints[] = $validation_manager->create('AllowedValues', array());
     }
-    // Add any constraints about referenced data.
-    if ($definition instanceof DataReferenceDefinitionInterface) {
-      foreach ($definition->getTargetDefinition()->getConstraints() as $name => $options) {
-        $constraints[] = $validation_manager->create($name, $options);
-      }
-    }
 
     return $constraints;
   }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function clearCachedDefinitions() {
-    parent::clearCachedDefinitions();
-    $this->prototypes = array();
-  }
-
 }

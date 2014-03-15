@@ -9,10 +9,11 @@ namespace Drupal\shortcut\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\shortcut\ShortcutInterface;
 use Drupal\shortcut\ShortcutSetInterface;
 
 /**
- * Defines the Shortcut set configuration entity.
+ * Defines the Shortcut configuration entity.
  *
  * @ConfigEntityType(
  *   id = "shortcut_set",
@@ -29,10 +30,11 @@ use Drupal\shortcut\ShortcutSetInterface;
  *       "delete" = "Drupal\shortcut\Form\ShortcutSetDeleteForm"
  *     }
  *   },
- *   config_prefix = "set",
+ *   config_prefix = "shortcut.set",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label"
+ *     "label" = "label",
+ *     "uuid" = "uuid"
  *   },
  *   links = {
  *     "customize-form" = "shortcut.set_customize",
@@ -49,6 +51,13 @@ class ShortcutSet extends ConfigEntityBase implements ShortcutSetInterface {
    * @var string
    */
   public $id;
+
+  /**
+   * The UUID for the configuration entity.
+   *
+   * @var string
+   */
+  public $uuid;
 
   /**
    * The human-readable name of the configuration entity.

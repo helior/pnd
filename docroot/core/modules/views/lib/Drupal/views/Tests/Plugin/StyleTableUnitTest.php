@@ -7,7 +7,6 @@
 
 namespace Drupal\views\Tests\Plugin;
 
-use Drupal\views\Views;
 use Drupal\views\ViewExecutable;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -37,7 +36,7 @@ class StyleTableUnitTest extends PluginUnitTestBase {
    * Tests the table style.
    */
   public function testTable() {
-    $view = Views::getView('test_table');
+    $view = views_get_view('test_table');
 
     $view->setDisplay('default');
     $view->initStyle();

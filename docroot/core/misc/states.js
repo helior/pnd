@@ -1,6 +1,3 @@
-/**
- * Drupal's states library.
- */
 (function ($) {
 
   "use strict";

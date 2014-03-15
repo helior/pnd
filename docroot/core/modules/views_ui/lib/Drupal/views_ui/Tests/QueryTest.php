@@ -7,7 +7,6 @@
 
 namespace Drupal\views_ui\Tests;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views_test_data\Plugin\views\query\QueryTest as QueryTestPlugin;
 
@@ -52,7 +51,7 @@ class QueryTest extends UITestBase {
     $this->drupalPostForm(NULL, array(), t('Save'));
 
     // Check that the settings are saved into the view itself.
-    $view = Views::getView('test_view');
+    $view = views_get_view('test_view');
     $view->initDisplay();
     $view->initQuery();
     $this->assertEqual($random_value, $view->query->options['test_setting'], 'Query settings got saved');

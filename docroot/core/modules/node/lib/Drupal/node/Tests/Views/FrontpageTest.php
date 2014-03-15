@@ -9,7 +9,6 @@ namespace Drupal\node\Tests\Views;
 
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\ViewExecutable;
-use Drupal\views\Views;
 
 /**
  * Tests the default frontpage provided by views.
@@ -54,7 +53,7 @@ class FrontPageTest extends ViewTestBase {
       ->set('name', $site_name)
       ->save();
 
-    $view = Views::getView('frontpage');
+    $view = views_get_view('frontpage');
     $view->setDisplay('page_1');
     $this->executeView($view);
     $view->preview();
@@ -148,22 +147,6 @@ class FrontPageTest extends ViewTestBase {
       return in_array($row->nid, $not_expected_nids);
     });
     $this->assertFalse($found_nids, $message);
-  }
-
-  /**
-   * Tests the frontpage when logged in as admin.
-   */
-  public function testAdminFrontPage() {
-    // When a user with sufficient permissions is logged in, views_ui adds
-    // contextual links to the homepage view. This verifies there are no errors.
-    \Drupal::moduleHandler()->install(array('views_ui'));
-    // Login root user with sufficient permissions.
-    $this->drupalLogin($this->root_user);
-    // Test frontpage view.
-    $this->drupalGet('node');
-    $this->assertResponse(200);
-    // Check that the frontpage view was rendered.
-    $this->assertPattern('/class=".+view-frontpage/', 'Frontpage view was rendered');
   }
 
 }

@@ -8,7 +8,6 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\views\Tests\ViewUnitTestBase;
-use Drupal\views\Views;
 
 /**
  * Tests abstract handlers of views.
@@ -52,7 +51,7 @@ class HandlerAliasTest extends ViewUnitTestBase {
   }
 
   public function testPluginAliases() {
-    $view = Views::getView('test_filter');
+    $view = views_get_view('test_filter');
     $view->initDisplay();
 
     // Change the filtering.
@@ -79,7 +78,7 @@ class HandlerAliasTest extends ViewUnitTestBase {
     $this->assertIdentical($filter->realField, 'name');
 
     // Test an existing user uid field.
-    $view = Views::getView('test_alias');
+    $view = views_get_view('test_alias');
     $view->initDisplay();
     $this->executeView($view);
 

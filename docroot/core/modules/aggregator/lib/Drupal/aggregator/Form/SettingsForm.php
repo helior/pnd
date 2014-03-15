@@ -145,7 +145,7 @@ class SettingsForm extends ConfigFormBase {
         '#type' => 'details',
         '#title' => $this->t('Basic configuration'),
         '#description' => $this->t('For most aggregation tasks, the default settings are fine.'),
-        '#open' => TRUE,
+        '#collapsed' => FALSE,
       );
       $form['basic_conf'] += $basic_conf;
     }

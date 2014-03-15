@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\Component\PhpStorage\PhpStorageTestBase.
+ * Definition of Drupal\Tests\Component\PhpStorage\PhpStorageTestBase.
  */
 
 namespace Drupal\Tests\Component\PhpStorage;
@@ -23,12 +23,11 @@ abstract class PhpStorageTestBase extends UnitTestCase {
   protected $storageFactory;
 
   /**
-   * {@inheritdoc}
+   * Overrides \Drupal\Tests\UnitTestCase::setUp()
    */
   function setUp() {
     parent::setUp();
-
-    $this->storageFactory = new PhpStorageFactory();
+    $this->storageFactory = new PhpStorageFactory;
   }
 
   /**
@@ -62,5 +61,4 @@ abstract class PhpStorageTestBase extends UnitTestCase {
     // FALSE, but not trigger errors.
     $this->assertSame($php->delete($name), FALSE);
   }
-
 }

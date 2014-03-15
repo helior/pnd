@@ -48,14 +48,14 @@ class EntityReferenceFieldDefaultValueTest extends WebTestBase {
     // Create a node to be referenced.
     $referenced_node = $this->drupalCreateNode(array('type' => 'referenced_content'));
 
-    $this->field = entity_create('field_config', array(
+    $this->field = entity_create('field_entity', array(
       'name' => drupal_strtolower($this->randomName()),
       'entity_type' => 'node',
       'type' => 'entity_reference',
       'settings' => array('target_type' => 'node'),
     ));
     $this->field->save();
-    $this->instance = entity_create('field_instance_config', array(
+    $this->instance = entity_create('field_instance', array(
       'field_name' => $this->field->name,
       'entity_type' => 'node',
       'bundle' => 'reference_content',

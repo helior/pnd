@@ -7,7 +7,6 @@
 
 namespace Drupal\comment\Tests\Views;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\Wizard\WizardTestBase;
 
 /**
@@ -74,7 +73,7 @@ class WizardTest extends WizardTestBase {
     $this->drupalPostForm(NULL, $view, t('Save and edit'));
     $this->assertUrl('admin/structure/views/view/' . $view['id'], array(), 'Make sure the view saving was successful and the browser got redirected to the edit page.');
 
-    $view = Views::getView($view['id']);
+    $view = views_get_view($view['id']);
     $view->initHandlers();
     $row = $view->display_handler->getOption('row');
     $this->assertEqual($row['type'], 'entity:comment');

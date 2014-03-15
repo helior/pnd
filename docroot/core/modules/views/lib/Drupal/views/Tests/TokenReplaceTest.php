@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests;
 
-use Drupal\views\Views;
-
 /**
  * Tests core view token replacement.
  */
@@ -41,7 +39,7 @@ class TokenReplaceTest extends ViewUnitTestBase {
    */
   function testTokenReplacement() {
     $token_handler = \Drupal::token();
-    $view = Views::getView('test_tokens');
+    $view = views_get_view('test_tokens');
     $view->setDisplay('page_1');
     $this->executeView($view);
 

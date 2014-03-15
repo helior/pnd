@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests\Handler;
 
-use Drupal\views\Views;
-
 /**
  * Tests the core Drupal\views\Plugin\views\filter\Date handler.
  */
@@ -63,7 +61,7 @@ class FilterDateTest extends HandlerTestBase {
    * Test the general offset functionality.
    */
   protected function _testOffset() {
-    $view = Views::getView('test_filter_date_between');
+    $view = views_get_view('test_filter_date_between');
 
     // Test offset for simple operator.
     $view->initHandlers();
@@ -94,7 +92,7 @@ class FilterDateTest extends HandlerTestBase {
    * Tests the filter operator between/not between.
    */
   protected function _testBetween() {
-    $view = Views::getView('test_filter_date_between');
+    $view = views_get_view('test_filter_date_between');
 
     // Test between with min and max.
     $view->initHandlers();

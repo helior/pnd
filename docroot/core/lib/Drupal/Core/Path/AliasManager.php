@@ -7,17 +7,18 @@
 
 namespace Drupal\Core\Path;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
 
 class AliasManager implements AliasManagerInterface {
 
   /**
-   * The Path CRUD service.
+   * The database connection to use for path lookups.
    *
-   * @var \Drupal\Core\Path\Path
+   * @var \Drupal\Core\Database\Connection
    */
-  protected $path;
+  protected $connection;
 
   /**
    * Language manager for retrieving the default langcode when none is specified.
@@ -74,15 +75,15 @@ class AliasManager implements AliasManagerInterface {
   /**
    * Constructs an AliasManager.
    *
-   * @param \Drupal\Core\Path\Path $path
-   *   The Path CRUD service.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection to use.
    * @param \Drupal\Core\Path\AliasWhitelistInterface $whitelist
    *   The whitelist implementation to use.
    * @param \Drupal\Core\Language\LanguageManager $language_manager
    *   The language manager.
    */
-  public function __construct(Path $path, AliasWhitelistInterface $whitelist, LanguageManager $language_manager) {
-    $this->path = $path;
+  public function __construct(Connection $connection, AliasWhitelistInterface $whitelist, LanguageManager $language_manager) {
+    $this->connection = $connection;
     $this->languageManager = $language_manager;
     $this->whitelist = $whitelist;
   }
@@ -180,7 +181,30 @@ class AliasManager implements AliasManagerInterface {
       // Load system paths from cache.
       if (!empty($this->preloadedPathLookups)) {
         // Now fetch the aliases corresponding to these system paths.
-        $this->lookupMap[$langcode] = $this->path->preloadPathAlias($this->preloadedPathLookups, $langcode);
+        $args = array(
+          ':system' => $this->preloadedPathLookups,
+          ':langcode' => $langcode,
+          ':langcode_undetermined' => Language::LANGCODE_NOT_SPECIFIED,
+        );
+        // Always get the language-specific alias before the language-neutral
+        // one. For example 'de' is less than 'und' so the order needs to be
+        // ASC, while 'xx-lolspeak' is more than 'und' so the order needs to
+        // be DESC. We also order by pid ASC so that fetchAllKeyed() returns
+        // the most recently created alias for each source. Subsequent queries
+        // using fetchField() must use pid DESC to have the same effect.
+        // For performance reasons, the query builder is not used here.
+        if ($langcode == Language::LANGCODE_NOT_SPECIFIED) {
+          // Prevent PDO from complaining about a token the query doesn't use.
+          unset($args[':langcode']);
+          $result = $this->connection->query('SELECT source, alias FROM {url_alias} WHERE source IN (:system) AND langcode = :langcode_undetermined ORDER BY pid ASC', $args);
+        }
+        elseif ($langcode < Language::LANGCODE_NOT_SPECIFIED) {
+          $result = $this->connection->query('SELECT source, alias FROM {url_alias} WHERE source IN (:system) AND langcode IN (:langcode, :langcode_undetermined) ORDER BY langcode ASC, pid ASC', $args);
+        }
+        else {
+          $result = $this->connection->query('SELECT source, alias FROM {url_alias} WHERE source IN (:system) AND langcode IN (:langcode, :langcode_undetermined) ORDER BY langcode DESC, pid ASC', $args);
+        }
+        $this->lookupMap[$langcode] = $result->fetchAllKeyed();
         // Keep a record of paths with no alias to avoid querying twice.
         $this->noAliases[$langcode] = array_flip(array_diff_key($this->preloadedPathLookups, array_keys($this->lookupMap[$langcode])));
       }
@@ -197,8 +221,24 @@ class AliasManager implements AliasManagerInterface {
     }
     // For system paths which were not cached, query aliases individually.
     elseif (!isset($this->noAliases[$langcode][$path])) {
-      $this->lookupMap[$langcode][$path] = $this->path->lookupPathAlias($path, $langcode);
-      return $this->lookupMap[$langcode][$path];
+      $args = array(
+        ':source' => $path,
+        ':langcode' => $langcode,
+        ':langcode_undetermined' => Language::LANGCODE_NOT_SPECIFIED,
+      );
+      // See the queries above.
+      if ($langcode == Language::LANGCODE_NOT_SPECIFIED) {
+        unset($args[':langcode']);
+        $alias = $this->connection->query("SELECT alias FROM {url_alias} WHERE source = :source AND langcode = :langcode_undetermined ORDER BY pid DESC", $args)->fetchField();
+      }
+      elseif ($langcode > Language::LANGCODE_NOT_SPECIFIED) {
+        $alias = $this->connection->query("SELECT alias FROM {url_alias} WHERE source = :source AND langcode IN (:langcode, :langcode_undetermined) ORDER BY langcode DESC, pid DESC", $args)->fetchField();
+      }
+      else {
+        $alias = $this->connection->query("SELECT alias FROM {url_alias} WHERE source = :source AND langcode IN (:langcode, :langcode_undetermined) ORDER BY langcode ASC, pid DESC", $args)->fetchField();
+      }
+      $this->lookupMap[$langcode][$path] = $alias;
+      return $alias;
     }
     return FALSE;
   }
@@ -222,7 +262,23 @@ class AliasManager implements AliasManagerInterface {
       // Look for the value $path within the cached $map
       $source = isset($this->lookupMap[$langcode]) ? array_search($path, $this->lookupMap[$langcode]) : FALSE;
       if (!$source) {
-        if ($source = $this->path->lookupPathSource($path, $langcode)) {
+        $args = array(
+          ':alias' => $path,
+          ':langcode' => $langcode,
+          ':langcode_undetermined' => Language::LANGCODE_NOT_SPECIFIED,
+        );
+        // See the queries above.
+        if ($langcode == Language::LANGCODE_NOT_SPECIFIED) {
+          unset($args[':langcode']);
+          $result = $this->connection->query("SELECT source FROM {url_alias} WHERE alias = :alias AND langcode = :langcode_undetermined ORDER BY pid DESC", $args);
+        }
+        elseif ($langcode > Language::LANGCODE_NOT_SPECIFIED) {
+          $result = $this->connection->query("SELECT source FROM {url_alias} WHERE alias = :alias AND langcode IN (:langcode, :langcode_undetermined) ORDER BY langcode DESC, pid DESC", $args);
+        }
+        else {
+          $result = $this->connection->query("SELECT source FROM {url_alias} WHERE alias = :alias AND langcode IN (:langcode, :langcode_undetermined) ORDER BY langcode ASC, pid DESC", $args);
+        }
+        if ($source = $result->fetchField()) {
           $this->lookupMap[$langcode][$source] = $path;
         }
         else {

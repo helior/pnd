@@ -6,7 +6,6 @@
 
 namespace Drupal\views\Tests\Plugin;
 
-use Drupal\views\Views;
 use Drupal\views\Tests\ViewUnitTestBase;
 use Drupal\views\Plugin\views\style\StylePluginBase;
 use Drupal\views\Plugin\views\access\AccessPluginBase;
@@ -73,12 +72,12 @@ class DisplayUnitTest extends ViewUnitTestBase {
    */
   public function testDefaultOptions() {
     // Save the view.
-    $view = Views::getView('test_display_defaults');
+    $view = views_get_view('test_display_defaults');
     $view->mergeDefaults();
     $view->save();
 
     // Reload to get saved storage values.
-    $view = Views::getView('test_display_defaults');
+    $view = views_get_view('test_display_defaults');
     $view->initDisplay();
     $display_data = $view->storage->get('display');
 
@@ -100,7 +99,7 @@ class DisplayUnitTest extends ViewUnitTestBase {
    * Tests the \Drupal\views\Plugin\views\display\DisplayPluginBase::getPlugin() method.
    */
   public function testGetPlugin() {
-    $view = Views::getView('test_display_defaults');
+    $view = views_get_view('test_display_defaults');
     $view->initDisplay();
     $display_handler = $view->display_handler;
 

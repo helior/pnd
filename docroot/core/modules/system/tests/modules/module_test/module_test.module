@@ -1,7 +1,5 @@
 <?php
 
-use Drupal\Core\Extension\Extension;
-
 /**
  * Implements hook_permission().
  */
@@ -16,45 +14,45 @@ function module_test_permission() {
  *
  * Manipulate module dependencies to test dependency chains.
  */
-function module_test_system_info_alter(&$info, Extension $file, $type) {
+function module_test_system_info_alter(&$info, $file, $type) {
   if (\Drupal::state()->get('module_test.dependency') == 'missing dependency') {
-    if ($file->getName() == 'forum') {
+    if ($file->name == 'forum') {
       // Make forum module depend on ban.
       $info['dependencies'][] = 'ban';
     }
-    elseif ($file->getName() == 'ban') {
+    elseif ($file->name == 'ban') {
       // Make ban depend on a made-up module.
       $info['dependencies'][] = 'foo';
     }
   }
   elseif (\Drupal::state()->get('module_test.dependency') == 'dependency') {
-    if ($file->getName() == 'forum') {
+    if ($file->name == 'forum') {
       // Make the forum module depend on ban.
       $info['dependencies'][] = 'ban';
     }
-    elseif ($file->getName() == 'ban') {
+    elseif ($file->name == 'ban') {
       // Make ban depend on xmlrpc module.
       $info['dependencies'][] = 'xmlrpc';
     }
   }
   elseif (\Drupal::state()->get('module_test.dependency') == 'version dependency') {
-    if ($file->getName() == 'forum') {
+    if ($file->name == 'forum') {
       // Make the forum module depend on ban.
       $info['dependencies'][] = 'ban';
     }
-    elseif ($file->getName() == 'ban') {
+    elseif ($file->name == 'ban') {
       // Make ban depend on a specific version of xmlrpc module.
       $info['dependencies'][] = 'xmlrpc (1.x)';
     }
-    elseif ($file->getName() == 'xmlrpc') {
+    elseif ($file->name == 'xmlrpc') {
       // Set xmlrpc module to a version compatible with the above.
       $info['version'] = '8.x-1.0';
     }
   }
-  if ($file->getName() == 'seven' && $type == 'theme') {
+  if ($file->name == 'seven' && $type == 'theme') {
     $info['regions']['test_region'] = t('Test region');
   }
-  if ($file->getName() == 'module_test' && \Drupal::state()->get('module_test.hook_system_info_alter')) {
+  if ($file->name == 'module_test' && \Drupal::state()->get('module_test.hook_system_info_alter')) {
     $info['required'] = TRUE;
     $info['explanation'] = 'Testing hook_system_info_alter()';
   }
@@ -68,6 +66,25 @@ function module_test_hook_info() {
     'group' => 'file',
   );
   return $hooks;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function module_test_menu() {
+  $items['module-test/hook-dynamic-loading-invoke'] = array(
+    'title' => 'Test hook dynamic loading (invoke)',
+    'route_name' => 'module_test.dynamic_invoke',
+  );
+  $items['module-test/hook-dynamic-loading-invoke-all'] = array(
+    'title' => 'Test hook dynamic loading (invoke_all)',
+    'route_name' => 'module_test.dynamic_invoke_all',
+  );
+  $items['module-test/class-loading'] = array(
+    'title' => 'Test loading a class from another module',
+    'route_name' => 'module_test.class_loading',
+  );
+  return $items;
 }
 
 /**

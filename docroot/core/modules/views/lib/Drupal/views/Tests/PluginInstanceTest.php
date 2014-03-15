@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Tests;
 
-use Drupal\views\Views;
-
 /**
  * Checks general plugin data and instances for all plugin types.
  */
@@ -59,7 +57,7 @@ class PluginInstanceTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->definitions = Views::getPluginDefinitions();
+    $this->definitions = views_get_plugin_definitions();
   }
 
   /**

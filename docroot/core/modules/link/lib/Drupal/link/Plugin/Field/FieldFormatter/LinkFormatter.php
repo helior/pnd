@@ -7,8 +7,7 @@
 
 namespace Drupal\link\Plugin\Field\FieldFormatter;
 
-use Drupal\Component\Utility\UrlHelper;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Url;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FormatterBase;
@@ -126,7 +125,7 @@ class LinkFormatter extends FormatterBase {
 
       // If the title field value is available, use it for the link text.
       if (empty($settings['url_only']) && !empty($item->title)) {
-        // Unsanitized token replacement here because $options['html'] is FALSE
+        // Unsanitizied token replacement here because $options['html'] is FALSE
         // by default in l().
         $link_title = \Drupal::token()->replace($item->title, array($entity->getEntityTypeId() => $entity), array('sanitize' => FALSE, 'clear' => TRUE));
       }
@@ -138,7 +137,7 @@ class LinkFormatter extends FormatterBase {
 
       if (!empty($settings['url_only']) && !empty($settings['url_plain'])) {
         $element[$delta] = array(
-          '#markup' => String::checkPlain($link_title),
+          '#markup' => check_plain($link_title),
         );
       }
       else {
@@ -170,7 +169,7 @@ class LinkFormatter extends FormatterBase {
     $settings = $this->getSettings();
 
     // Split out the link into the parts required for url(): path and options.
-    $parsed_url = UrlHelper::parse($item->url);
+    $parsed_url = Url::parse($item->url);
     $result = array(
       'path' => $parsed_url['path'],
       'options' => array(

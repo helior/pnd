@@ -9,8 +9,6 @@
 
 namespace Drupal\Core\Utility;
 
-use Drupal\Core\Extension\Extension;
-
 /**
  * Performs operations on drupal.org project data.
  */
@@ -31,20 +29,20 @@ class ProjectInfo {
    * files for each module or theme, which is important data which is used when
    * deciding if the available update data should be invalidated.
    *
-   * @param array $projects
+   * @param $projects
    *   Reference to the array of project data of what's installed on this site.
-   * @param \Drupal\Core\Extension\Extension[] $list
+   * @param $list
    *   Array of data to process to add the relevant info to the $projects array.
-   * @param string $project_type
+   * @param $project_type
    *   The kind of data in the list. Can be 'module' or 'theme'.
-   * @param bool $status
+   * @param $status
    *   Boolean that controls what status (enabled or disabled) to process out of
    *   the $list and add to the $projects array.
-   * @param array $additional_whitelist
+   * @param $additional_whitelist
    *   (optional) Array of additional elements to be collected from the .info.yml
    *   file. Defaults to array().
    */
-  function processInfoList(array &$projects, array $list, $project_type, $status, array $additional_whitelist = array()) {
+  function processInfoList(&$projects, $list, $project_type, $status, $additional_whitelist = array()) {
     foreach ($list as $file) {
       // A disabled or hidden base theme of an enabled sub-theme still has all
       // of its code run by the sub-theme, so we include it in our "enabled"
@@ -96,7 +94,8 @@ class ProjectInfo {
       // which is left alone by tar and correctly set to the time the .info.yml
       // file was unpacked.
       if (!isset($file->info['_info_file_ctime'])) {
-        $file->info['_info_file_ctime'] = $file->getCTime();
+        $info_filename = dirname($file->uri) . '/' . $file->name . '.info.yml';
+        $file->info['_info_file_ctime'] = filectime($info_filename);
       }
 
       if (!isset($file->info['datestamp'])) {
@@ -143,7 +142,7 @@ class ProjectInfo {
           // not bloat our RAM usage needlessly.
           'info' => $this->filterProjectInfo($file->info, $additional_whitelist),
           'datestamp' => $file->info['datestamp'],
-          'includes' => array($file->getName() => $file->info['name']),
+          'includes' => array($file->name => $file->info['name']),
           'project_type' => $project_display_type,
           'project_status' => $status,
           'sub_themes' => $sub_themes,
@@ -156,7 +155,7 @@ class ProjectInfo {
         // $project_display_type). This prevents listing all the disabled
         // modules included with an enabled project if we happen to be checking
         // for disabled modules, too.
-        $projects[$project_name]['includes'][$file->getName()] = $file->info['name'];
+        $projects[$project_name]['includes'][$file->name] = $file->info['name'];
         $projects[$project_name]['info']['_info_file_ctime'] = max($projects[$project_name]['info']['_info_file_ctime'], $file->info['_info_file_ctime']);
         $projects[$project_name]['datestamp'] = max($projects[$project_name]['datestamp'], $file->info['datestamp']);
         if (!empty($sub_themes)) {
@@ -171,7 +170,7 @@ class ProjectInfo {
         // does not, it means we're processing a disabled module or theme that
         // belongs to a project that has some enabled code. In this case, we add
         // the disabled thing into a separate array for separate display.
-        $projects[$project_name]['disabled'][$file->getName()] = $file->info['name'];
+        $projects[$project_name]['disabled'][$file->name] = $file->info['name'];
       }
     }
   }
@@ -179,18 +178,20 @@ class ProjectInfo {
   /**
    * Determines what project a given file object belongs to.
    *
-   * @param \Drupal\Core\Extension\Extension $file
-   *   An extension object.
+   * @param $file
+   *   A file object as returned by system_get_files_database().
    *
-   * @return string
+   * @return
    *   The canonical project short name.
+   *
+   * @see system_get_files_database()
    */
-  function getProjectName(Extension $file) {
+  function getProjectName($file) {
     $project_name = '';
     if (isset($file->info['project'])) {
       $project_name = $file->info['project'];
     }
-    elseif (strpos($file->getPath(), 'core/modules') === 0) {
+    elseif (isset($file->filename) && (strpos($file->filename, 'core/modules') === 0)) {
       $project_name = 'drupal';
     }
     return $project_name;
@@ -223,7 +224,7 @@ class ProjectInfo {
       'version',
     );
     $whitelist = array_merge($whitelist, $additional_whitelist);
-    return array_intersect_key($info, array_combine($whitelist, $whitelist));
+    return array_intersect_key($info, drupal_map_assoc($whitelist));
   }
 
 }

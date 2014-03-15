@@ -103,7 +103,7 @@ class CollectRoutesTest extends UnitTestCase {
 
     $display_manager->expects($this->once())
       ->method('getDefinition')
-      ->will($this->returnValue(array('id' => 'test', 'provider' => 'test')));
+      ->will($this->returnValue($this->restExport));
 
     $none = $this->getMockBuilder('\Drupal\views\Plugin\views\access\None')
       ->disableOriginalConstructor()

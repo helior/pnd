@@ -11,7 +11,7 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\Component\Utility\SortArray;
 
 /**
- * Tests the SortArray component.
+ * Tests the MapArray system.
  *
  * @see \Drupal\Component\Utility\SortArray
  */

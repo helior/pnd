@@ -10,7 +10,6 @@ namespace Drupal\Core\Config;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageDefault;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use Drupal\Component\Utility\NestedArray;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -70,13 +69,6 @@ class ConfigFactory implements ConfigFactoryInterface, EventSubscriberInterface 
    * @var \Drupal\Core\Config\TypedConfigManager
    */
   protected $typedConfigManager;
-
-  /**
-   * An array of config factory override objects ordered by priority.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryOverrideInterface[]
-   */
-  protected $configFactoryOverrides = array();
 
   /**
    * Constructs the Config factory.
@@ -230,13 +222,9 @@ class ConfigFactory implements ConfigFactoryInterface, EventSubscriberInterface 
    *   An array of overrides keyed by the configuration object name.
    */
   protected function loadModuleOverrides(array $names) {
-    $overrides = array();
-    foreach ($this->configFactoryOverrides as $override) {
-      // Existing overrides take precedence since these will have been added
-      // by events with a higher priority.
-      $overrides = NestedArray::mergeDeepArray(array($override->loadOverrides($names), $overrides), TRUE);
-    }
-    return $overrides;
+    $configOverridesEvent = new ConfigModuleOverridesEvent($names, $this->language);
+    $this->eventDispatcher->dispatch(ConfigEvents::MODULE_OVERRIDES, $configOverridesEvent);
+    return $configOverridesEvent->getOverrides();
   }
 
   /**
@@ -402,13 +390,6 @@ class ConfigFactory implements ConfigFactoryInterface, EventSubscriberInterface 
   static function getSubscribedEvents() {
     $events[ConfigEvents::SAVE][] = array('onConfigSave', 255);
     return $events;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function addOverride(ConfigFactoryOverrideInterface $config_factory_override) {
-    $this->configFactoryOverrides[] = $config_factory_override;
   }
 
 }

@@ -10,9 +10,7 @@ namespace Drupal\user\Entity;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityMalformedException;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\user\UserInterface;
 
 /**
@@ -123,7 +121,7 @@ class User extends ContentEntityBase implements UserInterface {
       // user and recreate the current one.
       if ($this->pass->value != $this->original->pass->value) {
         drupal_session_destroy_uid($this->id());
-        if ($this->id() == \Drupal::currentUser()->id()) {
+        if ($this->id() == $GLOBALS['user']->id()) {
           drupal_session_regenerate();
         }
       }
@@ -425,7 +423,7 @@ class User extends ContentEntityBase implements UserInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
+  public static function baseFieldDefinitions($entity_type) {
     $fields['uid'] = FieldDefinition::create('integer')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID.'))
@@ -515,7 +513,6 @@ class User extends ContentEntityBase implements UserInterface {
     // https://drupal.org/node/2044859.
     $fields['roles'] = FieldDefinition::create('string')
       ->setLabel(t('Roles'))
-      ->setCardinality(FieldDefinitionInterface::CARDINALITY_UNLIMITED)
       ->setDescription(t('The roles the user has.'));
 
     return $fields;
