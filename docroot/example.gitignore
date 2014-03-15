@@ -14,9 +14,6 @@ sites/*/settings*.php
 sites/*/files
 sites/*/private
 
-# Ignore SimpleTest multi-site environment.
-sites/simpletest
-
 # If you prefer to store your .gitignore file in the sites/ folder, comment
 # or delete the previous settings and uncomment the following ones, instead.
 
@@ -26,6 +23,3 @@ sites/simpletest
 # Ignore paths that contain user-generated content.
 # */files
 # */private
-
-# Ignore SimpleTest multi-site environment.
-# simpletest
