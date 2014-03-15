@@ -8,11 +8,8 @@
 namespace Drupal\serialization\Tests;
 
 use Drupal\Core\Language\Language;
-use Drupal\serialization\Encoder\JsonEncoder;
-use Drupal\serialization\Normalizer\ComplexDataNormalizer;
-use Drupal\serialization\Normalizer\TypedDataNormalizer;
-use Drupal\simpletest\DrupalUnitTestBase;
 use Symfony\Component\Serializer\Serializer;
+use Drupal\Component\Utility\String;
 
 /**
  * Tests entity normalization and serialization of supported core formats.
@@ -40,6 +37,13 @@ class EntitySerializationTest extends NormalizerTestBase {
    */
   protected $serializer;
 
+  /**
+   * The class name of the test class.
+   *
+   * @var string
+   */
+  protected $entityClass = 'Drupal\entity_test\Entity\EntityTest';
+
   public static function getInfo() {
     return array(
       'name' => 'Entity serialization tests',
@@ -54,7 +58,7 @@ class EntitySerializationTest extends NormalizerTestBase {
     // Create a test entity to serialize.
     $this->values = array(
       'name' => $this->randomName(),
-      'user_id' => $GLOBALS['user']->id(),
+      'user_id' => \Drupal::currentUser()->id(),
       'field_test_text' => array(
         'value' => $this->randomName(),
         'format' => 'full_html',
@@ -158,5 +162,20 @@ class EntitySerializationTest extends NormalizerTestBase {
     $this->assertIdentical($actual, $expected);
     $actual = $this->serializer->serialize($normalized, 'xml');
     $this->assertIdentical($actual, $expected);
+  }
+
+  /**
+   * Tests denormalization of an entity.
+   */
+  public function testDenormalize() {
+    $normalized = $this->serializer->normalize($this->entity);
+
+    foreach (array('json', 'xml') as $type) {
+      $denormalized = $this->serializer->denormalize($normalized, $this->entityClass, $type, array('entity_type' => 'entity_test_mulrev'));
+      $this->assertTrue($denormalized instanceof $this->entityClass, String::format('Denormalized entity is an instance of @class', array('@class' => $this->entityClass)));
+      $this->assertIdentical($denormalized->getEntityTypeId(), $this->entity->getEntityTypeId(), 'Expected entity type found.');
+      $this->assertIdentical($denormalized->bundle(), $this->entity->bundle(), 'Expected entity bundle found.');
+      $this->assertIdentical($denormalized->uuid(), $this->entity->uuid(), 'Expected entity UUID found.');
+    }
   }
 }

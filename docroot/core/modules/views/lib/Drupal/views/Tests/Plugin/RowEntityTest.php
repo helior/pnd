@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\views\Views;
 use Drupal\views\Tests\ViewUnitTestBase;
 
 /**
@@ -51,9 +52,9 @@ class RowEntityTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('menu_router', 'router'));
     $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
     $this->installConfig(array('taxonomy'));
+    \Drupal::service('router.builder')->rebuild();
   }
 
   /**
@@ -65,7 +66,7 @@ class RowEntityTest extends ViewUnitTestBase {
     $term = entity_create('taxonomy_term', array('name' => $this->randomName(), 'vid' => $vocab->id() ));
     $term->save();
 
-    $view = views_get_view('test_entity_row');
+    $view = Views::getView('test_entity_row');
     $this->content = $view->preview();
     $this->content = drupal_render($this->content);
 

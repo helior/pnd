@@ -7,14 +7,17 @@
 
 namespace Drupal\views\EventSubscriber;
 
-use Drupal\Component\Utility\MapArray;
-use Drupal\Core\DestructableInterface;
+use Drupal\Core\Page\HtmlPage;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\KeyValueStore\StateInterface;
 use Drupal\Core\Routing\RouteSubscriberBase;
+use Drupal\Core\Routing\RoutingEvents;
 use Drupal\views\Plugin\views\display\DisplayRouterInterface;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
 use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Builds up the routes of all views.
@@ -23,9 +26,11 @@ use Symfony\Component\Routing\RouteCollection;
  * routes are overridden by views. This information is used to determine which
  * views have to be added by views in the dynamic event.
  *
+ * Additional to adding routes it also changes the htmlpage response code.
+ *
  * @see \Drupal\views\Plugin\views\display\PathPluginBase
  */
-class RouteSubscriber extends RouteSubscriberBase implements DestructableInterface {
+class RouteSubscriber extends RouteSubscriberBase {
 
   /**
    * Stores a list of view,display IDs which haven't be used in the alter event.
@@ -76,6 +81,16 @@ class RouteSubscriber extends RouteSubscriberBase implements DestructableInterfa
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents() {
+    $events = parent::getSubscribedEvents();
+    $events[KernelEvents::VIEW][] = array('onHtmlPage', 75);
+    $events[RoutingEvents::FINISHED] = array('routeRebuildFinished');
+    return $events;
+  }
+
+  /**
    * Gets all the views and display IDs using a route.
    */
   protected function getViewsDisplayIDsWithRoute() {
@@ -89,9 +104,26 @@ class RouteSubscriber extends RouteSubscriberBase implements DestructableInterfa
         $id = $view->storage->id();
         $this->viewsDisplayPairs[] = $id . '.' . $display_id;
       }
-      $this->viewsDisplayPairs = MapArray::copyValuesToKeys($this->viewsDisplayPairs);
+      $this->viewsDisplayPairs = array_combine($this->viewsDisplayPairs, $this->viewsDisplayPairs);
     }
     return $this->viewsDisplayPairs;
+  }
+
+  /**
+   * Sets the proper response code coming from the http status area handler.
+   *
+   * @param \Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent $event
+   *   The Event to process.
+   *
+   * @see \Drupal\views\Plugin\views\area\HTTPStatusCode
+   */
+  public function onHtmlPage(GetResponseForControllerResultEvent $event) {
+    $page = $event->getControllerResult();
+    if ($page instanceof HtmlPage) {
+      if (($request = $event->getRequest()) && $request->attributes->has('view_id')) {
+        $page->setStatusCode($request->attributes->get('_http_statuscode', 200));
+      };
+    }
   }
 
   /**
@@ -148,17 +180,18 @@ class RouteSubscriber extends RouteSubscriberBase implements DestructableInterfa
   /**
    * {@inheritdoc}
    */
-  public function destruct() {
+  public function routeRebuildFinished() {
+    $this->reset();
     $this->state->set('views.view_route_names', $this->viewRouteNames);
   }
 
   /**
    * Returns all views/display combinations with routes.
    *
-   * @see views_get_applicable_views()
+   * @see \Drupal\views\Views::getApplicableViews()
    */
   protected function getApplicableViews() {
-    return views_get_applicable_views('uses_route');
+    return Views::getApplicableViews('uses_route');
   }
 
 }

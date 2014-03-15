@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\views\Views;
 use Drupal\views_test_data\Plugin\views\argument_default\ArgumentDefaultTest as ArgumentDefaultTestPlugin;
 
 
@@ -27,7 +28,7 @@ class ArgumentDefaultTest extends PluginTestBase {
    *
    * @var array
    */
-  public static $modules = array('views_ui');
+  public static $modules = array('node', 'views_ui');
 
   public static function getInfo() {
     return array(
@@ -49,7 +50,7 @@ class ArgumentDefaultTest extends PluginTestBase {
    * @see \Drupal\views_test_data\Plugin\views\argument_default\ArgumentDefaultTest
    */
   public function testArgumentDefaultPlugin() {
-    $view = views_get_view('test_view');
+    $view = Views::getView('test_view');
 
     // Add a new argument and set the test plugin for the argument_default.
     $options = array(
@@ -59,7 +60,7 @@ class ArgumentDefaultTest extends PluginTestBase {
       ),
       'default_action' => 'default'
     );
-    $id = $view->addItem('default', 'argument', 'views_test_data', 'name', $options);
+    $id = $view->addHandler('default', 'argument', 'views_test_data', 'name', $options);
     $view->initHandlers();
     $plugin = $view->argument[$id]->getPlugin('argument_default');
     $this->assertTrue($plugin instanceof ArgumentDefaultTestPlugin, 'The correct argument default plugin is used.');
@@ -94,7 +95,7 @@ class ArgumentDefaultTest extends PluginTestBase {
     $edit = array(
       'options[default_argument_type]' => $argument_type,
     );
-    $this->drupalPostForm('admin/structure/views/nojs/config-item/test_argument_default_current_user/default/argument/uid', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_argument_default_current_user/default/argument/uid', $edit, t('Apply'));
 
     // Note, the undefined index error has two spaces after it.
     $error = array(
@@ -111,7 +112,7 @@ class ArgumentDefaultTest extends PluginTestBase {
    */
   function testArgumentDefaultFixed() {
     $random = $this->randomName();
-    $view = views_get_view('test_argument_default_fixed');
+    $view = Views::getView('test_argument_default_fixed');
     $view->setDisplay();
     $options = $view->display_handler->getOption('arguments');
     $options['null']['default_argument_options']['argument'] = $random;

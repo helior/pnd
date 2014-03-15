@@ -8,12 +8,12 @@
 namespace Drupal\block;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFormController;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Language\Language;
-use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -36,23 +36,16 @@ class BlockFormController extends EntityFormController {
   protected $storageController;
 
   /**
-   * The entity query factory.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $entityQueryFactory;
-
-  /**
    * The language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManager
+   * @var \Drupal\Core\Language\LanguageManagerInterface
    */
   protected $languageManager;
 
   /**
    * The config factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
@@ -61,16 +54,13 @@ class BlockFormController extends EntityFormController {
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\Core\Entity\Query\QueryFactory $entity_query_factory
-   *   The entity query factory.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    */
-  public function __construct(EntityManagerInterface $entity_manager, QueryFactory $entity_query_factory, LanguageManager $language_manager, ConfigFactory $config_factory) {
+  public function __construct(EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory) {
     $this->storageController = $entity_manager->getStorageController('block');
-    $this->entityQueryFactory = $entity_query_factory;
     $this->languageManager = $language_manager;
     $this->configFactory = $config_factory;
   }
@@ -81,7 +71,6 @@ class BlockFormController extends EntityFormController {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity.manager'),
-      $container->get('entity.query'),
       $container->get('language_manager'),
       $container->get('config.factory')
     );
@@ -92,6 +81,13 @@ class BlockFormController extends EntityFormController {
    */
   public function form(array $form, array &$form_state) {
     $entity = $this->entity;
+
+    // Store theme settings in $form_state for use below.
+    if (!$theme = $entity->get('theme')) {
+      $theme = $this->configFactory->get('system.theme')->get('default');
+    }
+    $form_state['block_theme'] = $theme;
+
     $form['#tree'] = TRUE;
     $form['settings'] = $entity->getPlugin()->buildConfigurationForm(array(), $form_state);
 
@@ -126,7 +122,6 @@ class BlockFormController extends EntityFormController {
     $form['visibility']['path'] = array(
       '#type' => 'details',
       '#title' => $this->t('Pages'),
-      '#collapsed' => TRUE,
       '#group' => 'visibility',
       '#weight' => 0,
     );
@@ -168,11 +163,11 @@ class BlockFormController extends EntityFormController {
     }
 
     // Configure the block visibility per language.
-    if ($this->moduleHandler->moduleExists('language') && $this->languageManager->isMultilingual()) {
-      $configurable_language_types = language_types_get_configurable();
+    if ($this->languageManager->isMultilingual() && $this->languageManager instanceof ConfigurableLanguageManagerInterface) {
+      $language_types = $this->languageManager->getLanguageTypes();
 
       // Fetch languages.
-      $languages = language_list(Language::STATE_ALL);
+      $languages = $this->languageManager->getLanguages(Language::STATE_ALL);
       $langcodes_options = array();
       foreach ($languages as $language) {
         // @todo $language->name is not wrapped with t(), it should be replaced
@@ -182,23 +177,22 @@ class BlockFormController extends EntityFormController {
       $form['visibility']['language'] = array(
         '#type' => 'details',
         '#title' => $this->t('Languages'),
-        '#collapsed' => TRUE,
         '#group' => 'visibility',
         '#weight' => 5,
       );
       // If there are multiple configurable language types, let the user pick
       // which one should be applied to this visibility setting. This way users
       // can limit blocks by interface language or content language for example.
-      $language_types = language_types_info();
+      $info = $this->languageManager->getDefinedLanguageTypesInfo();
       $language_type_options = array();
-      foreach ($configurable_language_types as $type_key) {
-        $language_type_options[$type_key] = $language_types[$type_key]['name'];
+      foreach ($language_types as $type_key) {
+        $language_type_options[$type_key] = $info[$type_key]['name'];
       }
       $form['visibility']['language']['language_type'] = array(
         '#type' => 'radios',
         '#title' => $this->t('Language type'),
         '#options' => $language_type_options,
-        '#default_value' => !empty($visibility['language']['language_type']) ? $visibility['language']['language_type'] : $configurable_language_types[0],
+        '#default_value' => !empty($visibility['language']['language_type']) ? $visibility['language']['language_type'] : reset($language_types),
         '#access' => count($language_type_options) > 1,
       );
       $form['visibility']['language']['langcodes'] = array(
@@ -215,7 +209,6 @@ class BlockFormController extends EntityFormController {
     $form['visibility']['role'] = array(
       '#type' => 'details',
       '#title' => $this->t('Roles'),
-      '#collapsed' => TRUE,
       '#group' => 'visibility',
       '#weight' => 10,
     );
@@ -228,10 +221,10 @@ class BlockFormController extends EntityFormController {
     );
 
     // Theme settings.
-    if ($theme = $entity->get('theme')) {
+    if ($entity->get('theme')) {
       $form['theme'] = array(
         '#type' => 'value',
-        '#value' => $entity->get('theme'),
+        '#value' => $theme,
       );
     }
     else {
@@ -241,7 +234,6 @@ class BlockFormController extends EntityFormController {
           $theme_options[$theme_name] = $theme_info->info['name'];
         }
       }
-      $theme = $this->configFactory->get('system.theme')->get('default');
       $form['theme'] = array(
         '#type' => 'select',
         '#options' => $theme_options,
@@ -253,6 +245,7 @@ class BlockFormController extends EntityFormController {
         ),
       );
     }
+
     // Region settings.
     $form['region'] = array(
       '#type' => 'select',
@@ -318,6 +311,7 @@ class BlockFormController extends EntityFormController {
       'values' => &$form_state['values']['settings'],
       'errors' => $form_state['errors'],
     );
+
     // Call the plugin submit handler.
     $entity->getPlugin()->submitConfigurationForm($form, $settings);
 
@@ -342,19 +336,16 @@ class BlockFormController extends EntityFormController {
   /**
    * {@inheritdoc}
    */
-  public function delete(array $form, array &$form_state) {
-    parent::delete($form, $form_state);
-    $form_state['redirect_route'] = array(
-      'route_name' => 'block.admin_block_delete',
-      'route_parameters' => array(
-        'block' => $this->entity->id(),
-      ),
-    );
-    $query = $this->getRequest()->query;
-    if ($query->has('destination')) {
-      $form_state['redirect_route']['options']['query']['destination'] = $query->get('destination');
-      $query->remove('destination');
-    }
+  public function buildEntity(array $form, array &$form_state) {
+    $entity = parent::buildEntity($form, $form_state);
+
+    // visibility__active_tab is Form API state and not configuration.
+    // @todo Fix vertical tabs.
+    $visibility = $entity->get('visibility');
+    unset($visibility['visibility__active_tab']);
+    $entity->set('visibility', $visibility);
+
+    return $entity;
   }
 
   /**
@@ -370,7 +361,7 @@ class BlockFormController extends EntityFormController {
     $suggestion = $block->getPlugin()->getMachineNameSuggestion();
 
     // Get all the blocks which starts with the suggested machine name.
-    $query = $this->entityQueryFactory->get('block');
+    $query = $this->storageController->getQuery();
     $query->condition('id', $suggestion, 'CONTAINS');
     $block_ids = $query->execute();
 

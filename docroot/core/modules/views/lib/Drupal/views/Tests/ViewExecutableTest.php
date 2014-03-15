@@ -108,7 +108,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
    * Tests the initDisplay() and initHandlers() methods.
    */
   public function testInitMethods() {
-    $view = views_get_view('test_destroy');
+    $view = Views::getView('test_destroy');
     $view->initDisplay();
 
     $this->assertTrue($view->display_handler instanceof DefaultDisplay, 'Make sure a reference to the current display handler is set.');
@@ -176,14 +176,14 @@ class ViewExecutableTest extends ViewUnitTestBase {
    * Tests the generation of the executable object.
    */
   public function testConstructing() {
-    views_get_view('test_destroy');
+    Views::getView('test_destroy');
   }
 
   /**
    * Tests the accessing of values on the object.
    */
   public function testProperties() {
-    $view = views_get_view('test_destroy');
+    $view = Views::getView('test_destroy');
     foreach ($this->executableProperties as $property) {
       $this->assertTrue(isset($view->{$property}));
     }
@@ -193,7 +193,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
    * Tests the display related methods and properties.
    */
   public function testDisplays() {
-    $view = views_get_view('test_executable_displays');
+    $view = Views::getView('test_executable_displays');
 
     // Tests Drupal\views\ViewExecutable::initDisplay().
     $view->initDisplay();
@@ -271,7 +271,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
    * Tests the setting/getting of properties.
    */
   public function testPropertyMethods() {
-    $view = views_get_view('test_executable_displays');
+    $view = Views::getView('test_executable_displays');
 
     // Test the setAjaxEnabled() method.
     $this->assertFalse($view->ajaxEnabled());
@@ -308,10 +308,10 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $view->setResponse($new_response);
     $this->assertIdentical(spl_object_hash($view->getResponse()), spl_object_hash($new_response), 'New response object correctly set.');
 
-    // Test the generateItemId() method.
-    $test_ids = drupal_map_assoc(array('test', 'test_1'));
-    $this->assertEqual($view->generateItemId('new', $test_ids), 'new');
-    $this->assertEqual($view->generateItemId('test', $test_ids), 'test_2');
+    // Test the generateHandlerId() method.
+    $test_ids = array('test' => 'test', 'test_1' => 'test_1');
+    $this->assertEqual($view->generateHandlerId('new', $test_ids), 'new');
+    $this->assertEqual($view->generateHandlerId('test', $test_ids), 'test_2');
 
     // Test the getPath() method.
     $path = $this->randomName();
@@ -345,7 +345,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
    * Tests the deconstructor to be sure that necessary objects are removed.
    */
   public function testDestroy() {
-    $view = views_get_view('test_destroy');
+    $view = Views::getView('test_destroy');
 
     $view->preview();
     $view->destroy();
@@ -361,8 +361,9 @@ class ViewExecutableTest extends ViewUnitTestBase {
   protected function assertViewDestroy($view) {
     $reflection = new \ReflectionClass($view);
     $defaults = $reflection->getDefaultProperties();
-    // The storage should remain.
+    // The storage and user should remain.
     unset($defaults['storage']);
+    unset($defaults['user']);
 
     foreach ($defaults as $property => $default) {
       $this->assertIdentical($this->getProtectedProperty($view, $property), $default);
@@ -409,7 +410,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
    * Tests the validation of display handlers.
    */
   public function testValidate() {
-    $view = views_get_view('test_executable_displays');
+    $view = Views::getView('test_executable_displays');
     $view->setDisplay('page_1');
 
     $validate = $view->validate();

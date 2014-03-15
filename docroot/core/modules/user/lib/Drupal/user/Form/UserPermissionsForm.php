@@ -100,7 +100,7 @@ class UserPermissionsForm extends FormBase {
     // display name.
     $modules = array();
     foreach ($this->moduleHandler->getImplementations('permission') as $module) {
-      $modules[$module] = $module_info[$module]->info['name'];;
+      $modules[$module] = $module_info[$module]->info['name'];
     }
     asort($modules);
 
@@ -174,7 +174,7 @@ class UserPermissionsForm extends FormBase {
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array('#type' => 'submit', '#value' => $this->t('Save permissions'));
 
-    $form['#attached']['library'][] = array('user', 'drupal.user.permissions');
+    $form['#attached']['library'][] = 'user/drupal.user.permissions';
 
     return $form;
   }

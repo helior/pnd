@@ -7,6 +7,8 @@
 
 namespace Drupal\views_ui\Tests;
 
+use Drupal\views\Views;
+
 /**
  * Tests the UI of style plugins.
  *
@@ -40,10 +42,10 @@ class StyleUITest extends UITestBase {
     $style_options_url = "admin/structure/views/nojs/display/$view_name/default/style_options";
 
     $this->drupalGet($style_plugin_url);
-    $this->assertFieldByName('style', 'default', 'The default style plugin selected in the UI should be unformatted list.');
+    $this->assertFieldByName('style[type]', 'default', 'The default style plugin selected in the UI should be unformatted list.');
 
     $edit = array(
-      'style' => 'test_style'
+      'style[type]' => 'test_style'
     );
     $this->drupalPostForm(NULL, $edit, t('Apply'));
     $this->assertFieldByName('style_options[test_option]', NULL, 'Make sure the custom settings form from the test plugin appears.');
@@ -58,7 +60,7 @@ class StyleUITest extends UITestBase {
     $this->drupalPostForm($view_edit_url, array(), t('Save'));
     $this->assertLink(t('Test style plugin'), 0, 'Make sure the test style plugin is shown in the UI');
 
-    $view = views_get_view($view_name);
+    $view = Views::getView($view_name);
     $view->initDisplay();
     $style = $view->display_handler->getOption('style');
     $this->assertEqual($style['type'], 'test_style', 'Make sure that the test_style got saved as used style plugin.');
@@ -67,7 +69,7 @@ class StyleUITest extends UITestBase {
     // Test that fields are working correctly in the UI for style plugins when
     // a field row plguin is selected.
     $this->drupalPostForm("admin/structure/views/view/$view_name/edit", array(), 'Add Page');
-    $this->drupalPostForm("admin/structure/views/nojs/display/$view_name/page_1/row", array('row' => 'fields'), t('Apply'));
+    $this->drupalPostForm("admin/structure/views/nojs/display/$view_name/page_1/row", array('row[type]' => 'fields'), t('Apply'));
     // If fields are being used this text will not be shown.
     $this->assertNoText(t('The selected style or row format does not utilize fields.'));
   }

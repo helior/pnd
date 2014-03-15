@@ -7,6 +7,8 @@
 
 namespace Drupal\user\Tests\Views;
 
+use Drupal\views\Views;
+
 /**
  * Tests the views bulk form test.
  *
@@ -40,8 +42,6 @@ class BulkFormTest extends UserTestBase {
       'action' => 'user_block_user_action',
     );
     $this->drupalPostForm('test-user-bulk-form', $edit, t('Apply'));
-    // @todo Validation errors are only shown on page refresh.
-    $this->drupalGet('test-user-bulk-form');
     $this->assertText(t('No users selected.'));
 
     // Assign a role to a user.
@@ -83,8 +83,8 @@ class BulkFormTest extends UserTestBase {
     $this->assertNoRaw($account->label(), 'The user is not found in the table.');
 
     // Remove the user status filter from the view.
-    $view = views_get_view('test_user_bulk_form');
-    $view->removeItem('default', 'filter', 'status');
+    $view = Views::getView('test_user_bulk_form');
+    $view->removeHandler('default', 'filter', 'status');
     $view->storage->save();
 
     // Ensure the anonymous user is found.

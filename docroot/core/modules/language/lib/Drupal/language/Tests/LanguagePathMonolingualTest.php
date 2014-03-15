@@ -50,16 +50,18 @@ class LanguagePathMonolingualTest extends WebTestBase {
     // Delete English.
     $this->drupalPostForm('admin/config/regional/language/delete/en', array(), t('Delete'));
 
+    // Changing the default language causes a container rebuild. Therefore need
+    // to rebuild the container in the test environment.
+    $this->rebuildContainer();
+
     // Verify that French is the only language.
-    $this->assertFalse(language_multilingual(), 'Site is mono-lingual');
+    $this->container->get('language_manager')->reset();
+    $this->assertFalse(\Drupal::languageManager()->isMultilingual(), 'Site is mono-lingual');
     $this->assertEqual(language_default()->id, 'fr', 'French is the default language');
 
     // Set language detection to URL.
     $edit = array('language_interface[enabled][language-url]' => TRUE);
     $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
-
-    // Force languages to be initialized.
-    drupal_language_initialize();
   }
 
   /**

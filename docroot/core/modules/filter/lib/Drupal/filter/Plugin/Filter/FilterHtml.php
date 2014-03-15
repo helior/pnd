@@ -7,8 +7,6 @@
 
 namespace Drupal\filter\Plugin\Filter;
 
-use Drupal\filter\Annotation\Filter;
-use Drupal\Core\Annotation\Translation;
 use Drupal\filter\Plugin\FilterBase;
 
 /**
@@ -16,13 +14,12 @@ use Drupal\filter\Plugin\FilterBase;
  *
  * @Filter(
  *   id = "filter_html",
- *   module = "filter",
  *   title = @Translation("Limit allowed HTML tags"),
- *   type = FILTER_TYPE_HTML_RESTRICTOR,
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_HTML_RESTRICTOR,
  *   settings = {
  *     "allowed_html" = "<a> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd> <h4> <h5> <h6>",
- *     "filter_html_help" = 1,
- *     "filter_html_nofollow" = 0
+ *     "filter_html_help" = TRUE,
+ *     "filter_html_nofollow" = FALSE
  *   },
  *   weight = -10
  * )
@@ -41,7 +38,7 @@ class FilterHtml extends FilterBase {
       '#description' => t('A list of HTML tags that can be used. JavaScript event attributes, JavaScript URLs, and CSS are always stripped.'),
       '#attached' => array(
         'library' => array(
-          array('filter', 'drupal.filter.filter_html.admin'),
+          'filter/drupal.filter.filter_html.admin',
         ),
       ),
     );
@@ -155,7 +152,7 @@ class FilterHtml extends FilterBase {
       }
     }
     $table = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
     );
@@ -180,7 +177,7 @@ class FilterHtml extends FilterBase {
       );
     }
     $table = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
     );

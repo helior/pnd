@@ -7,6 +7,8 @@
 
 namespace Drupal\field\Tests\Views;
 
+use Drupal\views\Views;
+
 /**
  * Tests the UI of the field field handler.
  *
@@ -63,7 +65,7 @@ class FieldUITest extends FieldTestBase {
    * Tests basic field handler settings in the UI.
    */
   public function testHandlerUI() {
-    $url = "admin/structure/views/nojs/config-item/test_view_fieldapi/default/field/field_name_0";
+    $url = "admin/structure/views/nojs/handler/test_view_fieldapi/default/field/field_name_0";
     $this->drupalGet($url);
 
     // Tests the available formatter options.
@@ -73,7 +75,7 @@ class FieldUITest extends FieldTestBase {
     }, $result);
     // @todo Replace this sort by assertArray once it's in.
     sort($options, SORT_STRING);
-    $this->assertEqual($options, array('text_default', 'text_plain', 'text_trimmed'), 'The text formatters for a simple text field appear as expected.');
+    $this->assertEqual($options, array('string', 'text_default', 'text_trimmed'), 'The text formatters for a simple text field appear as expected.');
 
     $this->drupalPostForm(NULL, array('options[type]' => 'text_trimmed'), t('Apply'));
 
@@ -87,7 +89,7 @@ class FieldUITest extends FieldTestBase {
 
     // Save the view and test whether the settings are saved.
     $this->drupalPostForm('admin/structure/views/view/test_view_fieldapi', array(), t('Save'));
-    $view = views_get_view('test_view_fieldapi');
+    $view = Views::getView('test_view_fieldapi');
     $view->initHandlers();
     $this->assertEqual($view->field['field_name_0']->options['type'], 'text_trimmed');
     $this->assertEqual($view->field['field_name_0']->options['settings']['trim_length'], $random_number);
@@ -101,7 +103,7 @@ class FieldUITest extends FieldTestBase {
     $edit = array('group_by' => '1');
     $this->drupalPostForm('admin/structure/views/nojs/display/test_view_fieldapi/default/group_by', $edit, t('Apply'));
 
-    $url = "admin/structure/views/nojs/config-item/test_view_fieldapi/default/field/field_name_0";
+    $url = "admin/structure/views/nojs/handler/test_view_fieldapi/default/field/field_name_0";
     $this->drupalGet($url);
     $this->assertResponse(200);
 

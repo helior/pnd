@@ -10,7 +10,8 @@ namespace Drupal\basic_auth\Authentication\Provider;
 use \Drupal\Component\Utility\String;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Config\Config;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\user\UserAuthInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -24,18 +25,26 @@ class BasicAuth implements AuthenticationProviderInterface {
   /**
    * The config factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
   /**
+   * The user auth service.
+   *
+   * @var \Drupal\user\UserAuthInterface
+   */
+  protected $userAuth;
+
+  /**
    * Constructs a HTTP basic authentication provider object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    */
-  public function __construct(ConfigFactory $config_factory) {
+  public function __construct(ConfigFactoryInterface $config_factory, UserAuthInterface $user_auth) {
     $this->configFactory = $config_factory;
+    $this->userAuth = $user_auth;
   }
 
   /**
@@ -53,7 +62,7 @@ class BasicAuth implements AuthenticationProviderInterface {
   public function authenticate(Request $request) {
     $username = $request->headers->get('PHP_AUTH_USER');
     $password = $request->headers->get('PHP_AUTH_PW');
-    $uid = user_authenticate($username, $password);
+    $uid = $this->userAuth->authenticate($username, $password);
     if ($uid) {
       return user_load($uid);
     }
@@ -70,7 +79,7 @@ class BasicAuth implements AuthenticationProviderInterface {
    */
   public function handleException(GetResponseForExceptionEvent $event) {
     $exception = $event->getException();
-    if (user_is_anonymous() && $exception instanceof AccessDeniedHttpException) {
+    if ($GLOBALS['user']->isAnonymous() && $exception instanceof AccessDeniedHttpException) {
       if (!$this->applies($event->getRequest())) {
         $site_name = $this->configFactory->get('system.site')->get('name');
         global $base_url;

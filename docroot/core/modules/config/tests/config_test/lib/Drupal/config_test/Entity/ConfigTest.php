@@ -8,14 +8,12 @@
 namespace Drupal\config_test\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\config_test\ConfigTestInterface;
 
 /**
  * Defines the ConfigTest configuration entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "config_test",
  *   label = @Translation("Test configuration"),
  *   controllers = {
@@ -27,15 +25,17 @@ use Drupal\config_test\ConfigTestInterface;
  *     },
  *     "access" = "Drupal\config_test\ConfigTestAccessController"
  *   },
- *   config_prefix = "config_test.dynamic",
+ *   config_prefix = "dynamic",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "uuid" = "uuid",
  *     "status" = "status"
  *   },
  *   links = {
- *     "edit-form" = "config_test.entity"
+ *     "edit-form" = "config_test.entity",
+ *     "delete-form" = "config_test.entity_delete",
+ *     "enable" = "config_test.entity_enable",
+ *     "disable" = "config_test.entity_disable"
  *   }
  * )
  */
@@ -47,13 +47,6 @@ class ConfigTest extends ConfigEntityBase implements ConfigTestInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The UUID for the configuration entity.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The human-readable name of the configuration entity.

@@ -12,9 +12,8 @@ use Drupal\Component\Annotation\Plugin;
 /**
  * Defines a FieldFormatter annotation object.
  *
- * Formatters handle the display of field values. Formatter hooks are typically
- * called by the Field Attach API field_attach_prepare_view() and
- * field_attach_view() functions.
+ * Formatters handle the display of field values. They are typically
+ * instantiated and invoked by an EntityDisplay object.
  *
  * Additional annotation keys for formatters can be defined in
  * hook_field_formatter_info_alter().
@@ -74,5 +73,14 @@ class FieldFormatter extends Plugin {
    * @var array
    */
   public $settings = array();
+
+  /**
+   * An integer to determine the weight of this formatter relative to other
+   * formatter in the Field UI when selecting a formatter for a given field
+   * instance.
+   *
+   * @var int optional
+   */
+  public $weight = NULL;
 
 }

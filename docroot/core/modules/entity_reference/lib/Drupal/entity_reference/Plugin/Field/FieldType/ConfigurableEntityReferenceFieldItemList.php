@@ -7,12 +7,12 @@
 
 namespace Drupal\entity_reference\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\ConfigFieldItemList;
+use Drupal\Core\Field\FieldItemList;
 
 /**
  * Represents a configurable entity_reference entity field.
  */
-class ConfigurableEntityReferenceFieldItemList extends ConfigFieldItemList {
+class ConfigurableEntityReferenceFieldItemList extends FieldItemList {
 
   /**
    * {@inheritdoc}
@@ -33,7 +33,7 @@ class ConfigurableEntityReferenceFieldItemList extends ConfigFieldItemList {
         }
       }
       if ($uuids) {
-        $target_type = $this->getFieldDefinition()->getSetting('target_type');
+        $target_type = $this->getSetting('target_type');
         $entity_ids = \Drupal::entityQuery($target_type)
           ->condition('uuid', $uuids, 'IN')
           ->execute();
@@ -80,7 +80,7 @@ class ConfigurableEntityReferenceFieldItemList extends ConfigFieldItemList {
       $ids[] = $properties['target_id'];
     }
     $entities = \Drupal::entityManager()
-      ->getStorageController($this->getFieldDefinition()->getSetting('target_type'))
+      ->getStorageController($this->getSetting('target_type'))
       ->loadMultiple($ids);
 
     foreach ($default_value as $delta => $properties) {

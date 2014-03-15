@@ -8,23 +8,16 @@
 namespace Drupal\editor\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\EditorInterface;
 
 /**
  * Defines the configured text editor entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "editor",
- *   label = @Translation("Editor"),
- *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController"
- *   },
- *   config_prefix = "editor.editor",
+ *   label = @Translation("Text Editor"),
  *   entity_keys = {
- *     "id" = "format",
- *     "uuid" = "uuid"
+ *     "id" = "format"
  *   }
  * )
  */
@@ -60,22 +53,21 @@ class Editor extends ConfigEntityBase implements EditorInterface {
   public $image_upload = array();
 
   /**
-   * Overrides Drupal\Core\Entity\Entity::id().
+   * The filter format this text editor is associated with.
+   *
+   * @var \Drupal\filter\FilterFormatInterface
+   */
+  protected $filterFormat;
+
+  /**
+   * {@inheritdoc}
    */
   public function id() {
     return $this->format;
   }
 
   /**
-   * Overrides Drupal\Core\Entity\Entity::label().
-   */
-  public function label($langcode = NULL) {
-    $format = entity_load('filter_format', $this->format);
-    return $format->name;
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\Entity::__construct()
+   * {@inheritdoc}
    */
   public function __construct(array $values, $entity_type) {
     parent::__construct($values, $entity_type);
@@ -85,9 +77,19 @@ class Editor extends ConfigEntityBase implements EditorInterface {
 
     // Initialize settings, merging module-provided defaults.
     $default_settings = $plugin->getDefaultSettings();
-    $default_settings += module_invoke_all('editor_default_settings', $this->editor);
-    drupal_alter('editor_default_settings', $default_settings, $this->editor);
+    $default_settings += \Drupal::moduleHandler()->invokeAll('editor_default_settings', array($this->editor));
+    \Drupal::moduleHandler()->alter('editor_default_settings', $default_settings, $this->editor);
     $this->settings += $default_settings;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFilterFormat() {
+    if (!$this->filterFormat) {
+      $this->filterFormat = \Drupal::entityManager()->getStorageController('filter_format')->load($this->format);
+    }
+    return $this->filterFormat;
   }
 
 }

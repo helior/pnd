@@ -2,12 +2,13 @@
 
 /**
  * @file
- * Definition of Drupal\user\Tests\UserValidationTest.
+ * Contains \Drupal\user\Tests\UserValidationTest.
  */
 
 namespace Drupal\user\Tests;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\EmailItem;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
@@ -109,9 +110,15 @@ class UserValidationTest extends DrupalUnitTestBase {
     $mail = $this->randomName(EMAIL_MAX_LENGTH - 11) . '@example.com';
     $user->set('mail', $mail);
     $violations = $user->validate();
-    $this->assertEqual(count($violations), 1, 'Violation found when email is too long');
+    // @todo There are two violations because EmailItem::getConstraints()
+    //   overlaps with the implicit constraint of the 'email' property type used
+    //   in EmailItem::propertyDefinitions(). Resolve this in
+    //   https://drupal.org/node/2023465.
+    $this->assertEqual(count($violations), 2, 'Violations found when email is too long');
     $this->assertEqual($violations[0]->getPropertyPath(), 'mail.0.value');
-    $this->assertEqual($violations[0]->getMessage(), t('This value is not a valid email address.'));
+    $this->assertEqual($violations[0]->getMessage(), t('%name: the e-mail address can not be longer than @max characters.', array('%name' => $user->get('mail')->getFieldDefinition()->getLabel(), '@max' => EMAIL_MAX_LENGTH)));
+    $this->assertEqual($violations[1]->getPropertyPath(), 'mail.0.value');
+    $this->assertEqual($violations[1]->getMessage(), t('This value is not a valid email address.'));
 
     // Provoke a e-mail collision with an exsiting user.
     $user->set('mail', 'existing@example.com');
@@ -125,10 +132,6 @@ class UserValidationTest extends DrupalUnitTestBase {
     $this->assertLengthViolation($user, 'signature', 255);
     $user->set('signature', NULL);
 
-    $user->set('theme', $this->randomString(DRUPAL_EXTENSION_NAME_MAX_LENGTH + 1));
-    $this->assertLengthViolation($user, 'theme', DRUPAL_EXTENSION_NAME_MAX_LENGTH);
-    $user->set('theme', NULL);
-
     $user->set('timezone', $this->randomString(33));
     $this->assertLengthViolation($user, 'timezone', 32);
     $user->set('timezone', NULL);
@@ -139,7 +142,14 @@ class UserValidationTest extends DrupalUnitTestBase {
     $this->assertEqual($violations[0]->getPropertyPath(), 'init.0.value');
     $this->assertEqual($violations[0]->getMessage(), t('This value is not a valid email address.'));
 
-    // @todo Test user role validation once https://drupal.org/node/2015701 got
+    // Test cardinality of user roles.
+    $user = entity_create('user', array(
+      'name' => 'role_test',
+      'roles' => array('role1', 'role2'),
+    ));
+    $violations = $user->validate();
+    $this->assertEqual(count($violations), 0);
+    // @todo Test user role validation once https://drupal.org/node/2044859 got
     // committed.
   }
 
@@ -157,6 +167,8 @@ class UserValidationTest extends DrupalUnitTestBase {
     $violations = $entity->validate();
     $this->assertEqual(count($violations), 1, "Violation found when $field_name is too long.");
     $this->assertEqual($violations[0]->getPropertyPath(), "$field_name.0.value");
-    $this->assertEqual($violations[0]->getMessage(), t('This value is too long. It should have %limit characters or less.', array('%limit' => $length)));
+    $field_label = $entity->get($field_name)->getFieldDefinition()->getLabel();
+    $this->assertEqual($violations[0]->getMessage(), t('%name: may not be longer than @max characters.', array('%name' => $field_label, '@max' => $length)));
   }
+
 }

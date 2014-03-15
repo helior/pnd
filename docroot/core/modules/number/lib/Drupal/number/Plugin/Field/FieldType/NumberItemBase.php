@@ -7,26 +7,19 @@
 
 namespace Drupal\number\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\ConfigFieldItemBase;
+use Drupal\Core\Field\FieldItemBase;
 
 /**
  * Base class for 'number' configurable field types.
  */
-abstract class NumberItemBase extends ConfigFieldItemBase {
-
-  /**
-   * Definitions of the contained properties.
-   *
-   * @var array
-   */
-  static $propertyDefinitions;
+abstract class NumberItemBase extends FieldItemBase {
 
   /**
    * {@inheritdoc}
    */
   public function instanceSettingsForm(array $form, array &$form_state) {
     $element = array();
-    $settings = $this->getFieldSettings();
+    $settings = $this->getSettings();
 
     $element['min'] = array(
       '#type' => 'textfield',
@@ -74,10 +67,10 @@ abstract class NumberItemBase extends ConfigFieldItemBase {
    * {@inheritdoc}
    */
   public function getConstraints() {
-    $constraint_manager = \Drupal::typedData()->getValidationConstraintManager();
+    $constraint_manager = \Drupal::typedDataManager()->getValidationConstraintManager();
     $constraints = parent::getConstraints();
 
-    $settings = $this->getFieldSettings();
+    $settings = $this->getSettings();
     $label = $this->getFieldDefinition()->getLabel();
 
     if (!empty($settings['min'])) {

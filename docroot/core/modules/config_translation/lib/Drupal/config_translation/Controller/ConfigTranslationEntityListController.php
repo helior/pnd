@@ -58,7 +58,7 @@ class ConfigTranslationEntityListController extends EntityListController impleme
 
     $build['table'] = $table;
     $build['table']['#attributes']['class'][] = 'config-translation-entity-list';
-    $build['#attached']['library'][] = array('system', 'drupal.system.modules');
+    $build['#attached']['library'][] = 'system/drupal.system.modules';
 
     return $build;
   }
@@ -125,6 +125,14 @@ class ConfigTranslationEntityListController extends EntityListController impleme
     }
 
     return strnatcasecmp($a_value, $b_value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setMapperDefinition($mapper_definition) {
+    // @todo Why is this method called on all config list controllers?
+    return $this;
   }
 
 }

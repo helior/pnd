@@ -7,9 +7,8 @@
 
 namespace Drupal\image_test\Plugin\ImageToolkit;
 
-use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\Core\ImageToolkit\ImageToolkitInterface;
+use Drupal\Core\ImageToolkit\ImageToolkitBase;
 
 /**
  * Defines a Test toolkit for image manipulation within Drupal.
@@ -19,20 +18,32 @@ use Drupal\Core\ImageToolkit\ImageToolkitInterface;
  *   title = @Translation("A dummy toolkit that works")
  * )
  */
-class TestToolkit extends PluginBase implements ImageToolkitInterface {
+class TestToolkit extends ImageToolkitBase {
 
   /**
    * {@inheritdoc}
    */
   public function settingsForm() {
     $this->logCall('settings', array());
-    return array();
+    $form['test_parameter'] = array(
+      '#type' => 'number',
+      '#title' => $this->t('Test toolkit parameter'),
+      '#description' => $this->t('A toolkit parameter for testing purposes.'),
+      '#min' => 0,
+      '#max' => 100,
+      '#default_value' => \Drupal::config('system.image.test_toolkit')->get('test_parameter'),
+    );
+    return $form;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function settingsFormSubmit($form, &$form_state) {}
+  public function settingsFormSubmit($form, &$form_state) {
+    \Drupal::config('system.image.test_toolkit')
+      ->set('test_parameter', $form_state['values']['test']['test_parameter'])
+      ->save();
+  }
 
   /**
    * {@inheritdoc}
@@ -52,15 +63,26 @@ class TestToolkit extends PluginBase implements ImageToolkitInterface {
       );
     }
 
+    if ($details) {
+      $this->load($image->getSource(), $details);
+    }
     return $details;
   }
 
   /**
-   * {@inheritdoc}
+   * Creates a resource from a file.
+   *
+   * @param string $source
+   *   String specifying the path of the image file.
+   * @param array $details
+   *   An array of image details.
+   *
+   * @return bool
+   *   TRUE or FALSE, based on success.
    */
-  public function load(ImageInterface $image) {
-    $this->logCall('load', array($image));
-    return $image;
+  protected function load($source, array $details) {
+    $this->logCall('load', array($source, $details));
+    return TRUE;
   }
 
   /**

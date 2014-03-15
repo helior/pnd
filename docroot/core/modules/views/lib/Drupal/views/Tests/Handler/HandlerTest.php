@@ -76,9 +76,8 @@ class HandlerTest extends ViewTestBase {
   function testFilterInOperatorUi() {
     $admin_user = $this->drupalCreateUser(array('administer views', 'administer site configuration'));
     $this->drupalLogin($admin_user);
-    menu_router_rebuild();
 
-    $path = 'admin/structure/views/nojs/config-item/test_filter_in_operator_ui/default/filter/type';
+    $path = 'admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/type';
     $this->drupalGet($path);
     $this->assertFieldByName('options[expose][reduce]', FALSE);
 
@@ -195,7 +194,7 @@ class HandlerTest extends ViewTestBase {
   public function testHandlerWeights() {
     $handler_types = array('fields', 'filters', 'sorts');
 
-    $view = views_get_view('test_view_handler_weight');
+    $view = Views::getView('test_view_handler_weight');
     $view->initDisplay();
 
     // Store the order of handlers before saving the view.
@@ -206,7 +205,7 @@ class HandlerTest extends ViewTestBase {
 
     // Save the view and see if our filters are in the same order.
     $view->save();
-    $view = views_get_view('test_view_handler_weight');
+    $view = views::getView('test_view_handler_weight');
     $view->initDisplay();
 
     foreach ($handler_types as $type) {
@@ -244,7 +243,7 @@ class HandlerTest extends ViewTestBase {
     $this->drupalLogin($views_admin);
 
     // Make sure the link to the field options exists.
-    $handler_options_path = 'admin/structure/views/nojs/config-item/test_handler_relationships/default/field/title';
+    $handler_options_path = 'admin/structure/views/nojs/handler/test_handler_relationships/default/field/title';
     $view_edit_path = 'admin/structure/views/view/test_handler_relationships/edit';
     $this->drupalGet($view_edit_path);
     $this->assertLinkByHref($handler_options_path);
@@ -270,7 +269,7 @@ class HandlerTest extends ViewTestBase {
     $this->assertEqual($options, $expected_options);
 
     // Remove the relationship and make sure no relationship option appears.
-    $this->drupalPostForm('admin/structure/views/nojs/config-item/test_handler_relationships/default/relationship/nid', array(), t('Remove'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_handler_relationships/default/relationship/nid', array(), t('Remove'));
     $this->drupalGet($handler_options_path);
     $this->assertNoFieldByName($relationship_name, 'Make sure that no relationship option is available');
   }
@@ -279,12 +278,12 @@ class HandlerTest extends ViewTestBase {
    * Tests the relationship method on the base class.
    */
   public function testSetRelationship() {
-    $view = views_get_view('test_handler_relationships');
+    $view = Views::getView('test_handler_relationships');
     $view->setDisplay();
     // Setup a broken relationship.
-    $view->addItem('default', 'relationship', $this->randomName(), $this->randomName(), array(), 'broken_relationship');
+    $view->addHandler('default', 'relationship', $this->randomName(), $this->randomName(), array(), 'broken_relationship');
     // Setup a valid relationship.
-    $view->addItem('default', 'relationship', 'comment', 'node', array('relationship' => 'cid'), 'valid_relationship');
+    $view->addHandler('default', 'relationship', 'comment', 'node', array('relationship' => 'cid'), 'valid_relationship');
     $view->initHandlers();
     $field = $view->field['title'];
 
@@ -318,7 +317,7 @@ class HandlerTest extends ViewTestBase {
    * @see \Drupal\views\Plugin\views\HandlerBase::placeholder()
    */
   public function testPlaceholder() {
-    $view = views_get_view('test_view');
+    $view = Views::getView('test_view');
     $view->initHandlers();
     $view->initQuery();
 
@@ -350,7 +349,7 @@ class HandlerTest extends ViewTestBase {
    * @see views_test_data_handler_test_access_callback
    */
   public function testAccess() {
-    $view = views_get_view('test_handler_test_access');
+    $view = Views::getView('test_handler_test_access');
     $views_data = $this->viewsData();
     $views_data = $views_data['views_test_data'];
 

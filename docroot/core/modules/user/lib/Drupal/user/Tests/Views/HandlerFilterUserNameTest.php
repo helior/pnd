@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Tests\Views;
 
+use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
 
@@ -82,7 +83,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
    * Tests just using the filter.
    */
   public function testUserNameApi() {
-    $view = views_get_view('test_user_name');
+    $view = Views::getView('test_user_name');
 
     $view->initHandlers();
     $view->filter['uid']->value = array($this->accounts[0]->id());
@@ -98,7 +99,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $admin_user = $this->drupalCreateUser(array('administer views', 'administer site configuration'));
     $this->drupalLogin($admin_user);
 
-    $path = 'admin/structure/views/nojs/config-item/test_user_name/default/filter/uid';
+    $path = 'admin/structure/views/nojs/handler/test_user_name/default/filter/uid';
     $this->drupalGet($path);
 
     // Pass in an invalid username, the validation should catch it.

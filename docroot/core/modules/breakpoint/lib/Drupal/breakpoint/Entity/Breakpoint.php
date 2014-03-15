@@ -14,23 +14,16 @@ use Drupal\breakpoint\InvalidBreakpointNameException;
 use Drupal\breakpoint\InvalidBreakpointSourceException;
 use Drupal\breakpoint\InvalidBreakpointSourceTypeException;
 use Drupal\breakpoint\InvalidBreakpointMediaQueryException;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines the Breakpoint entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "breakpoint",
  *   label = @Translation("Breakpoint"),
- *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController"
- *   },
- *   config_prefix = "breakpoint.breakpoint",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   }
  * )
  */
@@ -57,13 +50,6 @@ class Breakpoint extends ConfigEntityBase implements BreakpointInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The breakpoint UUID.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The breakpoint name (machine name) as specified by theme or module.

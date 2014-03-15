@@ -8,6 +8,7 @@
 namespace Drupal\comment\Plugin\Field\FieldFormatter;
 
 use Drupal\comment\CommentStorageControllerInterface;
+use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -115,7 +116,7 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
 
     $status = $items->status;
 
-    if ($status != COMMENT_HIDDEN && empty($entity->in_preview) &&
+    if ($status != CommentItemInterface::HIDDEN && empty($entity->in_preview) &&
       // Comments are added to the search results and search index by
       // comment_node_update_index() instead of by this formatter, so don't
       // return anything if the view mode is search_index or search_result.
@@ -130,7 +131,7 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
         $this->currentUser->hasPermission('administer comments'))) {
         $mode = $comment_settings['default_mode'];
         $comments_per_page = $comment_settings['per_page'];
-        if ($cids = comment_get_thread($entity, $field_name, $mode, $comments_per_page, $this->settings['pager_id'])) {
+        if ($cids = comment_get_thread($entity, $field_name, $mode, $comments_per_page, $this->getSetting('pager_id'))) {
           $comments = $this->storageController->loadMultiple($cids);
           comment_prepare_thread($comments);
           $build = $this->viewBuilder->viewMultiple($comments);
@@ -143,8 +144,8 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
       }
 
       // Append comment form if the comments are open and the form is set to
-      // display below the entity.
-      if ($status == COMMENT_OPEN && $comment_settings['form_location'] == COMMENT_FORM_BELOW) {
+      // display below the entity. Do not show the form for the print view mode.
+      if ($status == CommentItemInterface::OPEN && $comment_settings['form_location'] == COMMENT_FORM_BELOW && $this->viewMode != 'print') {
         // Only show the add comment form if the user has permission.
         if ($this->currentUser->hasPermission('post comments')) {
           // All users in the "anonymous" role can use the same form: it is fine
@@ -159,7 +160,7 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
               '#type' => 'render_cache_placeholder',
               '#callback' => '\Drupal\comment\Plugin\Field\FieldFormatter\CommentDefaultFormatter::renderForm',
               '#context' => array(
-                'entity_type' => $entity->entityType(),
+                'entity_type' => $entity->getEntityTypeId(),
                 'entity_id' => $entity->id(),
                 'field_name' => $field_name,
               ),
@@ -169,7 +170,7 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
       }
 
       $elements[] = $output + array(
-        '#theme' => 'comment_wrapper__' . $entity->entityType() . '__' . $entity->bundle() . '__' . $field_name,
+        '#theme' => 'comment_wrapper__' . $entity->getEntityTypeId() . '__' . $entity->bundle() . '__' . $field_name,
         '#entity' => $entity,
         '#display_mode' => $this->getFieldSetting('default_mode'),
         'comments' => array(),

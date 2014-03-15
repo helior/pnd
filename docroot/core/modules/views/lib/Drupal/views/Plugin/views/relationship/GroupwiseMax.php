@@ -121,7 +121,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     // WIP: This stuff doens't work yet: namespacing issues.
     // A list of suitable views to pick one as the subview.
     $views = array('' => '- None -');
-    $all_views = views_get_all_views();
+    $all_views = Views::getAllViews();
     foreach ($all_views as $view) {
       // Only get views that are suitable:
       // - base must the base that our relationship joins towards
@@ -170,7 +170,7 @@ class GroupwiseMax extends RelationshipPluginBase {
    */
   public function submitOptionsForm(&$form, &$form_state) {
     $cid = 'views_relationship_groupwise_max:' . $this->view->storage->id() . ':' . $this->view->current_display . ':' . $this->options['id'];
-    cache('views_results')->delete($cid);
+    \Drupal::cache('views_results')->delete($cid);
   }
 
   /**
@@ -189,7 +189,7 @@ class GroupwiseMax extends RelationshipPluginBase {
   protected function leftQuery($options) {
     // Either load another view, or create one on the fly.
     if ($options['subquery_view']) {
-      $temp_view = views_get_view($options['subquery_view']);
+      $temp_view = Views::getView($options['subquery_view']);
       // Remove all fields from default display
       unset($temp_view->display['default']['display_options']['fields']);
     }
@@ -205,7 +205,7 @@ class GroupwiseMax extends RelationshipPluginBase {
       $sort = $options['subquery_sort'];
       list($sort_table, $sort_field) = explode('.', $sort);
       $sort_options = array('order' => $options['subquery_order']);
-      $temp_view->addItem('default', 'sort', $sort_table, $sort_field, $sort_options);
+      $temp_view->addHandler('default', 'sort', $sort_table, $sort_field, $sort_options);
     }
 
     // Get the namespace string.
@@ -217,20 +217,20 @@ class GroupwiseMax extends RelationshipPluginBase {
     $temp_view->args[] = '**CORRELATED**';
 
     // Add the base table ID field.
-    $temp_view->addItem('default', 'field', $this->definition['base'], $this->definition['field']);
+    $temp_view->addHandler('default', 'field', $this->definition['base'], $this->definition['field']);
 
     $relationship_id = NULL;
     // Add the used relationship for the subjoin, if defined.
     if (isset($this->definition['relationship'])) {
       list($relationship_table, $relationship_field) = explode(':', $this->definition['relationship']);
-      $relationship_id = $temp_view->addItem('default', 'relationship', $relationship_table, $relationship_field);
+      $relationship_id = $temp_view->addHandler('default', 'relationship', $relationship_table, $relationship_field);
     }
     $temp_item_options = array('relationship' => $relationship_id);
 
     // Add the correct argument for our relationship's base
     // ie the 'how to get back to base' argument.
     // The relationship definition tells us which one to use.
-    $temp_view->addItem('default', 'argument', $this->definition['argument table'], $this->definition['argument field'], $temp_item_options);
+    $temp_view->addHandler('default', 'argument', $this->definition['argument table'], $this->definition['argument field'], $temp_item_options);
 
     // Build the view. The creates the query object and produces the query
     // string but does not run any queries.
@@ -269,7 +269,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     $where = &$subquery->conditions();
     $this->alterSubqueryCondition($subquery, $where);
     // Not sure why, but our sort order clause doesn't have a table.
-    // TODO: the call to add_item() above to add the sort handler is probably
+    // TODO: the call to addHandler() above to add the sort handler is probably
     // wrong -- needs attention from someone who understands it.
     // In the meantime, this works, but with a leap of faith...
     $orders = &$subquery->getOrderBy();
@@ -357,13 +357,13 @@ class GroupwiseMax extends RelationshipPluginBase {
     else {
       // Get the stored subquery SQL string.
       $cid = 'views_relationship_groupwise_max:' . $this->view->storage->id() . ':' . $this->view->current_display . ':' . $this->options['id'];
-      $cache = cache('views_results')->get($cid);
+      $cache = \Drupal::cache('views_results')->get($cid);
       if (isset($cache->data)) {
         $def['left_query'] = $cache->data;
       }
       else {
         $def['left_query'] = $this->leftQuery($this->options);
-        cache('views_results')->set($cid, $def['left_query']);
+        \Drupal::cache('views_results')->set($cid, $def['left_query']);
       }
     }
 

@@ -10,8 +10,6 @@ namespace Drupal\ckeditor\Plugin\CKEditorPlugin;
 use Drupal\ckeditor\CKEditorPluginBase;
 use Drupal\ckeditor\CKEditorPluginConfigurableInterface;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\ckeditor\Annotation\CKEditorPlugin;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\Entity\Editor;
 
 /**
@@ -81,7 +79,7 @@ class StylesCombo extends CKEditorPluginBase implements CKEditorPluginConfigurab
       '#default_value' => $config['styles'],
       '#description' => t('A list of classes that will be provided in the "Styles" dropdown. Enter one class on each line in the format: element.class|Label. Example: h1.title|Title.<br />These styles should be available in your theme\'s CSS file.'),
       '#attached' => array(
-        'library' => array(array('ckeditor', 'drupal.ckeditor.stylescombo.admin')),
+        'library' => array('ckeditor/drupal.ckeditor.stylescombo.admin'),
       ),
       '#element_validate' => array(
         array($this, 'validateStylesValue'),

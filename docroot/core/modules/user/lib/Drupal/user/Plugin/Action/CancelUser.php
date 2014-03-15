@@ -7,8 +7,6 @@
 
 namespace Drupal\user\Plugin\Action;
 
-use Drupal\Core\Annotation\Action;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Action\ActionBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\user\TempStoreFactory;
@@ -62,7 +60,7 @@ class CancelUser extends ActionBase implements ContainerFactoryPluginInterface {
    * {@inheritdoc}
    */
   public function executeMultiple(array $entities) {
-    $this->tempStoreFactory->get('user_user_operations_cancel')->set($GLOBALS['user']->id(), $entities);
+    $this->tempStoreFactory->get('user_user_operations_cancel')->set(\Drupal::currentUser()->id(), $entities);
   }
 
   /**
