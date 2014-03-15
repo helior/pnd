@@ -664,3 +664,8 @@ ini_set('session.cookie_lifetime', 2000000);
 if (file_exists('/var/www/site-php')) {
   require('/var/www/site-php/pizzandrupal/pizzandrupal-settings.inc');
 }
+
+$config_directories = array(
+  CONFIG_ACTIVE_DIRECTORY => 'sites/default/files/config_30046b7530f58cd9cbcf8887fcb3f51a31ade245/active',
+  CONFIG_STAGING_DIRECTORY => 'sites/default/files/config_30046b7530f58cd9cbcf8887fcb3f51a31ade245/staging',
+);
