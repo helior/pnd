@@ -23,7 +23,8 @@
  * @see shortcut_set_switch_validate()
  * @see shortcut_set_switch_submit()
  *
- * @deprecated Use \Drupal\shortcut\Form\ShortcutForm::overview()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\shortcut\Form\ShortcutForm::overview().
  */
 function shortcut_set_switch($form, &$form_state, $account = NULL) {
   $user = \Drupal::currentUser();
@@ -91,7 +92,7 @@ function shortcut_set_switch($form, &$form_state, $account = NULL) {
     }
 
     $form['#attached'] = array(
-      'library' => array(array('shortcut', 'drupal.shortcut.admin')),
+      'library' => array('shortcut/drupal.shortcut.admin'),
     );
 
     $form['actions'] = array('#type' => 'actions');
@@ -117,7 +118,7 @@ function shortcut_set_switch_validate($form, &$form_state) {
   if ($form_state['values']['set'] == 'new') {
     // Check to prevent creating a shortcut set with an empty title.
     if (trim($form_state['values']['label']) == '') {
-      form_set_error('new', $form_state, t('The new set label is required.'));
+      form_set_error('label', $form_state, t('The new set label is required.'));
     }
     // Check to prevent a duplicate title.
     if (shortcut_set_title_exists($form_state['values']['label'])) {

@@ -32,18 +32,6 @@ function tracker_help($path, $arg) {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function tracker_menu_link_defaults() {
-  $links['tracker'] = array(
-    'link_title' => 'Recent content',
-    'route_name' => 'tracker.page',
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_cron().
  *
  * Updates tracking information for any items still to be tracked. The state
@@ -262,7 +250,7 @@ function _tracker_add($nid, $uid, $changed) {
 
   // Update the node-level data.
   db_merge('tracker_node')
-    ->key(array('nid' => $nid))
+    ->key('nid', $nid)
     ->fields(array(
       'changed' => $changed,
       'published' => $node->status,
@@ -271,7 +259,7 @@ function _tracker_add($nid, $uid, $changed) {
 
   // Create or update the user-level data.
   db_merge('tracker_user')
-    ->key(array(
+    ->keys(array(
       'nid' => $nid,
       'uid' => $uid,
     ))

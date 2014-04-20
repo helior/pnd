@@ -25,14 +25,14 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
   /**
    * The created field.
    *
-   * @var \Drupal\field\Entity\Field
+   * @var \Drupal\field\Entity\FieldConfig
    */
   protected $field;
 
   /**
    * The created instance.
    *
-   * @var \Drupal\field\Entity\FieldInstance
+   * @var \Drupal\field\Entity\FieldInstanceConfig
    */
   protected $instance;
 
@@ -64,14 +64,14 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
     $this->blockType = $this->createCustomBlockType('link');
 
     // Create a field with settings to validate.
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => drupal_strtolower($this->randomName()),
       'entity_type' => 'custom_block',
       'type' => 'link',
       'cardinality' => 2,
     ));
     $this->field->save();
-    $this->instance = entity_create('field_instance', array(
+    $this->instance = entity_create('field_instance_config', array(
       'field_name' => $this->field->getName(),
       'entity_type' => 'custom_block',
       'bundle' => 'link',
@@ -95,7 +95,7 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
     // Create a block.
     $this->drupalGet('block/add/link');
     $edit = array(
-      'info' => $this->randomName(8),
+      'info[0][value]' => $this->randomName(8),
       $this->field->getName() . '[0][url]' => 'http://example.com',
       $this->field->getName() . '[0][title]' => 'Example.com'
     );
@@ -104,8 +104,8 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
     $url = 'admin/structure/block/add/custom_block:' . $block->uuid() . '/' . \Drupal::config('system.theme')->get('default');
     // Place the block.
     $instance = array(
-      'id' => drupal_strtolower($edit['info']),
-      'settings[label]' => $edit['info'],
+      'id' => drupal_strtolower($edit['info[0][value]']),
+      'settings[label]' => $edit['info[0][value]'],
       'region' => 'sidebar_first',
     );
     $this->drupalPostForm($url, $instance, t('Save block'));

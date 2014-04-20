@@ -9,6 +9,7 @@
  * @see node_menu()
  */
 
+use Drupal\Component\Utility\Xss;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\node\NodeInterface;
 
@@ -30,7 +31,7 @@ function template_preprocess_node_add_list(&$variables) {
       $variables['types'][$type->type] = array(
         'type' => $type->type,
         'add_link' => l($type->name, 'node/add/' . $type->type),
-        'description' => filter_xss_admin($type->description),
+        'description' => Xss::filterAdmin($type->description),
       );
     }
   }
@@ -84,7 +85,7 @@ function template_preprocess_node_preview(&$variables) {
 
   // Render trimmed teaser version of the post.
   $node_teaser = node_view($node, 'teaser');
-  $node_teaser['#attached']['library'][] = array('node', 'drupal.node.preview');
+  $node_teaser['#attached']['library'][] = 'node/drupal.node.preview';
   $variables['teaser'] = $node_teaser;
   // Render full version of the post.
   $node_full = node_view($node, 'full');
@@ -112,7 +113,8 @@ function template_preprocess_node_preview(&$variables) {
  *
  * @see node_menu()
  *
- * @deprecated Use \Drupal\node\Controller\NodeController::revisionOverview()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\node\Controller\NodeController::revisionOverview().
  */
 function node_revision_overview($node) {
   $build['#title'] = t('Revisions for %title', array('%title' => $node->label()));
@@ -140,7 +142,7 @@ function node_revision_overview($node) {
         '#account' => user_load($revision->uid),
       );
       $row[] = array('data' => t('!date by !username', array('!date' => l(format_date($revision->revision_timestamp, 'short'), 'node/' . $node->id()), '!username' => drupal_render($username)))
-                               . (($revision->log != '') ? '<p class="revision-log">' . filter_xss($revision->log) . '</p>' : ''),
+                               . (($revision->log != '') ? '<p class="revision-log">' . Xss::filter($revision->log) . '</p>' : ''),
                      'class' => array('revision-current'));
       $row[] = array('data' => drupal_placeholder(t('current revision')), 'class' => array('revision-current'));
     }
@@ -150,7 +152,7 @@ function node_revision_overview($node) {
         '#account' => user_load($revision->uid),
       );
       $row[] = t('!date by !username', array('!date' => l(format_date($revision->revision_timestamp, 'short'), "node/" . $node->id() . "/revisions/" . $revision->vid . "/view"), '!username' => drupal_render($username)))
-               . (($revision->log != '') ? '<p class="revision-log">' . filter_xss($revision->log) . '</p>' : '');
+               . (($revision->log != '') ? '<p class="revision-log">' . Xss::filter($revision->log) . '</p>' : '');
       if ($revert_permission) {
         $links['revert'] = array(
           'title' => t('Revert'),
@@ -174,7 +176,7 @@ function node_revision_overview($node) {
   }
 
   $build['node_revisions_table'] = array(
-    '#theme' => 'table',
+    '#type' => 'table',
     '#rows' => $rows,
     '#header' => $header,
     '#attached' => array (

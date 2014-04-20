@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Theme;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -43,7 +44,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
 
     // Enable test_theme, it contains a template suggested by theme_test.module
     // in theme_test_theme_suggestions_theme_test_suggestion_provided().
-    config('system.theme')
+    \Drupal::config('system.theme')
       ->set('default', 'test_theme')
       ->save();
 
@@ -59,7 +60,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
     $this->assertText('Original template for testing hook_theme_suggestions_alter().');
 
     // Enable test_theme and test that themes can alter template suggestions.
-    config('system.theme')
+    \Drupal::config('system.theme')
       ->set('default', 'test_theme')
       ->save();
     $this->drupalGet('theme-test/general-suggestion-alter');
@@ -80,7 +81,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
     $this->assertText('Original template for testing hook_theme_suggestions_HOOK_alter().');
 
     // Enable test_theme and test that themes can alter template suggestions.
-    config('system.theme')
+    \Drupal::config('system.theme')
       ->set('default', 'test_theme')
       ->save();
     $this->drupalGet('theme-test/suggestion-alter');
@@ -101,7 +102,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
     $this->drupalGet('theme-test/specific-suggestion-alter');
     $this->assertText('Template for testing specific theme calls.');
 
-    config('system.theme')
+    \Drupal::config('system.theme')
       ->set('default', 'test_theme')
       ->save();
 
@@ -125,7 +126,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
     $this->assertText('Original theme function.');
 
     // Enable test_theme and test that themes can alter theme suggestions.
-    config('system.theme')
+    \Drupal::config('system.theme')
       ->set('default', 'test_theme')
       ->save();
     $this->drupalGet('theme-test/function-suggestion-alter');
@@ -139,6 +140,24 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
   }
 
   /**
+   * Tests that theme suggestion alter hooks work with theme hook includes.
+   */
+  public function testSuggestionsAlterInclude() {
+    // Check the original theme output.
+    $this->drupalGet('theme-test/suggestion-alter-include');
+    $this->assertText('Original function before altering theme suggestions.');
+
+    // Enable theme_suggestions_test module and make two requests to make sure
+    // the include file is always loaded. The file will always be included for
+    // the first request because the theme registry is being rebuilt.
+    \Drupal::moduleHandler()->install(array('theme_suggestions_test'));
+    $this->drupalGet('theme-test/suggestion-alter-include');
+    $this->assertText('Function suggested via suggestion alter hook found in include file.', 'Include file loaded for initial request.');
+    $this->drupalGet('theme-test/suggestion-alter-include');
+    $this->assertText('Function suggested via suggestion alter hook found in include file.', 'Include file loaded for second request.');
+  }
+
+  /**
    * Tests execution order of theme suggestion alter hooks.
    *
    * hook_theme_suggestions_alter() should fire before
@@ -146,7 +165,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
    */
   function testExecutionOrder() {
     // Enable our test theme and module.
-    config('system.theme')
+    \Drupal::config('system.theme')
       ->set('default', 'test_theme')
       ->save();
     \Drupal::moduleHandler()->install(array('theme_suggestions_test'));
@@ -164,7 +183,7 @@ class ThemeSuggestionsAlterTest extends WebTestBase {
       'test_theme_theme_suggestions_alter() executed.',
       'test_theme_theme_suggestions_theme_test_suggestions_alter() executed.',
     );
-    $content = preg_replace('/\s+/', ' ', filter_xss($this->content, array()));
+    $content = preg_replace('/\s+/', ' ', Xss::filter($this->content, array()));
     $this->assert(strpos($content, implode(' ', $expected)) !== FALSE, 'Suggestion alter hooks executed in the expected order.');
   }
 

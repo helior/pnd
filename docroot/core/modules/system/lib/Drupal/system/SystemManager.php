@@ -8,9 +8,10 @@ namespace Drupal\system;
 
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * System Manager Service.
@@ -34,9 +35,16 @@ class SystemManager {
   /**
    * The menu link storage.
    *
-   * @var \Drupal\menu_link\MenuLinkStorageControllerInterface
+   * @var \Drupal\menu_link\MenuLinkStorageInterface
    */
   protected $menuLinkStorage;
+
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
 
   /**
    * A static cache of menu items.
@@ -69,11 +77,14 @@ class SystemManager {
    *   The database connection.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
+   * @param \Symfony\Component\HttpFoundation\RequestStack
+   *   The request stack.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, Connection $database, EntityManagerInterface $entity_manager) {
+  public function __construct(ModuleHandlerInterface $module_handler, Connection $database, EntityManagerInterface $entity_manager, RequestStack $request_stack) {
     $this->moduleHandler = $module_handler;
     $this->database = $database;
-    $this->menuLinkStorage = $entity_manager->getStorageController('menu_link');
+    $this->menuLinkStorage = $entity_manager->getStorage('menu_link');
+    $this->requestStack = $request_stack;
   }
 
   /**
@@ -160,7 +171,10 @@ class SystemManager {
    *   A render array suitable for drupal_render.
    */
   public function getBlockContents() {
-    $item = menu_get_item();
+    $request = $this->requestStack->getCurrentRequest();
+    $route_name = $request->attributes->get(RouteObjectInterface::ROUTE_NAME);
+    $items = $this->menuLinkStorage->loadByProperties(array('route_name' => $route_name));
+    $item = reset($items);
     if ($content = $this->getAdminBlock($item)) {
       $output = array(
         '#theme' => 'admin_block_content',
@@ -185,14 +199,6 @@ class SystemManager {
    *   An array of menu items, as expected by theme_admin_block_content().
    */
   public function getAdminBlock($item) {
-    // If we are calling this function for a menu item that corresponds to a
-    // local task (for example, admin/tasks), then we want to retrieve the
-    // parent item's child links, not this item's (since this item won't have
-    // any).
-    if ($item['tab_root'] != $item['path']) {
-      $item = menu_get_item($item['tab_root_href']);
-    }
-
     if (!isset($item['mlid'])) {
       $menu_links = $this->menuLinkStorage->loadByProperties(array('link_path' => $item['path'], 'module' => 'system'));
       if ($menu_links) {

@@ -59,6 +59,20 @@ class NodeViewBuilder extends EntityViewBuilder {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function getBuildDefaults(EntityInterface $entity, $view_mode, $langcode) {
+    $defaults = parent::getBuildDefaults($entity, $view_mode, $langcode);
+
+    // Don't cache nodes that are in 'preview' mode.
+    if (isset($defaults['#cache']) && isset($entity->in_preview)) {
+      unset($defaults['#cache']);
+    }
+
+    return $defaults;
+  }
+
+  /**
    * #post_render_cache callback; replaces the placeholder with node links.
    *
    * Renders the links on a node.
@@ -81,7 +95,7 @@ class NodeViewBuilder extends EntityViewBuilder {
     );
 
     if (!$context['in_preview']) {
-      $entity = entity_load('node', $context['node_entity_id']);
+      $entity = entity_load('node', $context['node_entity_id'])->getTranslation($context['langcode']);
       $links['node'] = self::buildLinks($entity, $context['view_mode']);
 
       // Allow other modules to alter the node links.
@@ -118,6 +132,7 @@ class NodeViewBuilder extends EntityViewBuilder {
           '@title' => $node_title_stripped,
         )),
         'href' => 'node/' . $entity->id(),
+        'language' => $entity->language(),
         'html' => TRUE,
         'attributes' => array(
           'rel' => 'tag',

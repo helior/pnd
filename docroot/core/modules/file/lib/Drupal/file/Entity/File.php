@@ -8,7 +8,8 @@
 namespace Drupal\file\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\file\FileInterface;
@@ -21,7 +22,7 @@ use Drupal\user\UserInterface;
  *   id = "file",
  *   label = @Translation("File"),
  *   controllers = {
- *     "storage" = "Drupal\file\FileStorageController",
+ *     "storage" = "Drupal\file\FileStorage",
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder"
  *   },
  *   base_table = "file_managed",
@@ -44,13 +45,6 @@ class File extends ContentEntityBase implements FileInterface {
   protected $values = array(
     'langcode' => array(Language::LANGCODE_DEFAULT => array(0 => array('value' => Language::LANGCODE_NOT_SPECIFIED))),
   );
-
-  /**
-   * {@inheritdoc}
-   */
-  public function id() {
-    return $this->get('fid')->value;
-  }
 
   /**
    * {@inheritdoc}
@@ -183,7 +177,7 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+  public static function preCreate(EntityStorageInterface $storage, array &$values) {
     // Automatically detect filename if not set.
     if (!isset($values['filename']) && isset($values['uri'])) {
       $values['filename'] = drupal_basename($values['uri']);
@@ -198,29 +192,17 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    $this->changed->value = REQUEST_TIME;
-    if (empty($this->created->value)) {
-      $this->created->value = REQUEST_TIME;
-    }
+  public function preSave(EntityStorageInterface $storage) {
+    parent::preSave($storage);
 
     $this->setSize(filesize($this->getFileUri()));
-    if (!isset($this->langcode->value)) {
-      // Default the file's language code to none, because files are language
-      // neutral more often than language dependent. Until we have better
-      // flexible settings.
-      // @todo See http://drupal.org/node/258785 and followups.
-      $this->langcode = Language::LANGCODE_NOT_SPECIFIED;
-    }
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::preDelete($storage_controller, $entities);
+  public static function preDelete(EntityStorageInterface $storage, array $entities) {
+    parent::preDelete($storage, $entities);
 
     foreach ($entities as $entity) {
       // Delete all remaining references to this file.
@@ -240,11 +222,12 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['fid'] = FieldDefinition::create('integer')
       ->setLabel(t('File ID'))
       ->setDescription(t('The file ID.'))
-      ->setReadOnly(TRUE);
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
 
     $fields['uuid'] = FieldDefinition::create('uuid')
       ->setLabel(t('UUID'))
@@ -274,17 +257,18 @@ class File extends ContentEntityBase implements FileInterface {
 
     $fields['filesize'] = FieldDefinition::create('integer')
       ->setLabel(t('File size'))
-      ->setDescription(t('The size of the file in bytes.'));
+      ->setDescription(t('The size of the file in bytes.'))
+      ->setSetting('unsigned', TRUE);
 
     $fields['status'] = FieldDefinition::create('integer')
       ->setLabel(t('Status'))
       ->setDescription(t('The status of the file, temporary (0) and permanent (1).'));
 
-    $fields['created'] = FieldDefinition::create('integer')
+    $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setDescription(t('The timestamp that the file was created.'));
 
-    $fields['changed'] = FieldDefinition::create('integer')
+    $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
       ->setDescription(t('The timestamp that the file was last changed.'));
 

@@ -7,11 +7,6 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\TypedData\TypedDataInterface;
-
 /**
  * Tests Entity API base functionality.
  */
@@ -105,10 +100,16 @@ class EntityValidationTest extends EntityUnitTestBase {
 
     // Test triggering a fail for each of the constraints specified.
     $test_entity = clone $entity;
+    $test_entity->id->value = -1;
+    $violations = $test_entity->validate();
+    $this->assertEqual($violations->count(), 1, 'Validation failed.');
+    $this->assertEqual($violations[0]->getMessage(), t('%name: The integer must be larger or equal to %min.', array('%name' => 'ID', '%min' => 0)));
+
+    $test_entity = clone $entity;
     $test_entity->uuid->value = $this->randomString(129);
     $violations = $test_entity->validate();
     $this->assertEqual($violations->count(), 1, 'Validation failed.');
-    $this->assertEqual($violations[0]->getMessage(), t('This value is too long. It should have %limit characters or less.', array('%limit' => '128')));
+    $this->assertEqual($violations[0]->getMessage(), t('%name: may not be longer than @max characters.', array('%name' => 'UUID', '@max' => 128)));
 
     $test_entity = clone $entity;
     $test_entity->langcode->value = $this->randomString(13);
@@ -126,7 +127,7 @@ class EntityValidationTest extends EntityUnitTestBase {
     $test_entity->name->value = $this->randomString(33);
     $violations = $test_entity->validate();
     $this->assertEqual($violations->count(), 1, 'Validation failed.');
-    $this->assertEqual($violations[0]->getMessage(), t('This value is too long. It should have %limit characters or less.', array('%limit' => '32')));
+    $this->assertEqual($violations[0]->getMessage(), t('%name: may not be longer than @max characters.', array('%name' => 'Name', '@max' => 32)));
 
     // Make sure the information provided by a violation is correct.
     $violation = $violations[0];

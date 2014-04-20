@@ -4,9 +4,10 @@
  * Contains \Drupal\comment\Tests\Entity\CommentTest
  */
 
-namespace Drupal\comment\Tests\Entity {
+namespace Drupal\comment\Tests\Entity;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityType;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -33,7 +34,10 @@ class CommentLockTest extends UnitTestCase {
    */
   public function testLocks() {
     $container = new ContainerBuilder();
+    $container->set('module_handler', $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface'));
     $container->set('current_user', $this->getMock('Drupal\Core\Session\AccountInterface'));
+    $container->set('cache.test', $this->getMock('Drupal\Core\Cache\CacheBackendInterface'));
+    $container->setParameter('cache_bins', array('cache.test' => 'test'));
     $container->register('request', 'Symfony\Component\HttpFoundation\Request');
     $lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
     $cid = 2;
@@ -53,6 +57,7 @@ class CommentLockTest extends UnitTestCase {
     unset($methods[array_search('preSave', $methods)]);
     unset($methods[array_search('postSave', $methods)]);
     $methods[] = 'onSaveOrDelete';
+    $methods[] = 'onUpdateBundleEntity';
     $comment = $this->getMockBuilder('Drupal\comment\Entity\Comment')
       ->disableOriginalConstructor()
       ->setMethods($methods)
@@ -72,20 +77,24 @@ class CommentLockTest extends UnitTestCase {
     $comment->expects($this->any())
       ->method('getThread')
       ->will($this->returnValue(''));
-    $comment->expects($this->at(0))
+
+    $entity_type = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
+    $comment->expects($this->any())
+      ->method('getEntityType')
+      ->will($this->returnValue($entity_type));
+    $comment->expects($this->at(1))
       ->method('get')
       ->with('status')
       ->will($this->returnValue((object) array('value' => NULL)));
-    $storage_controller = $this->getMock('Drupal\comment\CommentStorageControllerInterface');
-    $comment->preSave($storage_controller);
-    $comment->postSave($storage_controller);
+    $comment->expects($this->once())
+      ->method('getCacheTag')
+      ->will($this->returnValue(array('comment' => array($cid))));
+    $comment->expects($this->once())
+      ->method('getListCacheTags')
+      ->will($this->returnValue(array('comments' => TRUE)));
+    $storage = $this->getMock('Drupal\comment\CommentStorageInterface');
+    $comment->preSave($storage);
+    $comment->postSave($storage);
   }
 
 }
-}
-namespace {
-if (!function_exists('module_invoke_all')) {
-  function module_invoke_all() {}
-}
-}
-

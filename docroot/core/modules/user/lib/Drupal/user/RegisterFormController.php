@@ -41,17 +41,14 @@ class RegisterFormController extends AccountFormController {
 
     // If we aren't admin but already logged on, go to the user page instead.
     if (!$admin && $user->isAuthenticated()) {
-      return new RedirectResponse(url('user/' . $user->id(), array('absolute' => TRUE)));
+      return new RedirectResponse(url('user/' . \Drupal::currentUser()->id(), array('absolute' => TRUE)));
     }
 
-    $form['#attached']['library'][] = array('system', 'jquery.cookie');
+    $form['#attached']['library'][] = 'core/jquery.cookie';
     $form['#attributes']['class'][] = 'user-info-from-cookie';
 
     // Start with the default user account fields.
     $form = parent::form($form, $form_state, $account);
-
-    // Attach field widgets.
-    field_attach_form($account, $form, $form_state);
 
     if ($admin) {
       // Redirect back to page which initiated the create request; usually
@@ -109,7 +106,7 @@ class RegisterFormController extends AccountFormController {
     $form_state['user'] = $account;
     $form_state['values']['uid'] = $account->id();
 
-    watchdog('user', 'New user: %name %email.', array('%name' => $form_state['values']['name'], '%email' => '<' . $form_state['values']['mail'] . '>'), WATCHDOG_NOTICE, l($this->t('edit'), 'user/' . $account->id() . '/edit'));
+    watchdog('user', 'New user: %name %email.', array('%name' => $form_state['values']['name'], '%email' => '<' . $form_state['values']['mail'] . '>'), WATCHDOG_NOTICE, l($this->t('Edit'), 'user/' . $account->id() . '/edit'));
 
     // Add plain text password into user account to generate mail tokens.
     $account->password = $pass;

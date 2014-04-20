@@ -8,13 +8,13 @@
 namespace Drupal\entity_reference;
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Field\ConfigFieldItemInterface;
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TypedData\AllowedValuesInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\AllowedValuesConstraint;
+use Drupal\field\FieldConfigInterface;
 
 /**
  * Alternative plugin implementation of the 'entity_reference' field type.
@@ -22,12 +22,32 @@ use Drupal\Core\Validation\Plugin\Validation\Constraint\AllowedValuesConstraint;
  * Replaces the Core 'entity_reference' entity field type implementation, this
  * supports configurable fields, auto-creation of referenced entities and more.
  *
- * Required settings (below the definition's 'settings' key) are:
+ * Required settings are:
  *  - target_type: The entity type to reference.
  *
  * @see entity_reference_field_info_alter().
  */
-class ConfigurableEntityReferenceItem extends EntityReferenceItem implements ConfigFieldItemInterface, AllowedValuesInterface {
+class ConfigurableEntityReferenceItem extends EntityReferenceItem implements AllowedValuesInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultSettings() {
+    $settings = parent::defaultSettings();
+    // The target bundle is handled by the 'target_bundles' property in the
+    // 'handler_settings' instance setting.
+    unset($settings['target_bundle']);
+    return $settings;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultInstanceSettings() {
+    return array(
+      'handler_settings' => array(),
+    ) + parent::defaultInstanceSettings();
+  }
 
   /**
    * {@inheritdoc}
@@ -76,40 +96,25 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements Con
   }
 
   /**
-   * Definitions of the contained properties.
-   *
-   * @see ConfigurableEntityReferenceItem::getPropertyDefinitions()
-   *
-   * @var array
-   */
-  static $propertyDefinitions;
-
-  /**
    * {@inheritdoc}
    */
-  public function getPropertyDefinitions() {
-    $settings = $this->definition->getSettings();
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
+    $settings = $field_definition->getSettings();
     $target_type = $settings['target_type'];
 
-    // Definitions vary by entity type and bundle, so key them accordingly.
-    $key = $target_type . ':';
-    $key .= isset($settings['target_bundle']) ? $settings['target_bundle'] : '';
+    // Call the parent to define the target_id and entity properties.
+    $properties = parent::propertyDefinitions($field_definition);
 
-    if (!isset(static::$propertyDefinitions[$key])) {
-      // Call the parent to define the target_id and entity properties.
-      parent::getPropertyDefinitions();
-
-      // Only add the revision ID property if the target entity type supports
-      // revisions.
-      $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
-      if ($target_type_info->hasKey('revision') && $target_type_info->getRevisionTable()) {
-        static::$propertyDefinitions[$key]['revision_id'] = DataDefinition::create('integer')
-          ->setLabel(t('Revision ID'))
-          ->setConstraints(array('Range' => array('min' => 0)));
-      }
+    // Only add the revision ID property if the target entity type supports
+    // revisions.
+    $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
+    if ($target_type_info->hasKey('revision') && $target_type_info->getRevisionTable()) {
+      $properties['revision_id'] = DataDefinition::create('integer')
+        ->setLabel(t('Revision ID'))
+        ->setSetting('unsigned', TRUE);
     }
 
-    return static::$propertyDefinitions[$key];
+    return $properties;
   }
 
   /**
@@ -132,13 +137,13 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements Con
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     $schema = parent::schema($field_definition);
 
     $target_type = $field_definition->getSetting('target_type');
     $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
 
-    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface')) {
+    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface') && $field_definition instanceof FieldConfigInterface) {
       $schema['columns']['revision_id'] = array(
         'description' => 'The revision ID of the target entity.',
         'type' => 'int',
@@ -201,6 +206,7 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements Con
     $form['handler'] = array(
       '#type' => 'details',
       '#title' => t('Reference type'),
+      '#open' => TRUE,
       '#tree' => TRUE,
       '#process' => array('_entity_reference_form_process_merge_parent'),
     );

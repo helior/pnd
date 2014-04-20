@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\color\Tests\ColorTest.
+ * Contains \Drupal\color\Tests\ColorTest.
  */
 
 namespace Drupal\color\Tests;
@@ -19,10 +19,30 @@ class ColorTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('color');
+  public static $modules = array('color', 'color_test');
 
+  /**
+   * A user with administrative permissions.
+   *
+   * @var \Drupal\user\UserInterface
+   */
   protected $big_user;
+
+  /**
+   * An associative array of settings for themes.
+   *
+   * @var array
+   */
   protected $themes;
+
+  /**
+   * Associative array of hex color strings to test.
+   *
+   * Keys are the color string and values are a Boolean set to TRUE for valid
+   * colors.
+   *
+   * @var array
+   */
   protected $colorTests;
 
   public static function getInfo() {
@@ -33,10 +53,13 @@ class ColorTest extends WebTestBase {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   function setUp() {
     parent::setUp();
 
-    // Create users.
+    // Create user.
     $this->big_user = $this->drupalCreateUser(array('administer themes'));
 
     // This tests the color module in Bartik.
@@ -46,10 +69,15 @@ class ColorTest extends WebTestBase {
         'scheme' => 'slate',
         'scheme_color' => '#3b3b3b',
       ),
+      'color_test_theme' => array(
+        'palette_input' => 'palette[bg]',
+        'scheme' => '',
+        'scheme_color' => '#3b3b3b',
+      ),
     );
     theme_enable(array_keys($this->themes));
 
-    // Array filled with valid and not valid color values
+    // Array filled with valid and not valid color values.
     $this->colorTests = array(
       '#000' => TRUE,
       '#123456' => TRUE,
@@ -74,6 +102,12 @@ class ColorTest extends WebTestBase {
 
   /**
    * Tests the Color module functionality using the given theme.
+   *
+   * @param string $theme
+   *   The machine name of the theme being tested.
+   * @param array $test_values
+   *   An associative array of test settings (i.e. 'Main background', 'Text
+   *   color', 'Color set', etc) for the theme which being tested.
    */
   function _testColor($theme, $test_values) {
     \Drupal::config('system.theme')
@@ -90,10 +124,11 @@ class ColorTest extends WebTestBase {
 
     $this->drupalGet('<front>');
     $stylesheets = \Drupal::config('color.' . $theme)->get('stylesheets');
-    $this->assertPattern('|' . file_create_url($stylesheets[0]) . '|', 'Make sure the color stylesheet is included in the content. (' . $theme . ')');
-
-    $stylesheet_content = join("\n", file($stylesheets[0]));
-    $this->assertTrue(strpos($stylesheet_content, 'color: #123456') !== FALSE, 'Make sure the color we changed is in the color stylesheet. (' . $theme . ')');
+    foreach ($stylesheets as $stylesheet) {
+      $this->assertPattern('|' . file_create_url($stylesheet) . '|', 'Make sure the color stylesheet is included in the content. (' . $theme . ')');
+      $stylesheet_content = join("\n", file($stylesheet));
+      $this->assertTrue(strpos($stylesheet_content, 'color: #123456') !== FALSE, 'Make sure the color we changed is in the color stylesheet. (' . $theme . ')');
+    }
 
     $this->drupalGet($settings_path);
     $this->assertResponse(200);
@@ -102,8 +137,10 @@ class ColorTest extends WebTestBase {
 
     $this->drupalGet('<front>');
     $stylesheets = \Drupal::config('color.' . $theme)->get('stylesheets');
-    $stylesheet_content = join("\n", file($stylesheets[0]));
-    $this->assertTrue(strpos($stylesheet_content, 'color: ' . $test_values['scheme_color']) !== FALSE, 'Make sure the color we changed is in the color stylesheet. (' . $theme . ')');
+    foreach ($stylesheets as $stylesheet) {
+      $stylesheet_content = join("\n", file($stylesheet));
+      $this->assertTrue(strpos($stylesheet_content, 'color: ' . $test_values['scheme_color']) !== FALSE, 'Make sure the color we changed is in the color stylesheet. (' . $theme . ')');
+    }
 
     // Test with aggregated CSS turned on.
     $config = \Drupal::config('system.performance');

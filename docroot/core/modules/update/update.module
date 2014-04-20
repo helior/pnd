@@ -11,6 +11,8 @@
  * ability to install contributed modules and themes via an user interface.
  */
 
+use Drupal\Component\Utility\Settings;
+
 // These are internally used constants for this code, do not modify.
 
 /**
@@ -145,54 +147,6 @@ function update_page_build() {
 }
 
 /**
- * Implements hook_library_info().
- */
-function update_library_info() {
-  $path = drupal_get_path('module', 'update');
-  $libraries['drupal.update.admin'] = array(
-    'title' => 'Update administration UI',
-    'website' => '',
-    'version' => \Drupal::VERSION,
-    'css' => array(
-      $path . '/css/update.admin.css' => array(),
-    ),
-  );
-
-  return $libraries;
-}
-
-/**
- * Implements hook_menu().
- */
-function update_menu() {
-  $items = array();
-
-  $items['admin/reports/updates'] = array(
-    'title' => 'Available updates',
-    'description' => 'Get a status report about available updates for your installed modules and themes.',
-    'route_name' => 'update.status',
-    'weight' => -50,
-  );
-
-  return $items;
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function update_menu_link_defaults() {
-  $links['update.admin.reports.updates'] = array(
-    'link_title' => 'Available updates',
-    'description' => 'Get a status report about available updates for your installed modules and themes.',
-    'route_name' => 'update.status',
-    'parent' => 'system.admin.reports',
-    'weight' => -50,
-  );
-
-  return $links;
-}
-
-/**
  * Access callback: Resolves if the current user can access updater menu items.
  *
  * It both enforces the 'administer software updates' permission and the global
@@ -205,7 +159,7 @@ function update_menu_link_defaults() {
  * @see update_menu()
  */
 function update_manager_access() {
-  return settings()->get('allow_authorize_operations', TRUE) && user_access('administer software updates');
+  return Settings::get('allow_authorize_operations', TRUE) && user_access('administer software updates');
 }
 
 /**
@@ -472,7 +426,7 @@ function update_fetch_data_finished($success, $results) {
  */
 function update_mail($key, &$message, $params) {
   $langcode = $message['langcode'];
-  $language = language_load($langcode);
+  $language = \Drupal::languageManager()->getLanguage($langcode);
   $message['subject'] .= t('New release(s) available for !site_name', array('!site_name' => \Drupal::config('system.site')->get('name')), array('langcode' => $langcode));
   foreach ($params as $msg_type => $msg_reason) {
     $message['body'][] = _update_message_text($msg_type, $msg_reason, FALSE, $langcode);
@@ -563,7 +517,7 @@ function _update_message_text($msg_type, $msg_reason, $report_link = FALSE, $lan
       break;
   }
   if (!empty($langcode)) {
-    $language = language_load($langcode);
+    $language = \Drupal::languageManager()->getLanguage($langcode);
   }
   else {
     $language = NULL;
@@ -629,7 +583,7 @@ function theme_update_last_check($variables) {
  * an .info.yml file which claims that the code is compatible with the current
  * version of Drupal core.
  *
- * @see drupal_system_listing()
+ * @see \Drupal\Core\Extension\ExtensionDiscovery
  * @see _system_rebuild_module_data()
  */
 function update_verify_update_archive($project, $archive_file, $directory) {

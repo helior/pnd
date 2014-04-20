@@ -82,7 +82,7 @@ class CollectRoutesTest extends UnitTestCase {
       ->getMock();
     $container->set('router.route_provider', $route_provider);
 
-    $state = $this->getMock('\Drupal\Core\KeyValueStore\StateInterface');
+    $state = $this->getMock('\Drupal\Core\State\StateInterface');
     $container->set('state', $state);
 
     $style_manager = $this->getMockBuilder('\Drupal\views\Plugin\ViewsPluginManager')
@@ -103,7 +103,7 @@ class CollectRoutesTest extends UnitTestCase {
 
     $display_manager->expects($this->once())
       ->method('getDefinition')
-      ->will($this->returnValue($this->restExport));
+      ->will($this->returnValue(array('id' => 'test', 'provider' => 'test')));
 
     $none = $this->getMockBuilder('\Drupal\views\Plugin\views\access\None')
       ->disableOriginalConstructor()

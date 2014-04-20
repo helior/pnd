@@ -12,7 +12,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessibleInterface;
@@ -63,7 +63,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * The Drupal state object used to set 'node.cron_last'.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
@@ -96,7 +96,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    */
   protected $advanced = array(
     'type' => array('column' => 'n.type'),
-    'langcode' => array('column' => 'i.langcode'),
+    'language' => array('column' => 'i.langcode'),
     'author' => array('column' => 'n.uid'),
     'term' => array('column' => 'ti.tid', 'join' => array('table' => 'taxonomy_index', 'alias' => 'ti', 'condition' => 'n.nid = ti.nid')),
   );
@@ -104,7 +104,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * {@inheritdoc}
    */
-  static public function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  static public function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -125,7 +125,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Database\Connection $database
    *   A database connection object.
@@ -135,12 +135,12 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *   A module manager object.
    * @param \Drupal\Core\Config\Config $search_settings
    *   A config object for 'search.settings'.
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The Drupal state object used to set 'node.cron_last'.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The $account object to use for checking for access to advanced search.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, StateInterface $state, AccountInterface $account = NULL) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, StateInterface $state, AccountInterface $account = NULL) {
     $this->database = $database;
     $this->entityManager = $entity_manager;
     $this->moduleHandler = $module_handler;
@@ -231,7 +231,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       ->limit(10)
       ->execute();
 
-    $node_storage = $this->entityManager->getStorageController('node');
+    $node_storage = $this->entityManager->getStorage('node');
     $node_render = $this->entityManager->getViewBuilder('node');
 
     foreach ($find as $item) {
@@ -254,7 +254,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       );
       $results[] = array(
         'link' => $node->url('canonical', array('absolute' => TRUE, 'language' => $language)),
-        'type' => check_plain($this->entityManager->getStorageController('node_type')->load($node->bundle())->label()),
+        'type' => check_plain($this->entityManager->getStorage('node_type')->load($node->bundle())->label()),
         'title' => $node->label(),
         'user' => drupal_render($username),
         'date' => $node->getChangedTime(),
@@ -295,24 +295,18 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    * {@inheritdoc}
    */
   public function updateIndex() {
+    // Interpret the cron limit setting as the maximum number of nodes to index
+    // per cron run.
     $limit = (int) $this->searchSettings->get('index.cron_limit');
 
-    $result = $this->database->queryRange("SELECT DISTINCT n.nid, d.reindex FROM {node} n LEFT JOIN {search_dataset} d ON d.type = :type AND d.sid = n.nid WHERE d.sid IS NULL OR d.reindex <> 0 ORDER BY d.reindex ASC, n.nid ASC", 0, $limit, array(':type' => $this->getPluginId()), array('target' => 'slave'));
+    $result = $this->database->queryRange("SELECT n.nid, MAX(sd.reindex) FROM {node} n LEFT JOIN {search_dataset} sd ON sd.sid = n.nid AND sd.type = :type WHERE sd.sid IS NULL OR sd.reindex <> 0 GROUP BY n.nid ORDER BY MAX(sd.reindex) is null DESC, MAX(sd.reindex) ASC, n.nid ASC", 0, $limit, array(':type' => $this->getPluginId()), array('target' => 'slave'));
     $nids = $result->fetchCol();
     if (!$nids) {
       return;
     }
 
-    // The indexing throttle should be aware of the number of language variants
-    // of a node.
-    $counter = 0;
-    $node_storage = $this->entityManager->getStorageController('node');
+    $node_storage = $this->entityManager->getStorage('node');
     foreach ($node_storage->loadMultiple($nids) as $node) {
-      // Determine when the maximum number of indexable items is reached.
-      $counter += count($node->getTranslationLanguages());
-      if ($counter > $limit) {
-        break;
-      }
       $this->indexNode($node);
     }
   }
@@ -367,7 +361,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    */
   public function indexStatus() {
     $total = $this->database->query('SELECT COUNT(*) FROM {node}')->fetchField();
-    $remaining = $this->database->query("SELECT COUNT(*) FROM {node} n LEFT JOIN {search_dataset} d ON d.type = :type AND d.sid = n.nid WHERE d.sid IS NULL OR d.reindex <> 0", array(':type' => $this->getPluginId()))->fetchField();
+    $remaining = $this->database->query("SELECT COUNT(DISTINCT n.nid) FROM {node} n LEFT JOIN {search_dataset} sd ON sd.sid = n.nid AND sd.type = :type WHERE sd.sid IS NULL OR sd.reindex <> 0", array(':type' => $this->getPluginId()))->fetchField();
+
     return array('remaining' => $remaining, 'total' => $total);
   }
 
@@ -379,14 +374,12 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $form['advanced'] = array(
       '#type' => 'details',
       '#title' => t('Advanced search'),
-      '#collapsed' => TRUE,
       '#attributes' => array('class' => array('search-advanced')),
       '#access' => $this->account && $this->account->hasPermission('use advanced search'),
     );
     $form['advanced']['keywords-fieldset'] = array(
       '#type' => 'fieldset',
       '#title' => t('Keywords'),
-      '#collapsible' => FALSE,
     );
     $form['advanced']['keywords'] = array(
       '#prefix' => '<div class="criterion">',
@@ -416,7 +409,6 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $form['advanced']['types-fieldset'] = array(
       '#type' => 'fieldset',
       '#title' => t('Types'),
-      '#collapsible' => FALSE,
     );
     $form['advanced']['types-fieldset']['type'] = array(
       '#type' => 'checkboxes',
@@ -435,7 +427,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
 
     // Add languages.
     $language_options = array();
-    foreach (language_list(Language::STATE_ALL) as $langcode => $language) {
+    $language_list = \Drupal::languageManager()->getLanguages(Language::STATE_ALL);
+    foreach ($language_list as $langcode => $language) {
       // Make locked languages appear special in the list.
       $language_options[$langcode] = $language->locked ? t('- @name -', array('@name' => $language->name)) : $language->name;
     }
@@ -443,8 +436,6 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       $form['advanced']['lang-fieldset'] = array(
         '#type' => 'fieldset',
         '#title' => t('Languages'),
-        '#collapsible' => FALSE,
-        '#collapsed' => FALSE,
       );
       $form['advanced']['lang-fieldset']['language'] = array(
         '#type' => 'checkboxes',
@@ -556,6 +547,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $form['content_ranking'] = array(
       '#type' => 'details',
       '#title' => t('Content ranking'),
+      '#open' => TRUE,
     );
     $form['content_ranking']['#theme'] = 'node_search_admin';
     $form['content_ranking']['info'] = array(
@@ -563,7 +555,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     );
 
     // Note: reversed to reflect that higher number = higher ranking.
-    $options = drupal_map_assoc(range(0, 10));
+    $range = range(0, 10);
+    $options = array_combine($range, $range);
     foreach ($this->getRankings() as $var => $values) {
       $form['content_ranking']['factors']["rankings_$var"] = array(
         '#title' => $values['title'],

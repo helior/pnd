@@ -57,14 +57,14 @@ class TranslationTest extends FieldUnitTestBase {
   /**
    * The field to use in this test.
    *
-   * @var \Drupal\field\Entity\Field
+   * @var \Drupal\field\Entity\FieldConfig
    */
   protected $field;
 
   /**
    * The field instance to use in this test.
    *
-   * @var \Drupal\field\Entity\FieldInstance
+   * @var \Drupal\field\Entity\FieldInstanceConfig
    */
   protected $instance;
 
@@ -92,7 +92,7 @@ class TranslationTest extends FieldUnitTestBase {
       'cardinality' => 4,
       'translatable' => TRUE,
     );
-    $this->field = entity_create('field_entity', $this->field_definition);
+    $this->field = entity_create('field_config', $this->field_definition);
     $this->field->save();
 
     $this->instance_definition = array(
@@ -100,7 +100,7 @@ class TranslationTest extends FieldUnitTestBase {
       'entity_type' => $this->entity_type,
       'bundle' => 'entity_test',
     );
-    $this->instance = entity_create('field_instance', $this->instance_definition);
+    $this->instance = entity_create('field_instance_config', $this->instance_definition);
     $this->instance->save();
 
     for ($i = 0; $i < 3; ++$i) {
@@ -126,7 +126,7 @@ class TranslationTest extends FieldUnitTestBase {
     field_test_entity_info_translatable($entity_type_id, TRUE);
     $entity = entity_create($entity_type_id, array('type' => $this->instance->bundle));
     $field_translations = array();
-    $available_langcodes = array_keys(language_list());
+    $available_langcodes = array_keys($this->container->get('language_manager')->getLanguages());
     $entity->langcode->value = reset($available_langcodes);
     foreach ($available_langcodes as $langcode) {
       $field_translations[$langcode] = $this->_generateTestFieldValues($this->field->getCardinality());
@@ -149,12 +149,12 @@ class TranslationTest extends FieldUnitTestBase {
     $field_name_default = drupal_strtolower($this->randomName() . '_field_name');
     $field_definition = $this->field_definition;
     $field_definition['name'] = $field_name_default;
-    entity_create('field_entity', $field_definition)->save();
+    entity_create('field_config', $field_definition)->save();
 
     $instance_definition = $this->instance_definition;
     $instance_definition['field_name'] = $field_name_default;
     $instance_definition['default_value'] = array(array('value' => rand(1, 127)));
-    $instance = entity_create('field_instance', $instance_definition);
+    $instance = entity_create('field_instance_config', $instance_definition);
     $instance->save();
 
     entity_info_cache_clear();

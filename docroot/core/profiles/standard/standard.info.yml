@@ -16,13 +16,12 @@ dependencies:
   - contact
   - datetime
   - custom_block
-  - edit
+  - quickedit
   - editor
   - entity_reference
   - help
   - image
-  - menu
-  - number
+  - menu_ui
   - options
   - path
   - taxonomy

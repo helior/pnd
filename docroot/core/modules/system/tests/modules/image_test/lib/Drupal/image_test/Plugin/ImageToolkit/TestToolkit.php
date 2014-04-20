@@ -21,6 +21,20 @@ use Drupal\Core\ImageToolkit\ImageToolkitBase;
 class TestToolkit extends ImageToolkitBase {
 
   /**
+   * The width of the image.
+   *
+   * @var int
+   */
+  protected $width;
+
+  /**
+   * The height of the image.
+   *
+   * @var int
+   */
+  protected $height;
+
+  /**
    * {@inheritdoc}
    */
   public function settingsForm() {
@@ -51,27 +65,32 @@ class TestToolkit extends ImageToolkitBase {
   public function getInfo(ImageInterface $image) {
     $this->logCall('get_info', array($image));
 
-    $details = FALSE;
+    $details = array();
     $data = getimagesize($image->getSource());
 
-    if (isset($data) && is_array($data)) {
-      $details = array(
-        'width'     => $data[0],
-        'height'    => $data[1],
-        'type'      => $data[2],
-        'mime_type' => $data['mime'],
-      );
+    if (isset($data) && is_array($data) && in_array($data[2], static::supportedTypes())) {
+      $details['type'] = $data[2];
+      $this->width = $data[0];
+      $this->height = $data[1];
+      $this->load($image->getSource(), $details);
     }
-
     return $details;
   }
 
   /**
-   * {@inheritdoc}
+   * Mimick loading the image from a file.
+   *
+   * @param string $source
+   *   String specifying the path of the image file.
+   * @param array $details
+   *   An array of image details.
+   *
+   * @return bool
+   *   TRUE or FALSE, based on success.
    */
-  public function load(ImageInterface $image) {
-    $this->logCall('load', array($image));
-    return $image;
+  protected function load($source, array $details) {
+    $this->logCall('load', array($source, $details));
+    return TRUE;
   }
 
   /**
@@ -148,6 +167,20 @@ class TestToolkit extends ImageToolkitBase {
     $results = \Drupal::state()->get('image_test.results') ?: array();
     $results[$op][] = $args;
     \Drupal::state()->set('image_test.results', $results);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getWidth(ImageInterface $image) {
+    return $this->width;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getHeight(ImageInterface $image) {
+    return $this->height;
   }
 
   /**

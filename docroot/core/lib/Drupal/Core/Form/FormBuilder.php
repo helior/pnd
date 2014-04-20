@@ -9,8 +9,9 @@ namespace Drupal\Core\Form;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Settings;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\Url as UrlHelper;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\HttpKernel;
@@ -303,6 +304,7 @@ class FormBuilder implements FormBuilderInterface {
       'submitted' => FALSE,
       'executed' => FALSE,
       'programmed' => FALSE,
+      'programmed_bypass_access_check' => TRUE,
       'cache'=> FALSE,
       'method' => 'post',
       'groups' => array(),
@@ -329,7 +331,7 @@ class FormBuilder implements FormBuilderInterface {
       $form['#build_id'] = $old_form['#build_id'];
     }
     else {
-      $form['#build_id'] = 'form-' . Crypt::hashBase64(uniqid(mt_rand(), TRUE) . mt_rand());
+      $form['#build_id'] = 'form-' . Crypt::randomBytesBase64();
     }
 
     // #action defaults to request_uri(), but in case of Ajax and other partial
@@ -553,6 +555,15 @@ class FormBuilder implements FormBuilderInterface {
       if (isset($form['#token']) && $form['#token'] === FALSE) {
         unset($form['#token']);
       }
+      // Form values for programmed form submissions typically do not include a
+      // value for the submit button. But without a triggering element, a
+      // potentially existing #limit_validation_errors property on the primary
+      // submit button is not taken account. Therefore, check whether there is
+      // exactly one submit button in the form, and if so, automatically use it
+      // as triggering_element.
+      if ($form_state['programmed'] && !isset($form_state['triggering_element']) && count($form_state['buttons']) == 1) {
+        $form_state['triggering_element'] = reset($form_state['buttons']);
+      }
       $this->validateForm($form_id, $form, $form_state);
 
       // drupal_html_id() maintains a cache of element IDs it has seen, so it
@@ -603,10 +614,14 @@ class FormBuilder implements FormBuilderInterface {
         // Set a flag to indicate the the form has been processed and executed.
         $form_state['executed'] = TRUE;
 
-        // Redirect the form based on values in $form_state.
-        $redirect = $this->redirectForm($form_state);
-        if (is_object($redirect)) {
-          return $redirect;
+        // If no response has been set, process the form redirect.
+        if (!isset($form_state['response']) && $redirect = $this->redirectForm($form_state)) {
+          $form_state['response'] = $redirect;
+        }
+
+        // If there is a response was set, return it instead of continuing.
+        if (isset($form_state['response']) && $form_state['response'] instanceof Response) {
+          return $form_state['response'];
         }
       }
 
@@ -672,7 +687,7 @@ class FormBuilder implements FormBuilderInterface {
     // @see self::buildForm()
     // @see self::rebuildForm()
     if (!isset($form['#build_id'])) {
-      $form['#build_id'] = 'form-' . Crypt::hashBase64(uniqid(mt_rand(), TRUE) . mt_rand());
+      $form['#build_id'] = 'form-' . Crypt::randomBytesBase64();
     }
     $form['form_build_id'] = array(
       '#type' => 'hidden',
@@ -809,17 +824,14 @@ class FormBuilder implements FormBuilderInterface {
         // Stop here and don't run any further validation handlers, because they
         // could invoke non-safe operations which opens the door for CSRF
         // vulnerabilities.
-        $this->validatedForms[$form_id] = TRUE;
+        $this->finalizeValidation($form_id, $form, $form_state);
         return;
       }
     }
 
     // Recursively validate each form element.
     $this->doValidateForm($form, $form_state, $form_id);
-    // After validation, loop through and assign each element its errors.
-    $this->setElementErrorsFromFormState($form, $form_state);
-    // Mark this form as validated.
-    $this->validatedForms[$form_id] = TRUE;
+    $this->finalizeValidation($form_id, $form, $form_state);
 
     // If validation errors are limited then remove any non validated form values,
     // so that only values that passed validation are left for submit callbacks.
@@ -860,6 +872,23 @@ class FormBuilder implements FormBuilderInterface {
       }
       $form_state['values'] = $values;
     }
+  }
+
+  /**
+   * Finalizes validation.
+   *
+   * @param string $form_id
+   *   The unique string identifying the form.
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param array $form_state
+   *   An associative array containing the current state of the form.
+   */
+  protected function finalizeValidation($form_id, &$form, &$form_state) {
+    // After validation, loop through and assign each element its errors.
+    $this->setElementErrorsFromFormState($form, $form_state);
+    // Mark this form as validated.
+    $this->validatedForms[$form_id] = TRUE;
   }
 
   /**
@@ -1274,7 +1303,7 @@ class FormBuilder implements FormBuilderInterface {
 
     // Special handling if we're on the top level form element.
     if (isset($element['#type']) && $element['#type'] == 'form') {
-      if (!empty($element['#https']) && settings()->get('mixed_mode_sessions', FALSE) &&
+      if (!empty($element['#https']) && Settings::get('mixed_mode_sessions', FALSE) &&
         !UrlHelper::isExternal($element['#action'])) {
         global $base_root;
 
@@ -1497,7 +1526,7 @@ class FormBuilder implements FormBuilderInterface {
     // #access=FALSE on an element usually allow access for some users, so forms
     // submitted with self::submitForm() may bypass access restriction and be
     // treated as high-privilege users instead.
-    $process_input = empty($element['#disabled']) && ($form_state['programmed'] || ($form_state['process_input'] && (!isset($element['#access']) || $element['#access'])));
+    $process_input = empty($element['#disabled']) && (($form_state['programmed'] && $form_state['programmed_bypass_access_check']) || ($form_state['process_input'] && (!isset($element['#access']) || $element['#access'])));
 
     // Set the element's #value property.
     if (!isset($element['#value']) && !array_key_exists('#value', $element)) {

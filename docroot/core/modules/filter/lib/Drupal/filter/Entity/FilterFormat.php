@@ -7,9 +7,9 @@
 
 namespace Drupal\filter\Entity;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\filter\FilterFormatInterface;
 use Drupal\filter\FilterBag;
 use Drupal\filter\Plugin\FilterInterface;
@@ -26,15 +26,14 @@ use Drupal\filter\Plugin\FilterInterface;
  *       "edit" = "Drupal\filter\FilterFormatEditFormController",
  *       "disable" = "Drupal\filter\Form\FilterDisableForm"
  *     },
- *     "list" = "Drupal\filter\FilterFormatListController",
+ *     "list_builder" = "Drupal\filter\FilterFormatListBuilder",
  *     "access" = "Drupal\filter\FilterFormatAccessController",
  *   },
- *   config_prefix = "filter.format",
+ *   config_prefix = "format",
  *   admin_permission = "administer filters",
  *   entity_keys = {
  *     "id" = "format",
  *     "label" = "name",
- *     "uuid" = "uuid",
  *     "weight" = "weight",
  *     "status" = "status"
  *   },
@@ -44,7 +43,7 @@ use Drupal\filter\Plugin\FilterInterface;
  *   }
  * )
  */
-class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
+class FilterFormat extends ConfigEntityBase implements FilterFormatInterface, EntityWithPluginBagInterface {
 
   /**
    * Unique machine name of the format.
@@ -67,13 +66,6 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
    * @var string
    */
   public $name;
-
-  /**
-   * The UUID for this entity.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * Weight of this format in the text format selector.
@@ -136,6 +128,11 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   /**
    * {@inheritdoc}
    */
+  protected $pluginConfigKey = 'filters';
+
+  /**
+   * {@inheritdoc}
+   */
   public function id() {
     return $this->format;
   }
@@ -144,11 +141,20 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
    * {@inheritdoc}
    */
   public function filters($instance_id = NULL) {
+    $filter_bag = $this->getPluginBag();
+    if (isset($instance_id)) {
+      return $filter_bag->get($instance_id);
+    }
+    return $filter_bag;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPluginBag() {
     if (!isset($this->filterBag)) {
       $this->filterBag = new FilterBag(\Drupal::service('plugin.manager.filter'), $this->filters);
-    }
-    if (isset($instance_id)) {
-      return $this->filterBag->get($instance_id);
+      $this->filterBag->sort();
     }
     return $this->filterBag;
   }
@@ -159,7 +165,7 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   public function setFilterConfig($instance_id, array $configuration) {
     $this->filters[$instance_id] = $configuration;
     if (isset($this->filterBag)) {
-      $this->filterBag->setConfiguration($instance_id, $configuration);
+      $this->filterBag->setInstanceConfiguration($instance_id, $configuration);
     }
     return $this;
   }
@@ -167,11 +173,15 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   /**
    * {@inheritdoc}
    */
-  public function getExportProperties() {
-    $properties = parent::getExportProperties();
-    // Sort and export the configuration of all filters.
-    $properties['filters'] = $this->filters()->sort()->getConfiguration();
-
+  public function toArray() {
+    $properties = parent::toArray();
+    // @todo Make self::$weight and self::$cache protected and add them here.
+    $names = array(
+      'filters',
+    );
+    foreach ($names as $name) {
+      $properties[$name] = $this->get($name);
+    }
     return $properties;
   }
 
@@ -182,11 +192,10 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
     parent::disable();
 
     // Allow modules to react on text format deletion.
-    module_invoke_all('filter_format_disable', $this);
+    \Drupal::moduleHandler()->invokeAll('filter_format_disable', array($this));
 
     // Clear the filter cache whenever a text format is disabled.
     filter_formats_reset();
-    Cache::deleteTags(array('filter_format' => $this->format));
 
     return $this;
   }
@@ -194,8 +203,11 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
+  public function preSave(EntityStorageInterface $storage) {
+    // Ensure the filters have been sorted before saving.
+    $this->filters()->sort();
+
+    parent::preSave($storage);
 
     $this->name = trim($this->label());
 
@@ -215,17 +227,13 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
     // Clear the static caches of filter_formats() and others.
     filter_formats_reset();
 
-    if ($update) {
-      // Clear the filter cache whenever a text format is updated.
-      Cache::deleteTags(array('filter_format' => $this->id()));
-    }
-    else {
+    if (!$update && !$this->isSyncing()) {
       // Default configuration of modules and installation profiles is allowed
       // to specify a list of user roles to grant access to for the new format;
       // apply the defined user role permissions when a new format is inserted

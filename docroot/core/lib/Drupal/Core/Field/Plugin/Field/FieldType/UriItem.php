@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -21,38 +21,34 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "uri",
  *   label = @Translation("URI"),
  *   description = @Translation("An entity field containing a URI."),
- *   settings = {
- *     "max_length" = "2048"
- *   },
- *   configurable = FALSE
+ *   no_ui = TRUE
  * )
  */
 class UriItem extends StringItem {
 
   /**
-   * Field definitions of the contained properties.
-   *
-   * @see self::getPropertyDefinitions()
-   *
-   * @var array
+   * {@inheritdoc}
    */
-  static $propertyDefinitions;
-
-  /**
-   * Implements ComplexDataInterface::getPropertyDefinitions().
-   */
-  public function getPropertyDefinitions() {
-    if (!isset(self::$propertyDefinitions)) {
-      self::$propertyDefinitions['value'] = DataDefinition::create('uri')
-        ->setLabel(t('URI value'));
-    }
-    return self::$propertyDefinitions;
+  public static function defaultSettings() {
+    return array(
+      'max_length' => 2048,
+    ) + parent::defaultSettings();
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
+    $properties['value'] = DataDefinition::create('uri')
+      ->setLabel(t('URI value'));
+
+    return $properties;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

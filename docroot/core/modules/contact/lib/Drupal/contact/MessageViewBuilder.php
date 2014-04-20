@@ -9,6 +9,8 @@ namespace Drupal\contact;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Render\Element;
 
 /**
  * Render controller for contact messages.
@@ -28,7 +30,7 @@ class MessageViewBuilder extends EntityViewBuilder {
         $entity->content['message'] = array(
           '#type' => 'item',
           '#title' => t('Message'),
-          '#markup' => check_plain($entity->getMessage()),
+          '#markup' => String::checkPlain($entity->getMessage()),
         );
       }
     }
@@ -43,7 +45,7 @@ class MessageViewBuilder extends EntityViewBuilder {
     if ($view_mode == 'mail') {
       // Convert field labels into headings.
       // @todo Improve drupal_html_to_text() to convert DIVs correctly.
-      foreach (element_children($build) as $key) {
+      foreach (Element::children($build) as $key) {
         if (isset($build[$key]['#label_display']) && $build[$key]['#label_display'] == 'above') {
           $build[$key] += array('#prefix' => '');
           $build[$key]['#prefix'] = $build[$key]['#title'] . ":\n";

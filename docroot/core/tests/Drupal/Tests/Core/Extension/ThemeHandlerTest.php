@@ -7,6 +7,7 @@
 
 namespace Drupal\Tests\Core\Extension;
 
+use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\InfoParser;
 use Drupal\Core\Extension\ThemeHandler;
 use Drupal\Core\Config\ConfigInstaller;
@@ -65,11 +66,11 @@ class ThemeHandlerTest extends UnitTestCase {
   protected $configInstaller;
 
   /**
-   * The system listing info.
+   * The extension discovery.
    *
-   * @var \Drupal\Core\SystemListingInfo|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ExtensionDiscovery|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected $systemListingInfo;
+  protected $extensionDiscovery;
 
   /**
    * The tested theme handler.
@@ -93,7 +94,15 @@ class ThemeHandlerTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->configFactory = $this->getConfigFactoryStub(array('system.theme' => array(), 'system.theme.disabled' => array()));
+    $this->configFactory = $this->getConfigFactoryStub(array(
+      'core.extension' => array(
+        'module' => array(),
+        'theme' => array(),
+        'disabled' => array(
+          'theme' => array(),
+        ),
+      ),
+    ));
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $this->cacheBackend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->infoParser = $this->getMock('Drupal\Core\Extension\InfoParserInterface');
@@ -101,10 +110,10 @@ class ThemeHandlerTest extends UnitTestCase {
     $this->routeBuilder = $this->getMockBuilder('Drupal\Core\Routing\RouteBuilder')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->systemListingInfo = $this->getMockBuilder('Drupal\Core\SystemListingInfo')
+    $this->extensionDiscovery = $this->getMockBuilder('Drupal\Core\Extension\ExtensionDiscovery')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->themeHandler = new TestThemeHandler($this->configFactory, $this->moduleHandler, $this->cacheBackend, $this->infoParser, $this->configInstaller, $this->routeBuilder, $this->systemListingInfo);
+    $this->themeHandler = new TestThemeHandler($this->configFactory, $this->moduleHandler, $this->cacheBackend, $this->infoParser, $this->configInstaller, $this->routeBuilder, $this->extensionDiscovery);
 
     $this->getContainerWithCacheBins($this->cacheBackend);
   }
@@ -127,35 +136,30 @@ class ThemeHandlerTest extends UnitTestCase {
   public function testEnableSingleTheme() {
     $theme_list = array('theme_test');
 
-    $this->configFactory->get('system.theme')
+    $this->configFactory->get('core.extension')
       ->expects($this->once())
       ->method('set')
-      ->with('enabled.theme_test', 0)
+      ->with('theme.theme_test', 0)
       ->will($this->returnSelf());
-    $this->configFactory->get('system.theme')
+    $this->configFactory->get('core.extension')
       ->expects($this->once())
       ->method('save');
 
-    $this->configFactory->get('system.theme.disabled')
+    $this->configFactory->get('core.extension')
       ->expects($this->once())
       ->method('clear')
-      ->with('theme_test')
+      ->with('disabled.theme.theme_test')
       ->will($this->returnSelf());
-    $this->configFactory->get('system.theme.disabled')
+    $this->configFactory->get('core.extension')
       ->expects($this->once())
       ->method('save');
 
-    $this->systemListingInfo->expects($this->any())
+    $this->extensionDiscovery->expects($this->any())
       ->method('scan')
       ->will($this->returnValue(array()));
 
     // Ensure that the themes_enabled hook is fired.
     $this->moduleHandler->expects($this->at(0))
-      ->method('invokeAll')
-      ->with('system_theme_info')
-      ->will($this->returnValue(array()));
-
-    $this->moduleHandler->expects($this->at(1))
       ->method('invokeAll')
       ->with('themes_enabled', array($theme_list));
 
@@ -176,60 +180,56 @@ class ThemeHandlerTest extends UnitTestCase {
    * @see \Drupal\Core\Extension\ThemeHandler::listInfo()
    */
   public function testEnableAndListInfo() {
-    $this->configFactory->get('system.theme')
+    $this->configFactory->get('core.extension')
       ->expects($this->exactly(2))
       ->method('set')
       ->will($this->returnSelf());
 
-    $this->configFactory->get('system.theme.disabled')
+    $this->configFactory->get('core.extension')
       ->expects($this->exactly(2))
       ->method('clear')
       ->will($this->returnSelf());
 
-    $this->systemListingInfo->expects($this->any())
+    $this->extensionDiscovery->expects($this->any())
       ->method('scan')
       ->will($this->returnValue(array()));
 
     $this->themeHandler->enable(array('bartik'));
-    $this->themeHandler->systemList['bartik'] = (object) array(
-      'name' => 'bartik',
-      'info' => array(
-        'stylesheets' => array(
-          'all' => array(
-            'css/layout.css',
-            'css/style.css',
-            'css/colors.css',
-          ),
+    $this->themeHandler->systemList['bartik'] = new Extension('theme', DRUPAL_ROOT . '/core/themes/bartik/bartik.info.yml', 'bartik.info.yml');
+    $this->themeHandler->systemList['bartik']->info = array(
+      'stylesheets' => array(
+        'all' => array(
+          'css/layout.css',
+          'css/style.css',
+          'css/colors.css',
         ),
-        'scripts' => array(
-          'example' => 'theme.js',
-        ),
-        'engine' => 'twig',
-        'base theme' => 'stark',
       ),
+      'libraries' => array(
+        'example/theme',
+      ),
+      'engine' => 'twig',
+      'base theme' => 'stark',
     );
 
     $list_info = $this->themeHandler->listInfo();
     $this->assertCount(1, $list_info);
 
     $this->assertEquals($this->themeHandler->systemList['bartik']->info['stylesheets'], $list_info['bartik']->stylesheets);
-    $this->assertEquals($this->themeHandler->systemList['bartik']->scripts, $list_info['bartik']->scripts);
+    $this->assertEquals($this->themeHandler->systemList['bartik']->libraries, $list_info['bartik']->libraries);
     $this->assertEquals('twig', $list_info['bartik']->engine);
     $this->assertEquals('stark', $list_info['bartik']->base_theme);
     $this->assertEquals(0, $list_info['bartik']->status);
 
-    $this->themeHandler->systemList['seven'] = (object) array(
-      'name' => 'seven',
-      'info' => array(
-        'stylesheets' => array(
-          'screen' => array(
-            'style.css',
-          ),
+    $this->themeHandler->systemList['seven'] = new Extension('theme', DRUPAL_ROOT . '/core/themes/seven/seven.info.yml', 'seven.info.yml');
+    $this->themeHandler->systemList['seven']->info = array(
+      'stylesheets' => array(
+        'screen' => array(
+          'style.css',
         ),
-        'scripts' => array(),
       ),
-      'status' => 1,
+      'libraries' => array(),
     );
+    $this->themeHandler->systemList['seven']->status = 1;
 
     $this->themeHandler->enable(array('seven'));
 
@@ -246,14 +246,17 @@ class ThemeHandlerTest extends UnitTestCase {
    * @see \Drupal\Core\Extension\ThemeHandler::rebuildThemeData()
    */
   public function testRebuildThemeData() {
-    $this->systemListingInfo->expects($this->at(0))
+    $this->extensionDiscovery->expects($this->at(0))
       ->method('scan')
-      ->with($this->anything(), 'themes', 'name', 1)
+      ->with('theme')
       ->will($this->returnValue(array(
-        'seven' => (object) array(
-          'name' => 'seven',
-          'uri' => DRUPAL_ROOT . '/core/themes/seven/seven.info.yml',
-        ),
+        'seven' => new Extension('theme', DRUPAL_ROOT . '/core/themes/seven/seven.info.yml', 'seven.theme'),
+      )));
+    $this->extensionDiscovery->expects($this->at(1))
+      ->method('scan')
+      ->with('theme_engine')
+      ->will($this->returnValue(array(
+        'twig' => new Extension('theme_engine', DRUPAL_ROOT . '/core/themes/engines/twig/twig.info.yml', 'twig.engine'),
       )));
     $this->infoParser->expects($this->once())
       ->method('parse')
@@ -271,13 +274,15 @@ class ThemeHandlerTest extends UnitTestCase {
     $info = $theme_data['seven'];
 
     // Ensure some basic properties.
-    $this->assertInstanceOf('stdClass', $info);
-    $this->assertEquals('seven', $info->name);
-    $this->assertEquals(DRUPAL_ROOT . '/core/themes/seven/seven.info.yml', $info->uri);
-    $this->assertEquals(DRUPAL_ROOT . '/core/themes/seven/seven.info.yml', $info->filename);
+    $this->assertInstanceOf('Drupal\Core\Extension\Extension', $info);
+    $this->assertEquals('seven', $info->getName());
+    $this->assertEquals(DRUPAL_ROOT . '/core/themes/seven/seven.info.yml', $info->getPathname());
+    $this->assertEquals(DRUPAL_ROOT . '/core/themes/seven/seven.theme', $info->getExtensionPathname());
+    $this->assertEquals(DRUPAL_ROOT . '/core/themes/engines/twig/twig.engine', $info->owner);
+    $this->assertEquals('twig', $info->prefix);
 
     $this->assertEquals('twig', $info->info['engine']);
-    $this->assertEquals(array(), $info->info['scripts']);
+    $this->assertEquals(array(), $info->info['libraries']);
 
     // Ensure that the css paths are set with the proper prefix.
     $this->assertEquals(array(
@@ -286,9 +291,64 @@ class ThemeHandlerTest extends UnitTestCase {
         'style.css' => DRUPAL_ROOT . '/core/themes/seven/style.css',
         'css/components/buttons.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.css',
         'css/components/buttons.theme.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.theme.css',
+        'css/components/tour.theme.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/tour.theme.css',
       ),
     ), $info->info['stylesheets']);
     $this->assertEquals(DRUPAL_ROOT . '/core/themes/seven/screenshot.png', $info->info['screenshot']);
+  }
+
+  /**
+   * Tests rebuild the theme data with theme parents.
+   */
+  public function testRebuildThemeDataWithThemeParents() {
+    $this->extensionDiscovery->expects($this->at(0))
+      ->method('scan')
+      ->with('theme')
+      ->will($this->returnValue(array(
+        'test_subtheme' => new Extension('theme', DRUPAL_ROOT . '/core/modules/system/tests/themes/test_subtheme/test_subtheme.info.yml', 'test_subtheme.info.yml'),
+        'test_basetheme' => new Extension('theme', DRUPAL_ROOT . '/core/modules/system/tests/themes/test_basetheme/test_basetheme.info.yml', 'test_basetheme.info.yml'),
+      )));
+    $this->extensionDiscovery->expects($this->at(1))
+      ->method('scan')
+      ->with('theme_engine')
+      ->will($this->returnValue(array(
+        'twig' => new Extension('theme_engine', DRUPAL_ROOT . '/core/themes/engines/twig/twig.info.yml', 'twig.engine'),
+      )));
+    $this->infoParser->expects($this->at(0))
+      ->method('parse')
+      ->with(DRUPAL_ROOT . '/core/modules/system/tests/themes/test_subtheme/test_subtheme.info.yml')
+      ->will($this->returnCallback(function ($file) {
+        $info_parser = new InfoParser();
+        return $info_parser->parse($file);
+      }));
+    $this->infoParser->expects($this->at(1))
+      ->method('parse')
+      ->with(DRUPAL_ROOT . '/core/modules/system/tests/themes/test_basetheme/test_basetheme.info.yml')
+      ->will($this->returnCallback(function ($file) {
+        $info_parser = new InfoParser();
+        return $info_parser->parse($file);
+      }));
+
+    $theme_data = $this->themeHandler->rebuildThemeData();
+    $this->assertCount(2, $theme_data);
+
+    $info_basetheme = $theme_data['test_basetheme'];
+    $info_subtheme = $theme_data['test_subtheme'];
+
+    // Ensure some basic properties.
+    $this->assertInstanceOf('Drupal\Core\Extension\Extension', $info_basetheme);
+    $this->assertEquals('test_basetheme', $info_basetheme->getName());
+    $this->assertInstanceOf('Drupal\Core\Extension\Extension', $info_subtheme);
+    $this->assertEquals('test_subtheme', $info_subtheme->getName());
+
+    // Test the parent/child-theme properties.
+    $info_subtheme->info['base theme'] = 'test_basetheme';
+    $info_basetheme->sub_themes = array('test_subtheme');
+
+    $this->assertEquals(DRUPAL_ROOT . '/core/themes/engines/twig/twig.engine', $info_basetheme->owner);
+    $this->assertEquals('twig', $info_basetheme->prefix);
+    $this->assertEquals(DRUPAL_ROOT . '/core/themes/engines/twig/twig.engine', $info_subtheme->owner);
+    $this->assertEquals('twig', $info_subtheme->prefix);
   }
 
   /**

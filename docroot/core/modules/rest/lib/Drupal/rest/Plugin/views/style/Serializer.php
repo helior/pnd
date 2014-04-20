@@ -54,7 +54,7 @@ class Serializer extends StylePluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -67,7 +67,7 @@ class Serializer extends StylePluginBase {
   /**
    * Constructs a Plugin object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, SerializerInterface $serializer, array $serializer_formats) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, SerializerInterface $serializer, array $serializer_formats) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->definition = $plugin_definition + $configuration;
@@ -95,7 +95,7 @@ class Serializer extends StylePluginBase {
       '#type' => 'checkboxes',
       '#title' => t('Accepted request formats'),
       '#description' => t('Request formats that will be allowed in responses. If none are selected all formats will be allowed.'),
-      '#options' => drupal_map_assoc($this->formats),
+      '#options' => array_combine($this->formats, $this->formats),
       '#default_value' => $this->options['formats'],
     );
   }

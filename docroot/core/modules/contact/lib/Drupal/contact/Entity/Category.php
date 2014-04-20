@@ -8,7 +8,7 @@
 namespace Drupal\contact\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\contact\CategoryInterface;
 
 /**
@@ -19,20 +19,19 @@ use Drupal\contact\CategoryInterface;
  *   label = @Translation("Contact category"),
  *   controllers = {
  *     "access" = "Drupal\contact\CategoryAccessController",
- *     "list" = "Drupal\contact\CategoryListController",
+ *     "list_builder" = "Drupal\contact\CategoryListBuilder",
  *     "form" = {
  *       "add" = "Drupal\contact\CategoryFormController",
  *       "edit" = "Drupal\contact\CategoryFormController",
  *       "delete" = "Drupal\contact\Form\CategoryDeleteForm"
  *     }
  *   },
- *   config_prefix = "contact.category",
+ *   config_prefix = "category",
  *   admin_permission = "administer contact forms",
  *   bundle_of = "contact_message",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   },
  *   links = {
  *     "delete-form" = "contact.category_delete",
@@ -48,13 +47,6 @@ class Category extends ConfigEntityBase implements CategoryInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The category UUID.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The category label.
@@ -87,8 +79,8 @@ class Category extends ConfigEntityBase implements CategoryInterface {
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
     if (!$update) {
       entity_invoke_bundle_hook('create', 'contact_message', $this->id());
@@ -101,8 +93,8 @@ class Category extends ConfigEntityBase implements CategoryInterface {
   /**
    * {@inheritdoc}
    */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
 
     foreach ($entities as $entity) {
       entity_invoke_bundle_hook('delete', 'contact_message', $entity->id());

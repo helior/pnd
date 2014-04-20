@@ -7,7 +7,7 @@
 
 namespace Drupal\content_translation\Tests;
 
-use Drupal\Core\Entity\FieldableDatabaseStorageController;
+use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
@@ -75,7 +75,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
   /**
    * The translation controller for the current entity type.
    *
-   * @var \Drupal\content_translation\ContentTranslationControllerInterface
+   * @var \Drupal\content_translation\ContentTranslationHandlerInterface
    */
   protected $controller;
 
@@ -103,7 +103,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     foreach ($this->langcodes as $langcode) {
       language_save(new Language(array('id' => $langcode)));
     }
-    array_unshift($this->langcodes, language_default()->id);
+    array_unshift($this->langcodes, \Drupal::languageManager()->getDefaultLanguage()->id);
   }
 
   /**
@@ -166,7 +166,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     content_translation_set_config($this->entityTypeId, $this->bundle, 'enabled', TRUE);
     drupal_static_reset();
     entity_info_cache_clear();
-    menu_router_rebuild();
+    \Drupal::service('router.builder')->rebuild();
   }
 
   /**
@@ -175,14 +175,14 @@ abstract class ContentTranslationTestBase extends WebTestBase {
   protected function setupTestFields() {
     $this->fieldName = 'field_test_et_ui_test';
 
-    entity_create('field_entity', array(
+    entity_create('field_config', array(
       'name' => $this->fieldName,
       'type' => 'text',
       'entity_type' => $this->entityTypeId,
       'cardinality' => 1,
       'translatable' => TRUE,
     ))->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'entity_type' => $this->entityTypeId,
       'field_name' => $this->fieldName,
       'bundle' => $this->bundle,
@@ -217,8 +217,8 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     if ($bundle_key = $entity_type->getKey('bundle')) {
       $entity_values[$bundle_key] = $bundle_name ?: $this->bundle;
     }
-    $controller = $this->container->get('entity.manager')->getStorageController($this->entityTypeId);
-    if (!($controller instanceof FieldableDatabaseStorageController)) {
+    $controller = $this->container->get('entity.manager')->getStorage($this->entityTypeId);
+    if (!($controller instanceof ContentEntityDatabaseStorage)) {
       foreach ($values as $property => $value) {
         if (is_array($value)) {
           $entity_values[$property] = array($langcode => $value);

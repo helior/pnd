@@ -106,7 +106,7 @@ class EntityManagerTest extends UnitTestCase {
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $this->moduleHandler->expects($this->any())
       ->method('getImplementations')
-      ->with('entity_info')
+      ->with('entity_type_build')
       ->will($this->returnValue(array()));
 
     $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
@@ -149,7 +149,8 @@ class EntityManagerTest extends UnitTestCase {
       ->method('getDefinitions')
       ->will($this->returnValue($definitions));
 
-    $this->entityManager = new TestEntityManager(new \ArrayObject(), $this->container, $this->moduleHandler, $this->cache, $this->languageManager, $this->translationManager, $this->formBuilder);
+    $this->entityManager = new TestEntityManager(new \ArrayObject(), $this->moduleHandler, $this->cache, $this->languageManager, $this->translationManager, $this->formBuilder);
+    $this->entityManager->setContainer($this->container);
     $this->entityManager->setDiscovery($this->discovery);
   }
 
@@ -260,11 +261,11 @@ class EntityManagerTest extends UnitTestCase {
   }
 
   /**
-   * Tests the getStorageController() method.
+   * Tests the getStorage() method.
    *
-   * @covers ::getStorageController()
+   * @covers ::getStorage()
    */
-  public function testGetStorageController() {
+  public function testGetStorage() {
     $class = $this->getTestControllerClass();
     $entity = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
     $entity->expects($this->once())
@@ -272,23 +273,23 @@ class EntityManagerTest extends UnitTestCase {
       ->will($this->returnValue($class));
     $this->setUpEntityManager(array('test_entity_type' => $entity));
 
-    $this->assertInstanceOf($class, $this->entityManager->getStorageController('test_entity_type'));
+    $this->assertInstanceOf($class, $this->entityManager->getStorage('test_entity_type'));
   }
 
   /**
-   * Tests the getListController() method.
+   * Tests the getListBuilder() method.
    *
-   * @covers ::getListController()
+   * @covers ::getListBuilder()
    */
-  public function testGetListController() {
+  public function testGetListBuilder() {
     $class = $this->getTestControllerClass();
     $entity = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
     $entity->expects($this->once())
-      ->method('getListClass')
+      ->method('getListBuilderClass')
       ->will($this->returnValue($class));
     $this->setUpEntityManager(array('test_entity_type' => $entity));
 
-    $this->assertInstanceOf($class, $this->entityManager->getListController('test_entity_type'));
+    $this->assertInstanceOf($class, $this->entityManager->getListBuilder('test_entity_type'));
   }
 
   /**
@@ -452,6 +453,18 @@ class EntityManagerTest extends UnitTestCase {
   }
 
   /**
+   * Tests the getBaseFieldDefinitions() method.
+   *
+   * @covers ::getBaseFieldDefinitions()
+   */
+  public function testGetBaseFieldDefinitions() {
+    $field_definition = $this->setUpEntityWithFieldDefinition();
+
+    $expected = array('id' => $field_definition);
+    $this->assertSame($expected, $this->entityManager->getBaseFieldDefinitions('test_entity_type'));
+  }
+
+  /**
    * Tests the getFieldDefinitions() method.
    *
    * @covers ::getFieldDefinitions()
@@ -460,8 +473,67 @@ class EntityManagerTest extends UnitTestCase {
     $field_definition = $this->setUpEntityWithFieldDefinition();
 
     $expected = array('id' => $field_definition);
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type'));
     $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type', 'test_entity_bundle'));
+  }
+
+  /**
+   * Tests the getFieldStorageDefinitions() method.
+   *
+   * @covers ::getFieldStorageDefinitions()
+   */
+  public function testGetFieldStorageDefinitions() {
+    $field_definition = $this->setUpEntityWithFieldDefinition(TRUE);
+    $field_storage_definition = $this->getMock('\Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $field_storage_definition->expects($this->any())
+      ->method('getName')
+      ->will($this->returnValue('field_storage'));
+
+    $this->moduleHandler->expects($this->at(0))
+      ->method('getImplementations')
+      ->with('entity_base_field_info')
+      ->will($this->returnValue(array()));
+
+    $this->moduleHandler->expects($this->at(2))
+      ->method('getImplementations')
+      ->with('entity_field_storage_info')
+      ->will($this->returnValue(array('example_module')));
+
+    $this->moduleHandler->expects($this->any())
+      ->method('invoke')
+      ->with('example_module', 'entity_field_storage_info')
+      ->will($this->returnValue(array('field_storage' => $field_storage_definition)));
+
+    $expected = array(
+      'id' => $field_definition,
+      'field_storage' => $field_storage_definition,
+    );
+    $this->assertSame($expected, $this->entityManager->getFieldStorageDefinitions('test_entity_type'));
+  }
+
+  /**
+   * Tests the getBaseFieldDefinitions() method with caching.
+   *
+   * @covers ::getBaseFieldDefinitions()
+   */
+  public function testGetBaseFieldDefinitionsWithCaching() {
+    $field_definition = $this->setUpEntityWithFieldDefinition();
+
+    $expected = array('id' => $field_definition);
+
+    $this->cache->expects($this->at(0))
+      ->method('get')
+      ->with('entity_base_field_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue(FALSE));
+    $this->cache->expects($this->once())
+      ->method('set');
+    $this->cache->expects($this->at(2))
+      ->method('get')
+      ->with('entity_base_field_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue((object) array('data' => $expected)));
+
+    $this->assertSame($expected, $this->entityManager->getBaseFieldDefinitions('test_entity_type'));
+    $this->entityManager->testClearEntityFieldInfo();
+    $this->assertSame($expected, $this->entityManager->getBaseFieldDefinitions('test_entity_type'));
   }
 
   /**
@@ -470,91 +542,134 @@ class EntityManagerTest extends UnitTestCase {
    * @covers ::getFieldDefinitions()
    */
   public function testGetFieldDefinitionsWithCaching() {
-    $field_definition = $this->setUpEntityWithFieldDefinition();
+    $field_definition = $this->setUpEntityWithFieldDefinition(FALSE, 'id', 0);
 
     $expected = array('id' => $field_definition);
 
-    // @todo Investigate why this is 0 and 2, not 0/1 or 1/2.
     $this->cache->expects($this->at(0))
       ->method('get')
-      ->with('entity_field_definitions:test_entity_type:en', FALSE)
+      ->with('entity_base_field_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue((object) array('data' => $expected)));
+    $this->cache->expects($this->at(1))
+      ->method('get')
+      ->with('entity_bundle_field_definitions:test_entity_type:test_bundle:en', FALSE)
       ->will($this->returnValue(FALSE));
     $this->cache->expects($this->at(2))
-      ->method('get')
-      ->with('entity_field_definitions:test_entity_type:en', FALSE)
-      ->will($this->returnValue((object) array('data' => array('definitions' => $expected))));
-
-    $this->cache->expects($this->once())
       ->method('set');
+    $this->cache->expects($this->at(3))
+      ->method('get')
+      ->with('entity_base_field_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue((object) array('data' => $expected)));
+    $this->cache->expects($this->at(4))
+      ->method('get')
+      ->with('entity_bundle_field_definitions:test_entity_type:test_bundle:en', FALSE)
+      ->will($this->returnValue((object) array('data' => $expected)));
 
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type'));
+    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type', 'test_bundle'));
     $this->entityManager->testClearEntityFieldInfo();
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type'));
+    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type', 'test_bundle'));
   }
 
   /**
-   * Tests the getFieldDefinitions() method with bundle map.
+   * Tests the getFieldStorageDefinitions() method with caching.
    *
-   * @covers ::getFieldDefinitions()
+   * @covers ::getFieldStorageDefinitions()
    */
-  public function testGetFieldDefinitionsWithBundleMap() {
-    $field_definition = $this->setUpEntityWithFieldDefinition(TRUE);
+  public function testGetFieldStorageDefinitionsWithCaching() {
+    $field_definition = $this->setUpEntityWithFieldDefinition(TRUE, 'id', 0);
+    $field_storage_definition = $this->getMock('\Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $field_storage_definition->expects($this->any())
+      ->method('getName')
+      ->will($this->returnValue('field_storage'));
 
-    $this->moduleHandler->expects($this->at(0))
-      ->method('invokeAll')
-      ->will($this->returnValue(array()));
-    $this->moduleHandler->expects($this->at(1))
-      ->method('invokeAll')
-      ->will($this->returnValue(array(
-          'bundle map' => array(
-            'test_entity_bundle' => array(
-              'custom_field',
-            ),
-          ),
-          'optional' => array(
-            'custom_field' => $field_definition,
-          ),
-        )));
+    $this->moduleHandler->expects($this->any())
+      ->method('getImplementations')
+      ->with('entity_field_storage_info')
+      ->will($this->returnValue(array('example_module')));
 
-    $expected = array('id' => $field_definition);
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type'));
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type', 'test_entity_type'));
+    $this->moduleHandler->expects($this->once())
+      ->method('invoke')
+      ->with('example_module')
+      ->will($this->returnValue(array('field_storage' => $field_storage_definition)));
 
-    $expected['custom_field'] = $field_definition;
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitions('test_entity_type', 'test_entity_bundle'));
+    $expected = array(
+      'id' => $field_definition,
+      'field_storage' => $field_storage_definition,
+    );
+
+    $this->cache->expects($this->at(0))
+      ->method('get')
+      ->with('entity_base_field_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue((object) array('data' => array('id' => $expected['id']))));
+    $this->cache->expects($this->at(1))
+      ->method('get')
+      ->with('entity_field_storage_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue(FALSE));
+    $this->cache->expects($this->at(2))
+      ->method('set');
+    $this->cache->expects($this->at(3))
+      ->method('get')
+      ->with('entity_base_field_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue((object) array('data' => array('id' => $expected['id']))));
+    $this->cache->expects($this->at(4))
+      ->method('get')
+      ->with('entity_field_storage_definitions:test_entity_type:en', FALSE)
+      ->will($this->returnValue((object) array('data' => $expected)));
+
+    $this->assertSame($expected, $this->entityManager->getFieldStorageDefinitions('test_entity_type'));
+    $this->entityManager->testClearEntityFieldInfo();
+    $this->assertSame($expected, $this->entityManager->getFieldStorageDefinitions('test_entity_type'));
   }
 
   /**
-   * Tests the getFieldDefinitions() method with an invalid definition.
+   * Tests the getBaseFieldDefinitions() method with an invalid definition.
    *
-   * @covers ::getFieldDefinitions()
+   * @covers ::getBaseFieldDefinitions()
    *
    * @expectedException \LogicException
    */
-  public function testGetFieldDefinitionsInvalidDefinition() {
+  public function testGetBaseFieldDefinitionsInvalidDefinition() {
     $langcode_definition = $this->setUpEntityWithFieldDefinition(FALSE, 'langcode');
     $langcode_definition->expects($this->once())
       ->method('isTranslatable')
       ->will($this->returnValue(TRUE));
 
-    $this->entityManager->getFieldDefinitions('test_entity_type');
+    $this->entityManager->getBaseFieldDefinitions('test_entity_type');
   }
 
   /**
-   * Tests the getFieldDefinitionsByConstraints() method.
+   * Tests that getFieldDefinitions() method sets the 'provider' definition key.
    *
-   * @covers ::getFieldDefinitionsByConstraints()
+   * @covers ::getFieldDefinitions()
    */
-  public function testGetFieldDefinitionsByConstraints() {
-    $field_definition = $this->setUpEntityWithFieldDefinition();
+  public function testGetFieldDefinitionsProvider() {
+    $this->setUpEntityWithFieldDefinition(TRUE);
 
-    $this->moduleHandler->expects($this->exactly(2))
-      ->method('invokeAll')
-      ->will($this->returnValue(array()));
+    $module = 'entity_manager_test_module';
 
-    $expected = array('id' => $field_definition);
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitionsByConstraints('test_entity_type', array()));
-    $this->assertSame($expected, $this->entityManager->getFieldDefinitionsByConstraints('test_entity_type', array('Bundle' => 'test_entity_bundle')));
+    // @todo Mock FieldDefinitionInterface once it exposes a proper provider
+    //   setter. See https://drupal.org/node/2225961.
+    $field_definition = $this->getMockBuilder('Drupal\Core\Field\FieldDefinition')
+      ->disableOriginalConstructor()
+      ->getMock();
+
+    // We expect two calls as the field definition will be returned from both
+    // base and bundle entity field info hook implementations.
+    $field_definition
+      ->expects($this->exactly(2))
+      ->method('setProvider')
+      ->with($this->matches($module));
+
+    $this->moduleHandler->expects($this->any())
+      ->method('getImplementations')
+      ->will($this->returnValue(array($module)));
+
+    $this->moduleHandler->expects($this->any())
+      ->method('invoke')
+      ->with($this->matches($module))
+      ->will($this->returnValue(array($field_definition)));
+
+    $this->entityManager->getFieldDefinitions('test_entity_type', 'test_bundle');
   }
 
   /**
@@ -569,31 +684,35 @@ class EntityManagerTest extends UnitTestCase {
    * @return \Drupal\Core\Field\FieldDefinition|\PHPUnit_Framework_MockObject_MockObject
    *   A field definition object.
    */
-  protected function setUpEntityWithFieldDefinition($custom_invoke_all = FALSE, $field_definition_id = 'id') {
+  protected function setUpEntityWithFieldDefinition($custom_invoke_all = FALSE, $field_definition_id = 'id', $base_field_definition_calls = 1) {
     $entity_type = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
     $entity = $this->getMock('Drupal\Tests\Core\Entity\TestContentEntityInterface');
     $entity_class = get_class($entity);
 
-    $entity_type->expects($this->exactly(2))
+    $entity_type->expects($this->any())
       ->method('getClass')
       ->will($this->returnValue($entity_class));
-    $entity_type->expects($this->once())
+    $entity_type->expects($this->any())
       ->method('getKeys')
       ->will($this->returnValue(array()));
     $field_definition = $this->getMockBuilder('Drupal\Core\Field\FieldDefinition')
       ->disableOriginalConstructor()
       ->getMock();
-    $entity_class::staticExpects($this->once())
+    $entity_class::staticExpects($this->exactly($base_field_definition_calls))
       ->method('baseFieldDefinitions')
       ->will($this->returnValue(array(
         $field_definition_id => $field_definition,
       )));
+    $entity_class::staticExpects($this->any())
+      ->method('bundleFieldDefinitions')
+      ->will($this->returnValue(array()));
 
-    $this->moduleHandler->expects($this->once())
+    $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->moduleHandler->expects($this->any())
       ->method('alter');
     if (!$custom_invoke_all) {
-      $this->moduleHandler->expects($this->exactly(2))
-        ->method('invokeAll')
+      $this->moduleHandler->expects($this->any())
+        ->method('getImplementations')
         ->will($this->returnValue(array()));
     }
 
@@ -783,6 +902,58 @@ class EntityManagerTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::getExtraFields
+   */
+  function testgetExtraFields() {
+    $this->setUpEntityManager();
+
+    $entity_type_id = $this->randomName();
+    $bundle = $this->randomName();
+    $language_code = 'en';
+    $hook_bundle_extra_fields = array(
+      $entity_type_id => array(
+        $bundle => array(
+          'form' => array(
+            'foo_extra_field' => array(
+              'label' => 'Foo',
+            ),
+          ),
+        ),
+      ),
+    );
+    $processed_hook_bundle_extra_fields = $hook_bundle_extra_fields;
+    $processed_hook_bundle_extra_fields[$entity_type_id][$bundle] += array(
+      'display' => array(),
+    );
+    $cache_id = 'entity_bundle_extra_fields:' . $entity_type_id . ':' . $bundle . ':' . $language_code;
+
+    $language = new Language();
+    $language->id = $language_code;
+
+    $this->languageManager->expects($this->once())
+      ->method('getCurrentLanguage')
+      ->will($this->returnValue($language));
+
+    $this->cache->expects($this->once())
+      ->method('get')
+      ->with($cache_id);
+
+    $this->moduleHandler->expects($this->once())
+      ->method('invokeAll')
+      ->with('entity_extra_field_info')
+      ->will($this->returnValue($hook_bundle_extra_fields));
+    $this->moduleHandler->expects($this->once())
+      ->method('alter')
+      ->with('entity_extra_field_info', $hook_bundle_extra_fields);
+
+    $this->cache->expects($this->once())
+      ->method('set')
+      ->with($cache_id, $processed_hook_bundle_extra_fields[$entity_type_id][$bundle]);
+
+    $this->assertSame($processed_hook_bundle_extra_fields[$entity_type_id][$bundle], $this->entityManager->getExtraFields($entity_type_id, $bundle));
+  }
+
+  /**
    * Gets a mock controller class name.
    *
    * @return string
@@ -818,10 +989,12 @@ class TestEntityManager extends EntityManager {
   }
 
   /**
-   * Allows the $entityFieldInfo property to be cleared.
+   * Allows the static caches to be cleared.
    */
   public function testClearEntityFieldInfo() {
-    $this->entityFieldInfo = NULL;
+    $this->baseFieldDefinitions = array();
+    $this->fieldDefinitions = array();
+    $this->fieldStorageDefinitions = array();
   }
 
 }

@@ -38,7 +38,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
       'source' => 'node/' . $this->node->id(),
       'alias' => $this->randomName(8),
     );
-    $this->container->get('path.crud')->save($path['source'], $path['alias']);
+    $this->container->get('path.alias_storage')->save($path['source'], $path['alias']);
 
     // Create some paths to test.
     $test_cases = array(
@@ -55,7 +55,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
     foreach ($test_cases as $test) {
       $title = $this->randomName();
       $form_data = array(
-        'title' => $title,
+        'title[0][value]' => $title,
         'path' => $test['path'],
       );
       $this->drupalPostForm('admin/config/user-interface/shortcut/manage/' . $set->id() . '/add-link', $form_data, t('Save'));
@@ -68,18 +68,34 @@ class ShortcutLinksTest extends ShortcutTestBase {
   }
 
   /**
-   * Tests that the "add to shortcut" link changes to "remove shortcut".
+   * Tests that the "add to shortcut" and "remove from shortcut" links work.
    */
   public function testShortcutQuickLink() {
     theme_enable(array('seven'));
     \Drupal::config('system.theme')->set('admin', 'seven')->save();
     $this->container->get('config.factory')->get('node.settings')->set('use_admin_theme', '1')->save();
+    $this->container->get('router.builder')->rebuild();
 
-    $shortcuts = $this->set->getShortcuts();
-    $shortcut = reset($shortcuts);
+    $this->drupalLogin($this->root_user);
+    $this->drupalGet('admin/config/system/cron');
 
-    $this->drupalGet($shortcut->path->value);
-    $this->assertRaw(t('Remove from %title shortcuts', array('%title' => $this->set->label())), '"Add to shortcuts" link properly switched to "Remove from shortcuts".');
+    // Test the "Add to shortcuts" link.
+    $this->clickLink('Add to Default shortcuts');
+    $this->assertText('Added a shortcut for Cron.');
+    $this->assertLink('Cron', 0, 'Shortcut link found on page');
+
+    $this->drupalGet('admin/structure');
+    $this->assertLink('Cron', 0, 'Shortcut link found on different page');
+
+    // Test the "Remove from shortcuts" link.
+    $this->clickLink('Cron');
+    $this->clickLink('Remove from Default shortcuts');
+    $this->drupalPostForm(NULL, array(), 'Delete');
+    $this->assertText('The shortcut Cron has been deleted.');
+    $this->assertNoLink('Cron', 'Shortcut link removed from page');
+
+    $this->drupalGet('admin/structure');
+    $this->assertNoLink('Cron', 'Shortcut link removed from different page');
   }
 
   /**
@@ -93,7 +109,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
 
     $shortcuts = $set->getShortcuts();
     $shortcut = reset($shortcuts);
-    $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title' => $new_link_name, 'path' => $shortcut->path->value), t('Save'));
+    $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title[0][value]' => $new_link_name, 'path' => $shortcut->path->value), t('Save'));
     $saved_set = shortcut_set_load($set->id());
     $titles = $this->getShortcutInformation($saved_set, 'title');
     $this->assertTrue(in_array($new_link_name, $titles), 'Shortcut renamed: ' . $new_link_name);
@@ -111,7 +127,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
 
     $shortcuts = $set->getShortcuts();
     $shortcut = reset($shortcuts);
-    $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title' => $shortcut->getTitle(), 'path' => $new_link_path), t('Save'));
+    $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title[0][value]' => $shortcut->getTitle(), 'path' => $new_link_path), t('Save'));
     $saved_set = shortcut_set_load($set->id());
     $paths = $this->getShortcutInformation($saved_set, 'path');
     $this->assertTrue(in_array($new_link_path, $paths), 'Shortcut path changed: ' . $new_link_path);

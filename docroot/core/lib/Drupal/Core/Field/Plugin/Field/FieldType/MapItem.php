@@ -7,8 +7,9 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
+use Drupal\Core\TypedData\DataDefinition;
 
 /**
  * Defines the 'map' entity field type.
@@ -16,8 +17,8 @@ use Drupal\Core\Field\FieldItemBase;
  * @FieldType(
  *   id = "map",
  *   label = @Translation("Map"),
- *   description = @Translation("An entity field containing a map value."),
- *   configurable = FALSE
+ *   description = @Translation("An entity field for storing a serialized array of values."),
+ *   no_ui = TRUE
  * )
  */
 class MapItem extends FieldItemBase {
@@ -25,7 +26,17 @@ class MapItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
+    $properties['value'] = DataDefinition::create('string')
+      ->setLabel(t('Serialized values'));
+
+    return $properties;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

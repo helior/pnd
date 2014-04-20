@@ -39,6 +39,7 @@ class CommentValidationTest extends EntityUnitTestBase {
   public function setUp() {
     parent::setUp();
     $this->installSchema('node', array('node', 'node_field_data', 'node_field_revision', 'node_revision'));
+    $this->installSchema('comment', array('comment_entity_statistics'));
   }
 
   /**
@@ -46,29 +47,37 @@ class CommentValidationTest extends EntityUnitTestBase {
    */
   public function testValidation() {
     // Add comment field to content.
-    $this->entityManager->getStorageController('field_entity')->create(array(
+    $this->entityManager->getStorage('field_config')->create(array(
       'entity_type' => 'node',
       'name' => 'comment',
       'type' => 'comment',
     ))->save();
+
+    // Create a page node type.
+    $this->entityManager->getStorage('node_type')->create(array(
+      'type' => 'page',
+      'name' => 'page',
+    ))->save();
+
     // Add comment field instance to page content.
-    $this->entityManager->getStorageController('field_instance')->create(array(
+    $this->entityManager->getStorage('field_instance_config')->create(array(
       'field_name' => 'comment',
       'entity_type' => 'node',
       'bundle' => 'page',
       'label' => 'Comment settings',
     ))->save();
 
-    $node = $this->entityManager->getStorageController('node')->create(array(
+    $node = $this->entityManager->getStorage('node')->create(array(
       'type' => 'page',
       'title' => 'test',
     ));
     $node->save();
 
-    $comment = $this->entityManager->getStorageController('comment')->create(array(
+    $comment = $this->entityManager->getStorage('comment')->create(array(
       'entity_id' => $node->id(),
       'entity_type' => 'node',
       'field_name' => 'comment',
+      'comment_body' => $this->randomName(),
     ));
 
     $violations = $comment->validate();
@@ -135,7 +144,8 @@ class CommentValidationTest extends EntityUnitTestBase {
     $violations = $comment->validate();
     $this->assertEqual(count($violations), 1, "Violation found when $field_name is too long.");
     $this->assertEqual($violations[0]->getPropertyPath(), "$field_name.0.value");
-    $this->assertEqual($violations[0]->getMessage(), t('This value is too long. It should have %limit characters or less.', array('%limit' => $length)));
+    $field_label = $comment->get($field_name)->getFieldDefinition()->getLabel();
+    $this->assertEqual($violations[0]->getMessage(), t('%name: may not be longer than @max characters.', array('%name' => $field_label, '@max' => $length)));
   }
 
 }

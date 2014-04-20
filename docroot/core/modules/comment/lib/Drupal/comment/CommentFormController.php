@@ -7,6 +7,7 @@
 
 namespace Drupal\comment;
 
+use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
@@ -86,7 +87,7 @@ class CommentFormController extends ContentEntityFormController {
   public function form(array $form, array &$form_state) {
     /** @var \Drupal\comment\CommentInterface $comment */
     $comment = $this->entity;
-    $entity = $this->entityManager->getStorageController($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId());
+    $entity = $this->entityManager->getStorage($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId());
     $field_name = $comment->getFieldName();
     $instance = $this->fieldInfo->getInstance($entity->getEntityTypeId(), $entity->bundle(), $field_name);
 
@@ -98,7 +99,7 @@ class CommentFormController extends ContentEntityFormController {
     $is_admin = $comment->id() && $this->currentUser->hasPermission('administer comments');
 
     if (!$this->currentUser->isAuthenticated() && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT) {
-      $form['#attached']['library'][] = array('system', 'jquery.cookie');
+      $form['#attached']['library'][] = 'core/jquery.cookie';
       $form['#attributes']['class'][] = 'user-info-from-cookie';
     }
 
@@ -118,7 +119,6 @@ class CommentFormController extends ContentEntityFormController {
       $form['author'] += array(
         '#type' => 'details',
         '#title' => $this->t('Administration'),
-        '#collapsed' => TRUE,
       );
     }
 
@@ -226,7 +226,7 @@ class CommentFormController extends ContentEntityFormController {
     // Add internal comment properties.
     $original = $comment->getUntranslated();
     foreach (array('cid', 'pid', 'entity_id', 'entity_type', 'field_id', 'uid', 'langcode') as $key) {
-      $key_name = key($comment->$key->first()->getPropertyDefinitions());
+      $key_name = key($comment->$key->getFieldDefinition()->getPropertyDefinitions());
       $form[$key] = array('#type' => 'value', '#value' => $original->$key->{$key_name});
     }
 
@@ -278,7 +278,7 @@ class CommentFormController extends ContentEntityFormController {
 
     if (!empty($form_state['values']['cid'])) {
       // Verify the name in case it is being changed from being anonymous.
-      $accounts = $this->entityManager->getStorageController('user')->loadByProperties(array('name' => $form_state['values']['name']));
+      $accounts = $this->entityManager->getStorage('user')->loadByProperties(array('name' => $form_state['values']['name']));
       $account = reset($accounts);
       $form_state['values']['uid'] = $account ? $account->id() : 0;
 
@@ -295,7 +295,7 @@ class CommentFormController extends ContentEntityFormController {
       // author of this comment was an anonymous user, verify that no registered
       // user with this name exists.
       if ($form_state['values']['name']) {
-        $accounts = $this->entityManager->getStorageController('user')->loadByProperties(array('name' => $form_state['values']['name']));
+        $accounts = $this->entityManager->getStorage('user')->loadByProperties(array('name' => $form_state['values']['name']));
         if (!empty($accounts)) {
           $this->setFormError('name', $form_state, $this->t('The name you used belongs to a registered user.'));
         }
@@ -381,7 +381,7 @@ class CommentFormController extends ContentEntityFormController {
     $field_name = $comment->getFieldName();
     $uri = $entity->urlInfo();
 
-    if ($this->currentUser->hasPermission('post comments') && ($this->currentUser->hasPermission('administer comments') || $entity->{$field_name}->status == COMMENT_OPEN)) {
+    if ($this->currentUser->hasPermission('post comments') && ($this->currentUser->hasPermission('administer comments') || $entity->{$field_name}->status == CommentItemInterface::OPEN)) {
       // Save the anonymous user information to a cookie for reuse.
       if ($this->currentUser->isAnonymous()) {
         user_cookie_save(array_intersect_key($form_state['values'], array_flip(array('name', 'mail', 'homepage'))));
@@ -391,7 +391,7 @@ class CommentFormController extends ContentEntityFormController {
       $form_state['values']['cid'] = $comment->id();
 
       // Add an entry to the watchdog log.
-      watchdog('content', 'Comment posted: %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_NOTICE, l(t('view'), 'comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id())));
+      watchdog('content', 'Comment posted: %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_NOTICE, l(t('View'), 'comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id())));
 
       // Explain the approval queue if necessary.
       if (!$comment->isPublished()) {
@@ -410,7 +410,8 @@ class CommentFormController extends ContentEntityFormController {
         $query['page'] = $page;
       }
       // Redirect to the newly posted comment.
-      $uri['options'] += array('query' => $query, 'fragment' => 'comment-' . $comment->id());
+      $uri->setOption('query', $query);
+      $uri->setOption('fragment', 'comment-' . $comment->id());
     }
     else {
       watchdog('content', 'Comment: unauthorized comment submitted or comment submitted to a closed post %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_WARNING);

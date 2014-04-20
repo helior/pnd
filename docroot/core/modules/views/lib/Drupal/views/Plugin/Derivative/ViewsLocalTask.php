@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\Derivative;
 
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Component\Plugin\Derivative\DerivativeBase;
 use Drupal\Core\Plugin\Discovery\ContainerDerivativeInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
@@ -29,7 +29,7 @@ class ViewsLocalTask extends DerivativeBase implements ContainerDerivativeInterf
   /**
    * The state key value store.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
@@ -59,7 +59,7 @@ class ViewsLocalTask extends DerivativeBase implements ContainerDerivativeInterf
   /**
    * {@inheritdoc}
    */
-  public function getDerivativeDefinitions(array $base_plugin_definition) {
+  public function getDerivativeDefinitions($base_plugin_definition) {
     $this->derivatives = array();
 
     $view_route_names = $this->state->get('views.view_route_names');

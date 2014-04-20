@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\entity_test\Entity\EntityTestRev.
+ * Contains \Drupal\entity_test\Entity\EntityTestRev.
  */
 
 namespace Drupal\entity_test\Entity;
 
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\entity_test\Entity\EntityTest;
 
@@ -21,7 +22,7 @@ use Drupal\entity_test\Entity\EntityTest;
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestFormController"
  *     },
- *     "translation" = "Drupal\content_translation\ContentTranslationController"
+ *     "translation" = "Drupal\content_translation\ContentTranslationHandler"
  *   },
  *   base_table = "entity_test_rev",
  *   revision_table = "entity_test_rev_revision",
@@ -30,7 +31,8 @@ use Drupal\entity_test\Entity\EntityTest;
  *     "id" = "id",
  *     "uuid" = "uuid",
  *     "revision" = "revision_id",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "label" = "name",
  *   },
  *   links = {
  *     "canonical" = "entity_test.edit_entity_test_rev",
@@ -41,37 +43,20 @@ use Drupal\entity_test\Entity\EntityTest;
 class EntityTestRev extends EntityTest {
 
   /**
-   * The entity revision id.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $revision_id;
-
-  /**
    * {@inheritdoc}
    */
-  public function init() {
-    parent::init();
-    unset($this->revision_id);
-  }
-
-  /**
-   * Implements Drupal\Core\Entity\EntityInterface::getRevisionId().
-   */
-  public function getRevisionId() {
-    return $this->get('revision_id')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
 
     $fields['revision_id'] = FieldDefinition::create('integer')
       ->setLabel(t('Revision ID'))
       ->setDescription(t('The version id of the test entity.'))
-      ->setReadOnly(TRUE);
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
+
+    $fields['langcode']->setRevisionable(TRUE);
+    $fields['name']->setRevisionable(TRUE);
+    $fields['user_id']->setRevisionable(TRUE);
 
     return $fields;
   }

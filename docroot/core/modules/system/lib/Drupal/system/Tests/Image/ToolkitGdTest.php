@@ -15,6 +15,14 @@ use Drupal\Component\Utility\String;
  * Test the core GD image manipulation functions.
  */
 class ToolkitGdTest extends DrupalUnitTestBase {
+
+  /**
+   * The image factory service.
+   *
+   * @var \Drupal\Core\Image\ImageFactory
+   */
+  protected $imageFactory;
+
   // Colors that are used in testing.
   protected $black       = array(0, 0, 0, 0);
   protected $red         = array(255, 0, 0, 0);
@@ -41,6 +49,16 @@ class ToolkitGdTest extends DrupalUnitTestBase {
       'description' => 'Check that core image manipulations work properly: scale, resize, rotate, crop, scale and crop, and desaturate.',
       'group' => 'Image',
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    parent::setUp();
+
+    // Set the image factory service.
+    $this->imageFactory = $this->container->get('image.factory');
   }
 
   protected function checkRequirements() {
@@ -75,14 +93,15 @@ class ToolkitGdTest extends DrupalUnitTestBase {
    * Function for finding a pixel's RGBa values.
    */
   function getPixelColor(ImageInterface $image, $x, $y) {
-    $color_index = imagecolorat($image->getResource(), $x, $y);
+    $toolkit = $image->getToolkit();
+    $color_index = imagecolorat($toolkit->getResource(), $x, $y);
 
-    $transparent_index = imagecolortransparent($image->getResource());
+    $transparent_index = imagecolortransparent($toolkit->getResource());
     if ($color_index == $transparent_index) {
       return array(0, 0, 0, 127);
     }
 
-    return array_values(imagecolorsforindex($image->getResource(), $color_index));
+    return array_values(imagecolorsforindex($toolkit->getResource(), $color_index));
   }
 
   /**
@@ -91,6 +110,10 @@ class ToolkitGdTest extends DrupalUnitTestBase {
    * the expected height and widths for the final images.
    */
   function testManipulations() {
+
+    // Test that the image factory is set to use the GD toolkit.
+    $this->assertEqual($this->imageFactory->getToolkitId(), 'gd', 'The image factory is set to use the \'gd\' image toolkit.');
+
     // Typically the corner colors will be unchanged. These colors are in the
     // order of top-left, top-right, bottom-right, bottom-left.
     $default_corners = array($this->red, $this->green, $this->blue, $this->transparent);
@@ -210,19 +233,18 @@ class ToolkitGdTest extends DrupalUnitTestBase {
       );
     }
 
-    $toolkit = $this->container->get('image.toolkit.manager')->createInstance('gd');
-    $image_factory = $this->container->get('image.factory')->setToolkit($toolkit);
     foreach ($files as $file) {
       foreach ($operations as $op => $values) {
         // Load up a fresh image.
-        $image = $image_factory->get(drupal_get_path('module', 'simpletest') . '/files/' . $file);
+        $image = $this->imageFactory->get(drupal_get_path('module', 'simpletest') . '/files/' . $file);
+        $toolkit = $image->getToolkit();
         if (!$image) {
           $this->fail(String::format('Could not load image %file.', array('%file' => $file)));
           continue 2;
         }
 
         // All images should be converted to truecolor when loaded.
-        $image_truecolor = imageistruecolor($image->getResource());
+        $image_truecolor = imageistruecolor($toolkit->getResource());
         $this->assertTrue($image_truecolor, String::format('Image %file after load is a truecolor image.', array('%file' => $file)));
 
         if ($image->getType() == IMAGETYPE_GIF) {
@@ -241,7 +263,7 @@ class ToolkitGdTest extends DrupalUnitTestBase {
         $correct_dimensions_object = TRUE;
 
         // Check the real dimensions of the image first.
-        if (imagesy($image->getResource()) != $values['height'] || imagesx($image->getResource()) != $values['width']) {
+        if (imagesy($toolkit->getResource()) != $values['height'] || imagesx($toolkit->getResource()) != $values['width']) {
           $correct_dimensions_real = FALSE;
         }
 
@@ -252,7 +274,7 @@ class ToolkitGdTest extends DrupalUnitTestBase {
 
         $directory = $this->public_files_directory .'/imagetest';
         file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
-        $image->save($directory . '/' . $op . '.' . $image->getExtension());
+        $image->save($directory . '/' . $op . image_type_to_extension($image->getType()));
 
         $this->assertTrue($correct_dimensions_real, String::format('Image %file after %action action has proper dimensions.', array('%file' => $file, '%action' => $op)));
         $this->assertTrue($correct_dimensions_object, String::format('Image %file object after %action action is reporting the proper height and width values.', array('%file' => $file, '%action' => $op)));

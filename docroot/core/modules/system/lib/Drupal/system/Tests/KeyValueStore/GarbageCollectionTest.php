@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\KeyValueStore;
 
+use Drupal\Component\Serialization\PhpSerialize;
 use Drupal\Core\Database\Database;
 use Drupal\Core\KeyValueStore\DatabaseStorageExpirable;
 use Drupal\simpletest\UnitTestBase;
@@ -41,7 +42,7 @@ class GarbageCollectionTest extends UnitTestBase {
    */
   public function testGarbageCollection() {
     $collection = $this->randomName();
-    $store = new DatabaseStorageExpirable($collection, Database::getConnection());
+    $store = new DatabaseStorageExpirable($collection, new PhpSerialize(), Database::getConnection());
 
     // Insert some items and confirm that they're set.
     for ($i = 0; $i <= 3; $i++) {
@@ -52,7 +53,7 @@ class GarbageCollectionTest extends UnitTestBase {
     // Manually expire the data.
     for ($i = 0; $i <= 3; $i++) {
       db_merge('key_value_expire')
-        ->key(array(
+        ->keys(array(
             'name' => 'key_' . $i,
             'collection' => $collection,
           ))

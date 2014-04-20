@@ -7,6 +7,7 @@
 
 namespace Drupal\user;
 
+use Drupal\Component\Serialization\SerializationInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\KeyValueStore\DatabaseStorageExpirable;
 use Drupal\Core\Lock\LockBackendInterface;
@@ -15,6 +16,13 @@ use Drupal\Core\Lock\LockBackendInterface;
  * Creates a key/value storage object for the current user or anonymous session.
  */
 class TempStoreFactory {
+
+  /**
+   * The serialization class to use.
+   *
+   * @var \Drupal\Component\Serialization\SerializationInterface
+   */
+  protected $serializer;
 
   /**
    * The connection object used for this data.
@@ -33,12 +41,15 @@ class TempStoreFactory {
   /**
    * Constructs a Drupal\user\TempStoreFactory object.
    *
+   * @param \Drupal\Component\Serialization\SerializationInterface $serializer
+   *   The serialization class to use.
    * @param \Drupal\Core\Database\Connection $connection
    *   The connection object used for this data.
    * @param \Drupal\Core\Lock\LockBackendInterface $lockBackend
    *   The lock object used for this data.
    */
-  function __construct(Connection $connection, LockBackendInterface $lockBackend) {
+  function __construct(SerializationInterface $serializer, Connection $connection, LockBackendInterface $lockBackend) {
+    $this->serializer = $serializer;
     $this->connection = $connection;
     $this->lockBackend = $lockBackend;
   }
@@ -61,11 +72,11 @@ class TempStoreFactory {
     // Use the currently authenticated user ID or the active user ID unless
     // the owner is overridden.
     if (!isset($owner)) {
-      $owner = $GLOBALS['user']->id() ?: session_id();
+      $owner = \Drupal::currentUser()->id() ?: session_id();
     }
 
     // Store the data for this collection in the database.
-    $storage = new DatabaseStorageExpirable($collection, $this->connection);
+    $storage = new DatabaseStorageExpirable($collection, $this->serializer, $this->connection);
     return new TempStore($storage, $this->lockBackend, $owner);
   }
 

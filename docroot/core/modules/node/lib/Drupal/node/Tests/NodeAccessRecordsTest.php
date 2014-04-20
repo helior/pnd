@@ -77,9 +77,9 @@ class NodeAccessRecordsTest extends NodeTestBase {
     // Create a user that is allowed to access content.
     $web_user = $this->drupalCreateUser(array('access content'));
     foreach ($operations as $op) {
-      $grants = node_test_node_grants($op, $web_user);
+      $grants = node_test_node_grants($web_user, $op);
       $altered_grants = $grants;
-      drupal_alter('node_grants', $altered_grants, $web_user, $op);
+      \Drupal::moduleHandler()->alter('node_grants', $altered_grants, $web_user, $op);
       $this->assertNotEqual($grants, $altered_grants, format_string('Altered the %op grant for a user.', array('%op' => $op)));
     }
 

@@ -143,8 +143,8 @@ class FilterAdminTest extends WebTestBase {
 
     // Verify access permissions to Full HTML format.
     $full_format = entity_load('filter_format', $full);
-    $this->assertTrue($full_format->access('view', $this->admin_user), 'Admin user may use Full HTML.');
-    $this->assertFalse($full_format->access('view', $this->web_user), 'Web user may not use Full HTML.');
+    $this->assertTrue($full_format->access('use', $this->admin_user), 'Admin user may use Full HTML.');
+    $this->assertFalse($full_format->access('use', $this->web_user), 'Web user may not use Full HTML.');
 
     // Add an additional tag.
     $edit = array();
@@ -154,7 +154,7 @@ class FilterAdminTest extends WebTestBase {
     $this->drupalGet('admin/config/content/formats/manage/' . $restricted);
     $this->assertFieldByName('filters[filter_html][settings][allowed_html]', $edit['filters[filter_html][settings][allowed_html]'], 'Allowed HTML tag added.');
 
-    $this->assertTrue(cache('filter')->isEmpty(), 'Cache cleared.');
+    $this->assertTrue(\Drupal::cache('filter')->isEmpty(), 'Cache cleared.');
 
     $elements = $this->xpath('//select[@name=:first]/following::select[@name=:second]', array(
       ':first' => 'filters[' . $first_filter . '][weight]',

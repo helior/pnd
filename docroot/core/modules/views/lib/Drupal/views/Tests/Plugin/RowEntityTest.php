@@ -7,6 +7,8 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\Component\Utility\Xss;
+use Drupal\views\Views;
 use Drupal\views\Tests\ViewUnitTestBase;
 
 /**
@@ -51,7 +53,6 @@ class RowEntityTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('menu_router'));
     $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
     $this->installConfig(array('taxonomy'));
     \Drupal::service('router.builder')->rebuild();
@@ -66,11 +67,11 @@ class RowEntityTest extends ViewUnitTestBase {
     $term = entity_create('taxonomy_term', array('name' => $this->randomName(), 'vid' => $vocab->id() ));
     $term->save();
 
-    $view = views_get_view('test_entity_row');
+    $view = Views::getView('test_entity_row');
     $this->content = $view->preview();
     $this->content = drupal_render($this->content);
 
-    $this->assertText($term->label(), 'The rendered entity appears as row in the view.');
+    $this->assertText($term->getName(), 'The rendered entity appears as row in the view.');
 
     // Tests the available view mode options.
     $form = array();
@@ -78,7 +79,6 @@ class RowEntityTest extends ViewUnitTestBase {
     $form_state['view'] = $view->storage;
     $view->rowPlugin->buildOptionsForm($form, $form_state);
 
-    $this->assertTrue(isset($form['view_mode']['#options']['full']), 'Ensure that the full view mode is available');
     $this->assertTrue(isset($form['view_mode']['#options']['default']), 'Ensure that the default view mode is available');
   }
 
@@ -103,7 +103,7 @@ class RowEntityTest extends ViewUnitTestBase {
     if (!$message) {
       $message = t('Raw "@raw" found', array('@raw' => $text));
     }
-    return $this->assert(strpos(filter_xss($this->content, array()), $text) !== FALSE, $message, $group);
+    return $this->assert(strpos(Xss::filter($this->content, array()), $text) !== FALSE, $message, $group);
   }
 
 }

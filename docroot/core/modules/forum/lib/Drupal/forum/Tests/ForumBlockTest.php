@@ -55,12 +55,13 @@ class ForumBlockTest extends WebTestBase {
   public function testNewForumTopicsBlock() {
     $this->drupalLogin($this->adminUser);
 
-    // Create 5 forum topics.
-    $topics = $this->createForumTopics();
-
     // Enable the new forum topics block.
     $block = $this->drupalPlaceBlock('forum_new_block');
     $this->drupalGet('');
+
+    // Create 5 forum topics.
+    $topics = $this->createForumTopics();
+
 
     $this->assertLink(t('More'), 0, 'New forum topics block has a "more"-link.');
     $this->assertLinkByHref('forum', 0, 'New forum topics block has a "more"-link.');
@@ -174,8 +175,8 @@ class ForumBlockTest extends WebTestBase {
         'body[0][value]' => $body,
         // Forum posts are ordered by timestamp, so force a unique timestamp by
         // adding the index.
-        'date[date]' => $date->format('Y-m-d'),
-        'date[time]' => $date->format('H:i:s'),
+        'created[date]' => $date->format('Y-m-d'),
+        'created[time]' => $date->format('H:i:s'),
       );
 
       // Create the forum topic, preselecting the forum ID via a URL parameter.

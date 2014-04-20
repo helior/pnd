@@ -8,9 +8,15 @@
 namespace Drupal\system\Form;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Entity\Query\QueryFactoryInterface;
+use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Access\AccessManager;
 
@@ -23,6 +29,13 @@ use Drupal\Core\Access\AccessManager;
  * descriptors.
  */
 class ModulesListForm extends FormBase {
+
+  /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $currentUser;
 
   /**
    * The module handler service.
@@ -39,13 +52,30 @@ class ModulesListForm extends FormBase {
   protected $keyValueExpirable;
 
   /**
+   * The entity manager.
+   *
+   * @var \Drupal\Core\Entity\EntityManagerInterface
+   */
+  protected $entityManager;
+
+  /**
+   * The query factory.
+   *
+   * @var \Drupal\Core\Entity\Query\QueryFactory
+   */
+  protected $queryFactory;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('module_handler'),
       $container->get('keyvalue.expirable')->get('module_list'),
-      $container->get('access_manager')
+      $container->get('access_manager'),
+      $container->get('entity.manager'),
+      $container->get('entity.query'),
+      $container->get('current_user')
     );
   }
 
@@ -58,11 +88,20 @@ class ModulesListForm extends FormBase {
    *   The key value expirable factory.
    * @param \Drupal\Core\Access\AccessManager $access_manager
    *   Access manager.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
+   *   The entity query factory.
+   * @param \Drupal\Core\Session\AccountInterface $current_user
+   *   The current user.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManager $access_manager) {
+  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManager $access_manager, EntityManagerInterface $entity_manager, QueryFactory $query_factory, AccountInterface $current_user) {
     $this->moduleHandler = $module_handler;
     $this->keyValueExpirable = $key_value_expirable;
     $this->accessManager = $access_manager;
+    $this->entityManager = $entity_manager;
+    $this->queryFactory = $query_factory;
+    $this->currentUser = $current_user;
   }
 
   /**
@@ -116,10 +155,11 @@ class ModulesListForm extends FormBase {
     }
 
     // Add a wrapper around every package.
-    foreach (element_children($form['modules']) as $package) {
+    foreach (Element::children($form['modules']) as $package) {
       $form['modules'][$package] += array(
         '#type' => 'details',
         '#title' => $this->t($package),
+        '#open' => TRUE,
         '#theme' => 'system_modules_details',
         '#header' => array(
           array('data' => '<span class="visually-hidden">' . $this->t('Installed') . '</span>', 'class' => array('checkbox')),
@@ -133,9 +173,9 @@ class ModulesListForm extends FormBase {
     }
 
     // Lastly, sort all packages by title.
-    uasort($form['modules'], 'element_sort_by_title');
+    uasort($form['modules'], array('\Drupal\Component\Utility\SortArray', 'sortByTitleProperty'));
 
-    $form['#attached']['library'][] = array('system', 'drupal.system.modules');
+    $form['#attached']['library'][] = 'system/drupal.system.modules';
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
@@ -150,14 +190,14 @@ class ModulesListForm extends FormBase {
    *
    * @param array $modules
    *   The list existing modules.
-   * @param object $module
+   * @param \Drupal\Core\Extension\Extension $module
    *   The module for which to build the form row.
    * @param $distribution
    *
    * @return array
    *   The form row for the given module.
    */
-  protected function buildRow(array $modules, $module, $distribution) {
+  protected function buildRow(array $modules, Extension $module, $distribution) {
     // Set the basic properties.
     $row['#required'] = array();
     $row['#requires'] = array();
@@ -173,12 +213,12 @@ class ModulesListForm extends FormBase {
 
     // Generate link for module's help page, if there is one.
     $row['links']['help'] = array();
-    if ($help && $module->status && in_array($module->name, $this->moduleHandler->getImplementations('help'))) {
-      if ($this->moduleHandler->invoke($module->name, 'help', array("admin/help#$module->name", $help))) {
+    if ($help && $module->status && in_array($module->getName(), $this->moduleHandler->getImplementations('help'))) {
+      if ($this->moduleHandler->invoke($module->getName(), 'help', array('admin/help#' . $module->getName(), $help))) {
         $row['links']['help'] = array(
           '#type' => 'link',
           '#title' => $this->t('Help'),
-          '#href' => "admin/help/$module->name",
+          '#href' => 'admin/help/' . $module->getName(),
           '#options' => array('attributes' => array('class' =>  array('module-link', 'module-link-help'), 'title' => $this->t('Help'))),
         );
       }
@@ -186,24 +226,30 @@ class ModulesListForm extends FormBase {
 
     // Generate link for module's permission, if the user has access to it.
     $row['links']['permissions'] = array();
-    if ($module->status && user_access('administer permissions') && in_array($module->name, $this->moduleHandler->getImplementations('permission'))) {
+    if ($module->status && user_access('administer permissions') && in_array($module->getName(), $this->moduleHandler->getImplementations('permission'))) {
       $row['links']['permissions'] = array(
         '#type' => 'link',
         '#title' => $this->t('Permissions'),
         '#href' => 'admin/people/permissions',
-        '#options' => array('fragment' => 'module-' . $module->name, 'attributes' => array('class' => array('module-link', 'module-link-permissions'), 'title' => $this->t('Configure permissions'))),
+        '#options' => array('fragment' => 'module-' . $module->getName(), 'attributes' => array('class' => array('module-link', 'module-link-permissions'), 'title' => $this->t('Configure permissions'))),
       );
     }
 
     // Generate link for module's configuration page, if it has one.
     $row['links']['configure'] = array();
     if ($module->status && isset($module->info['configure'])) {
-      if ($this->accessManager->checkNamedRoute($module->info['configure'], array(), \Drupal::currentUser())) {
-        $item = menu_get_item(trim($this->url($module->info['configure']), '/'));
+      $route_parameters = isset($module->info['configure_parameters']) ? $module->info['configure_parameters'] : array();
+      if ($this->accessManager->checkNamedRoute($module->info['configure'], $route_parameters, $this->currentUser)) {
+        $result = $this->queryFactory->get('menu_link')
+          ->condition('route_name', $module->info['configure'])
+          ->execute();
+        $menu_items = $this->entityManager->getStorage('menu_link')->loadMultiple($result);
+        $item = reset($menu_items);
         $row['links']['configure'] = array(
           '#type' => 'link',
           '#title' => $this->t('Configure'),
           '#route_name' => $module->info['configure'],
+          '#route_parameters' => $route_parameters,
           '#options' => array(
             'attributes' => array(
               'class' => array('module-link', 'module-link-configure'),
@@ -231,12 +277,15 @@ class ModulesListForm extends FormBase {
 
     // Check the compatibilities.
     $compatible = TRUE;
-    $status = '';
+
+    // Initialize an empty array of reasons why the module is incompatible. Add
+    // each reason as a separate element of the array.
+    $reasons = array();
 
     // Check the core compatibility.
     if ($module->info['core'] != \Drupal::CORE_COMPATIBILITY) {
       $compatible = FALSE;
-      $status .= $this->t('This version is not compatible with Drupal !core_version and should be replaced.', array(
+      $reasons[] = $this->t('This version is not compatible with Drupal !core_version and should be replaced.', array(
         '!core_version' => \Drupal::CORE_COMPATIBILITY,
       ));
     }
@@ -245,7 +294,7 @@ class ModulesListForm extends FormBase {
     if (version_compare(phpversion(), $module->info['php']) < 0) {
       $compatible = FALSE;
       $required = $module->info['php'] . (substr_count($module->info['php'], '.') < 2 ? '.*' : '');
-      $status .= $this->t('This module requires PHP version @php_required and is incompatible with PHP version !php_version.', array(
+      $reasons[] = $this->t('This module requires PHP version @php_required and is incompatible with PHP version !php_version.', array(
         '@php_required' => $required,
         '!php_version' => phpversion(),
       ));
@@ -253,11 +302,10 @@ class ModulesListForm extends FormBase {
 
     // If this module is not compatible, disable the checkbox.
     if (!$compatible) {
+      $status = implode(' ', $reasons);
       $row['enable']['#disabled'] = TRUE;
-      $row['description'] = array(
-        '#theme' => 'system_modules_incompatible',
-        '#message' => $status,
-      );
+      $row['description']['#markup'] = $status;
+      $row['#attributes']['class'][] = 'incompatible';
     }
 
     // If this module requires other modules, add them to the array.

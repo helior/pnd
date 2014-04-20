@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Tests;
 
+use Drupal\Component\Serialization\PhpSerialize;
 use Drupal\simpletest\UnitTestBase;
 use Drupal\user\TempStoreFactory;
 use Drupal\Core\Lock\DatabaseLockBackend;
@@ -83,7 +84,7 @@ class TempStoreDatabaseTest extends UnitTestBase {
    */
   public function testUserTempStore() {
     // Create a key/value collection.
-    $factory = new TempStoreFactory(Database::getConnection(), new DatabaseLockBackend(Database::getConnection()));
+    $factory = new TempStoreFactory(new PhpSerialize(), Database::getConnection(), new DatabaseLockBackend(Database::getConnection()));
     $collection = $this->randomName();
 
     // Create two mock users.
@@ -123,6 +124,12 @@ class TempStoreDatabaseTest extends UnitTestBase {
     $this->assertIdenticalObject($this->objects[2], $stores[0]->get($key));
     // The object is the same when another user loads it.
     $this->assertIdenticalObject($this->objects[2], $stores[1]->get($key));
+
+    // This user should be allowed to get, update, delete.
+    $this->assertTrue($stores[0]->getIfOwner($key) instanceof \stdClass);
+    $this->assertTrue($stores[0]->setIfOwner($key, $this->objects[1]));
+    $this->assertTrue($stores[0]->deleteIfOwner($key));
+
     // Another user can update the object and become the owner.
     $stores[1]->set($key, $this->objects[3]);
     $this->assertIdenticalObject($this->objects[3], $stores[0]->get($key));
@@ -133,6 +140,11 @@ class TempStoreDatabaseTest extends UnitTestBase {
     // The first user should be informed that the second now owns the data.
     $metadata = $stores[0]->getMetadata($key);
     $this->assertEqual($users[1], $metadata->owner);
+
+    // The first user should no longer be allowed to get, update, delete.
+    $this->assertNull($stores[0]->getIfOwner($key));
+    $this->assertFalse($stores[0]->setIfOwner($key, $this->objects[1]));
+    $this->assertFalse($stores[0]->deleteIfOwner($key));
 
     // Now manually expire the item (this is not exposed by the API) and then
     // assert it is no longer accessible.

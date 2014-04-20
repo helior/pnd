@@ -7,6 +7,8 @@
 
 namespace Drupal\link\Tests;
 
+use Drupal\Component\Utility\String;
+use Drupal\link\LinkItemInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -24,14 +26,14 @@ class LinkFieldTest extends WebTestBase {
   /**
    * A field to use in this test class.
    *
-   * @var \Drupal\field\Entity\Field
+   * @var \Drupal\field\Entity\FieldConfig
    */
   protected $field;
 
   /**
    * The instance used in this test class.
    *
-   * @var \Drupal\field\Entity\FieldInstance
+   * @var \Drupal\field\Entity\FieldInstanceConfig
    */
   protected $instance;
 
@@ -66,20 +68,22 @@ class LinkFieldTest extends WebTestBase {
   function testURLValidation() {
     $field_name = drupal_strtolower($this->randomName());
     // Create a field with settings to validate.
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'link',
     ));
     $this->field->save();
-    entity_create('field_instance', array(
+    $this->instance = entity_create('field_instance_config', array(
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
       'settings' => array(
         'title' => DRUPAL_DISABLED,
+        'link_type' => LinkItemInterface::LINK_GENERIC,
       ),
-    ))->save();
+    ));
+    $this->instance->save();
     entity_get_form_display('entity_test', 'entity_test', 'default')
       ->setComponent($field_name, array(
         'type' => 'link_default',
@@ -99,21 +103,19 @@ class LinkFieldTest extends WebTestBase {
     $this->assertFieldByName("{$field_name}[0][url]", '', 'Link URL field is displayed');
     $this->assertRaw('placeholder="http://example.com"');
 
-    // Verify that a valid URL can be submitted.
-    $value = 'http://www.example.com/';
-    $edit = array(
-      'user_id' => 1,
-      'name' => $this->randomName(),
-      "{$field_name}[0][url]" => $value,
+    // Create a path alias.
+    \Drupal::service('path.alias_storage')->save('admin', 'a/path/alias');
+    // Define some valid URLs.
+    $valid_external_entries = array(
+      'http://www.example.com/',
     );
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    preg_match('|entity_test/manage/(\d+)|', $this->url, $match);
-    $id = $match[1];
-    $this->assertText(t('entity_test @id has been created.', array('@id' => $id)));
-    $this->assertRaw($value);
+    $valid_internal_entries = array(
+      'entity_test/add',
+      'a/path/alias',
+    );
 
-    // Verify that invalid URLs cannot be submitted.
-    $wrong_entries = array(
+    // Define some invalid URLs.
+    $invalid_external_entries = array(
       // Missing protcol
       'not-an-url',
       // Invalid protocol
@@ -121,14 +123,66 @@ class LinkFieldTest extends WebTestBase {
       // Missing host name
       'http://',
     );
-    $this->drupalGet('entity_test/add');
-    foreach ($wrong_entries as $invalid_value) {
+    $invalid_internal_entries = array(
+      'non/existing/path',
+    );
+
+    // Test external and internal URLs for 'link_type' = LinkItemInterface::LINK_GENERIC.
+    $this->assertValidEntries($field_name, $valid_external_entries + $valid_internal_entries);
+    $this->assertInvalidEntries($field_name, $invalid_external_entries + $invalid_internal_entries);
+
+    // Test external URLs for 'link_type' = LinkItemInterface::LINK_EXTERNAL.
+    $this->instance->settings['link_type'] = LinkItemInterface::LINK_EXTERNAL;
+    $this->instance->save();
+    $this->assertValidEntries($field_name, $valid_external_entries);
+    $this->assertInvalidEntries($field_name, $valid_internal_entries + $invalid_external_entries);
+
+    // Test external URLs for 'link_type' = LinkItemInterface::LINK_INTERNAL.
+    $this->instance->settings['link_type'] = LinkItemInterface::LINK_INTERNAL;
+    $this->instance->save();
+    $this->assertValidEntries($field_name, $valid_internal_entries);
+    $this->assertInvalidEntries($field_name, $valid_external_entries + $invalid_internal_entries);
+  }
+
+  /**
+   * Asserts that valid URLs can be submitted.
+   *
+   * @param string $field_name
+   *   The field name.
+   * @param array $valid_entries
+   *   An array of valid URL entries.
+   */
+  protected function assertValidEntries($field_name, array $valid_entries) {
+    foreach ($valid_entries as $value) {
+      $edit = array(
+        'user_id' => 1,
+        'name' => $this->randomName(),
+        "{$field_name}[0][url]" => $value,
+      );
+      $this->drupalPostForm('entity_test/add', $edit, t('Save'));
+      preg_match('|entity_test/manage/(\d+)|', $this->url, $match);
+      $id = $match[1];
+      $this->assertText(t('entity_test @id has been created.', array('@id' => $id)));
+      $this->assertRaw($value);
+    }
+  }
+
+  /**
+   * Asserts that invalid URLs cannot be submitted.
+   *
+   * @param string $field_name
+   *   The field name.
+   * @param array $invalid_entries
+   *   An array of invalid URL entries.
+   */
+  protected function assertInvalidEntries($field_name, array $invalid_entries) {
+    foreach ($invalid_entries as $invalid_value) {
       $edit = array(
         'user_id' => 1,
         'name' => $this->randomName(),
         "{$field_name}[0][url]" => $invalid_value,
       );
-      $this->drupalPostForm(NULL, $edit, t('Save'));
+      $this->drupalPostForm('entity_test/add', $edit, t('Save'));
       $this->assertText(t('The URL @url is not valid.', array('@url' => $invalid_value)));
     }
   }
@@ -139,19 +193,20 @@ class LinkFieldTest extends WebTestBase {
   function testLinkTitle() {
     $field_name = drupal_strtolower($this->randomName());
     // Create a field with settings to validate.
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'link',
     ));
     $this->field->save();
-    $this->instance = entity_create('field_instance', array(
+    $this->instance = entity_create('field_instance_config', array(
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
       'label' => 'Read more about this entity',
       'settings' => array(
         'title' => DRUPAL_OPTIONAL,
+        'link_type' => LinkItemInterface::LINK_GENERIC,
       ),
     ));
     $this->instance->save();
@@ -257,20 +312,21 @@ class LinkFieldTest extends WebTestBase {
   function testLinkFormatter() {
     $field_name = drupal_strtolower($this->randomName());
     // Create a field with settings to validate.
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'link',
       'cardinality' => 2,
     ));
     $this->field->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'label' => 'Read more about this entity',
       'bundle' => 'entity_test',
       'settings' => array(
         'title' => DRUPAL_OPTIONAL,
+        'link_type' => LinkItemInterface::LINK_GENERIC,
       ),
     ))->save();
     entity_get_form_display('entity_test', 'entity_test', 'default')
@@ -347,41 +403,41 @@ class LinkFieldTest extends WebTestBase {
           case 'trim_length':
             $url = $url1;
             $title = isset($new_value) ? truncate_utf8($title1, $new_value, FALSE, TRUE) : $title1;
-            $this->assertRaw('<a href="' . check_plain($url) . '">' . check_plain($title) . '</a>');
+            $this->assertRaw('<a href="' . String::checkPlain($url) . '">' . String::checkPlain($title) . '</a>');
 
             $url = $url2;
             $title = isset($new_value) ? truncate_utf8($title2, $new_value, FALSE, TRUE) : $title2;
-            $this->assertRaw('<a href="' . check_plain($url) . '">' . check_plain($title) . '</a>');
+            $this->assertRaw('<a href="' . String::checkPlain($url) . '">' . String::checkPlain($title) . '</a>');
             break;
 
           case 'rel':
             $rel = isset($new_value) ? ' rel="' . $new_value . '"' : '';
-            $this->assertRaw('<a href="' . check_plain($url1) . '"' . $rel . '>' . check_plain($title1) . '</a>');
-            $this->assertRaw('<a href="' . check_plain($url2) . '"' . $rel . '>' . check_plain($title2) . '</a>');
+            $this->assertRaw('<a href="' . String::checkPlain($url1) . '"' . $rel . '>' . String::checkPlain($title1) . '</a>');
+            $this->assertRaw('<a href="' . String::checkPlain($url2) . '"' . $rel . '>' . String::checkPlain($title2) . '</a>');
             break;
 
           case 'target':
             $target = isset($new_value) ? ' target="' . $new_value . '"' : '';
-            $this->assertRaw('<a href="' . check_plain($url1) . '"' . $target . '>' . check_plain($title1) . '</a>');
-            $this->assertRaw('<a href="' . check_plain($url2) . '"' . $target . '>' . check_plain($title2) . '</a>');
+            $this->assertRaw('<a href="' . String::checkPlain($url1) . '"' . $target . '>' . String::checkPlain($title1) . '</a>');
+            $this->assertRaw('<a href="' . String::checkPlain($url2) . '"' . $target . '>' . String::checkPlain($title2) . '</a>');
             break;
 
           case 'url_only':
             // In this case, $new_value is an array.
             if (!$new_value['url_only']) {
-              $this->assertRaw('<a href="' . check_plain($url1) . '">' . check_plain($title1) . '</a>');
-              $this->assertRaw('<a href="' . check_plain($url2) . '">' . check_plain($title2) . '</a>');
+              $this->assertRaw('<a href="' . String::checkPlain($url1) . '">' . String::checkPlain($title1) . '</a>');
+              $this->assertRaw('<a href="' . String::checkPlain($url2) . '">' . String::checkPlain($title2) . '</a>');
             }
             else {
               if (empty($new_value['url_plain'])) {
-                $this->assertRaw('<a href="' . check_plain($url1) . '">' . check_plain($url1) . '</a>');
-                $this->assertRaw('<a href="' . check_plain($url2) . '">' . check_plain($url2) . '</a>');
+                $this->assertRaw('<a href="' . String::checkPlain($url1) . '">' . String::checkPlain($url1) . '</a>');
+                $this->assertRaw('<a href="' . String::checkPlain($url2) . '">' . String::checkPlain($url2) . '</a>');
               }
               else {
-                $this->assertNoRaw('<a href="' . check_plain($url1) . '">' . check_plain($url1) . '</a>');
-                $this->assertNoRaw('<a href="' . check_plain($url2) . '">' . check_plain($url2) . '</a>');
-                $this->assertRaw(check_plain($url1));
-                $this->assertRaw(check_plain($url2));
+                $this->assertNoRaw('<a href="' . String::checkPlain($url1) . '">' . String::checkPlain($url1) . '</a>');
+                $this->assertNoRaw('<a href="' . String::checkPlain($url2) . '">' . String::checkPlain($url2) . '</a>');
+                $this->assertRaw(String::checkPlain($url1));
+                $this->assertRaw(String::checkPlain($url2));
               }
             }
             break;
@@ -399,19 +455,20 @@ class LinkFieldTest extends WebTestBase {
   function testLinkSeparateFormatter() {
     $field_name = drupal_strtolower($this->randomName());
     // Create a field with settings to validate.
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'link',
       'cardinality' => 2,
     ));
     $this->field->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
       'settings' => array(
         'title' => DRUPAL_OPTIONAL,
+        'link_type' => LinkItemInterface::LINK_GENERIC,
       ),
     ))->save();
     $display_options = array(
@@ -469,7 +526,7 @@ class LinkFieldTest extends WebTestBase {
             $url = $url1;
             $url_title = isset($new_value) ? truncate_utf8($url, $new_value, FALSE, TRUE) : $url;
             $expected = '<div class="link-item">';
-            $expected .= '<div class="link-url"><a href="' . check_plain($url) . '">' . check_plain($url_title) . '</a></div>';
+            $expected .= '<div class="link-url"><a href="' . String::checkPlain($url) . '">' . String::checkPlain($url_title) . '</a></div>';
             $expected .= '</div>';
             $this->assertRaw($expected);
 
@@ -477,22 +534,22 @@ class LinkFieldTest extends WebTestBase {
             $url_title = isset($new_value) ? truncate_utf8($url, $new_value, FALSE, TRUE) : $url;
             $title = isset($new_value) ? truncate_utf8($title2, $new_value, FALSE, TRUE) : $title2;
             $expected = '<div class="link-item">';
-            $expected .= '<div class="link-title">' . check_plain($title) . '</div>';
-            $expected .= '<div class="link-url"><a href="' . check_plain($url) . '">' . check_plain($url_title) . '</a></div>';
+            $expected .= '<div class="link-title">' . String::checkPlain($title) . '</div>';
+            $expected .= '<div class="link-url"><a href="' . String::checkPlain($url) . '">' . String::checkPlain($url_title) . '</a></div>';
             $expected .= '</div>';
             $this->assertRaw($expected);
             break;
 
           case 'rel':
             $rel = isset($new_value) ? ' rel="' . $new_value . '"' : '';
-            $this->assertRaw('<div class="link-url"><a href="' . check_plain($url1) . '"' . $rel . '>' . check_plain($url1) . '</a></div>');
-            $this->assertRaw('<div class="link-url"><a href="' . check_plain($url2) . '"' . $rel . '>' . check_plain($url2) . '</a></div>');
+            $this->assertRaw('<div class="link-url"><a href="' . String::checkPlain($url1) . '"' . $rel . '>' . String::checkPlain($url1) . '</a></div>');
+            $this->assertRaw('<div class="link-url"><a href="' . String::checkPlain($url2) . '"' . $rel . '>' . String::checkPlain($url2) . '</a></div>');
             break;
 
           case 'target':
             $target = isset($new_value) ? ' target="' . $new_value . '"' : '';
-            $this->assertRaw('<div class="link-url"><a href="' . check_plain($url1) . '"' . $target . '>' . check_plain($url1) . '</a></div>');
-            $this->assertRaw('<div class="link-url"><a href="' . check_plain($url2) . '"' . $target . '>' . check_plain($url2) . '</a></div>');
+            $this->assertRaw('<div class="link-url"><a href="' . String::checkPlain($url1) . '"' . $target . '>' . String::checkPlain($url1) . '</a></div>');
+            $this->assertRaw('<div class="link-url"><a href="' . String::checkPlain($url2) . '"' . $target . '>' . String::checkPlain($url2) . '</a></div>');
             break;
         }
       }
@@ -512,7 +569,7 @@ class LinkFieldTest extends WebTestBase {
    */
   protected function renderTestEntity($id, $view_mode = 'full', $reset = TRUE) {
     if ($reset) {
-      $this->container->get('entity.manager')->getStorageController('entity_test')->resetCache(array($id));
+      $this->container->get('entity.manager')->getStorage('entity_test')->resetCache(array($id));
     }
     $entity = entity_load('entity_test', $id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), $view_mode);

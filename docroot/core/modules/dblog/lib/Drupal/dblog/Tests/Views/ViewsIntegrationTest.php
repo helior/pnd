@@ -9,6 +9,7 @@ namespace Drupal\dblog\Tests\Views;
 
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Xss;
+use Drupal\views\Views;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\views\Tests\ViewUnitTestBase;
 
@@ -76,7 +77,8 @@ class ViewsIntegrationTest extends ViewUnitTestBase {
     $entries[] = array(
       'message' => '@token1 !token2',
       'variables' => array('@token1' => $this->randomName(), '!token2' => $this->randomName()),
-      // Setup a link with a tag which is filtered by filter_xss_admin.
+      // Setup a link with a tag which is filtered by
+      // \Drupal\Component\Utility\Xss::filterAdmin().
       'link' => l('<object>Link</object>', 'node/2', array('html' => TRUE)),
     );
     foreach ($entries as $entry) {
@@ -87,7 +89,7 @@ class ViewsIntegrationTest extends ViewUnitTestBase {
       watchdog($entry['type'], $entry['message'], $entry['variables'], $entry['severity'], $entry['link']);
     }
 
-    $view = views_get_view('test_dblog');
+    $view = Views::getView('test_dblog');
     $this->executeView($view);
     $view->initStyle();
 

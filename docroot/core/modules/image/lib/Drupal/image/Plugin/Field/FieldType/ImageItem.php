@@ -7,8 +7,8 @@
 
 namespace Drupal\image\Plugin\Field\FieldType;
 
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 
 /**
@@ -18,50 +18,24 @@ use Drupal\file\Plugin\Field\FieldType\FileItem;
  *   id = "image",
  *   label = @Translation("Image"),
  *   description = @Translation("This field stores the ID of an image file as an integer value."),
- *   settings = {
- *     "uri_scheme" = "",
- *     "default_image" = {
- *       "fid" = NULL,
- *       "alt" = "",
- *       "title" = "",
- *       "width" = NULL,
- *       "height" = NULL
- *     },
- *     "column_groups" = {
- *       "file" = {
- *         "label" = @Translation("File"),
- *         "columns" = { "target_id", "width", "height" }
- *       },
- *       "alt" = {
- *         "label" = @Translation("Alt"),
- *         "translatable" = TRUE
- *       },
- *       "title" = {
- *         "label" = @Translation("Title"),
- *         "translatable" = TRUE
- *       }
- *     }
- *   },
- *   instance_settings = {
- *     "file_extensions" = "png gif jpg jpeg",
- *     "file_directory" = "",
- *     "max_filesize" = "",
- *     "alt_field" = "0",
- *     "alt_field_required" = "0",
- *     "title_field" = "0",
- *     "title_field_required" = "0",
- *     "max_resolution" = "",
- *     "min_resolution" = "",
- *     "default_image" = {
- *       "fid" = NULL,
- *       "alt" = "",
- *       "title" = "",
- *       "width" = NULL,
- *       "height" = NULL
- *     }
- *   },
  *   default_widget = "image_image",
  *   default_formatter = "image",
+ *   column_groups = {
+ *     "file" = {
+ *       "label" = @Translation("File"),
+ *       "columns" = {
+ *         "target_id", "width", "height"
+ *       }
+ *     },
+ *     "alt" = {
+ *       "label" = @Translation("Alt"),
+ *       "translatable" = TRUE
+ *     },
+ *     "title" = {
+ *       "label" = @Translation("Title"),
+ *       "translatable" = TRUE
+ *     },
+ *   },
  *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList"
  * )
  */
@@ -70,7 +44,47 @@ class ImageItem extends FileItem {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'default_image' => array(
+        'fid' => NULL,
+        'alt' => '',
+        'title' => '',
+        'width' => NULL,
+        'height' => NULL,
+      ),
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultInstanceSettings() {
+    $settings = array(
+      'file_extensions' => 'png gif jpg jpeg',
+      'alt_field' => 0,
+      'alt_field_required' => 0,
+      'title_field' => 0,
+      'title_field_required' => 0,
+      'max_resolution' => '',
+      'min_resolution' => '',
+      'default_image' => array(
+        'fid' => NULL,
+        'alt' => '',
+        'title' => '',
+        'width' => NULL,
+        'height' => NULL,
+      ),
+    ) + parent::defaultInstanceSettings();
+
+    unset($settings['description_field']);
+    return $settings;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'target_id' => array(
@@ -117,25 +131,22 @@ class ImageItem extends FileItem {
   /**
    * {@inheritdoc}
    */
-  public function getPropertyDefinitions() {
-    $this->definition->setSetting('target_type', 'file');
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
+    $properties = parent::propertyDefinitions($field_definition);
 
-    if (!isset(static::$propertyDefinitions)) {
-      static::$propertyDefinitions = parent::getPropertyDefinitions();
+    $properties['alt'] = DataDefinition::create('string')
+      ->setLabel(t("Alternative image text, for the image's 'alt' attribute."));
 
-      static::$propertyDefinitions['alt'] = DataDefinition::create('string')
-        ->setLabel(t("Alternative image text, for the image's 'alt' attribute."));
+    $properties['title'] = DataDefinition::create('string')
+      ->setLabel(t("Image title text, for the image's 'title' attribute."));
 
-      static::$propertyDefinitions['title'] = DataDefinition::create('string')
-        ->setLabel(t("Image title text, for the image's 'title' attribute."));
+    $properties['width'] = DataDefinition::create('integer')
+      ->setLabel(t('The width of the image in pixels.'));
 
-      static::$propertyDefinitions['width'] = DataDefinition::create('integer')
-        ->setLabel(t('The width of the image in pixels.'));
+    $properties['height'] = DataDefinition::create('integer')
+      ->setLabel(t('The height of the image in pixels.'));
 
-      static::$propertyDefinitions['height'] = DataDefinition::create('integer')
-        ->setLabel(t('The height of the image in pixels.'));
-    }
-    return static::$propertyDefinitions;
+    return $properties;
   }
 
   /**

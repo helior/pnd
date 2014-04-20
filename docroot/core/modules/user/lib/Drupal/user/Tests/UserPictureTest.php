@@ -65,11 +65,12 @@ class UserPictureTest extends WebTestBase {
     $this->drupalPostForm('user/' . $this->web_user->id() . '/edit', $edit, t('Remove'));
     $this->drupalPostForm(NULL, array(), t('Save'));
 
-    // Call system_cron() to clean up the file. Make sure the timestamp
-    // of the file is older than DRUPAL_MAXIMUM_TEMP_FILE_AGE.
+    // Call file_cron() to clean up the file. Make sure the timestamp
+    // of the file is older than the system.file.temporary_maximum_age
+    // configuration value.
     db_update('file_managed')
       ->fields(array(
-        'changed' => REQUEST_TIME - (DRUPAL_MAXIMUM_TEMP_FILE_AGE + 1),
+        'changed' => REQUEST_TIME - ($this->container->get('config.factory')->get('system.file')->get('temporary_maximum_age') + 1),
       ))
       ->condition('fid', $file->id())
       ->execute();
@@ -118,6 +119,7 @@ class UserPictureTest extends WebTestBase {
       ->set('features.node_user_picture', FALSE)
       ->set('features.comment_user_picture', FALSE)
       ->save();
+    \Drupal::entityManager()->getViewBuilder('comment')->resetCache();
 
     $this->drupalGet('node/' . $node->id());
     $this->assertNoRaw(file_uri_target($file->getFileUri()), 'User picture not found on node and comment.');

@@ -7,8 +7,10 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\filter\FilterFormatInterface;
@@ -95,56 +97,6 @@ function filter_element_info() {
 }
 
 /**
- * Implements hook_menu().
- */
-function filter_menu() {
-  $items['filter/tips'] = array(
-    'title' => 'Compose tips',
-    'type' => MENU_SUGGESTED_ITEM,
-    'route_name' => 'filter.tips_all',
-  );
-  $items['filter/tips/%'] = array(
-    'title' => 'Compose tips',
-    'route_name' => 'filter.tips',
-  );
-  $items['admin/config/content/formats'] = array(
-    'title' => 'Text formats',
-    'description' => 'Configure how content input by users is filtered, including allowed HTML tags. Also allows enabling of module-provided filters.',
-    'route_name' => 'filter.admin_overview',
-  );
-  $items['admin/config/content/formats/manage/%'] = array(
-    'title callback' => 'entity_page_label',
-    'title arguments' => array(5),
-    'route_name' => 'filter.format_edit',
-  );
-  $items['admin/config/content/formats/manage/%/disable'] = array(
-    'title' => 'Disable text format',
-    'route_name' => 'filter.admin_disable',
-  );
-  return $items;
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function filter_menu_link_defaults() {
-  $links['filter.tips'] = array(
-    'link_title' => 'Compose tips',
-    'type' => MENU_SUGGESTED_ITEM,
-    'route_name' => 'filter.tips_all',
-  );
-
-  $links['filter.admin.formats'] = array(
-    'link_title' => 'Text formats',
-    'parent' => 'system.admin.config.content',
-    'description' => 'Configure how content input by users is filtered, including allowed HTML tags. Also allows enabling of module-provided filters.',
-    'route_name' => 'filter.admin_overview',
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_permission().
  */
 function filter_permission() {
@@ -194,7 +146,7 @@ function filter_formats(AccountInterface $account = NULL) {
       $formats['all'] = $cache->data;
     }
     else {
-      $formats['all'] = \Drupal::entityManager()->getStorageController('filter_format')->loadByProperties(array('status' => TRUE));
+      $formats['all'] = \Drupal::entityManager()->getStorage('filter_format')->loadByProperties(array('status' => TRUE));
       uasort($formats['all'], 'Drupal\Core\Config\Entity\ConfigEntityBase::sort');
       \Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], Cache::PERMANENT, array('filter_formats' => TRUE));
     }
@@ -210,7 +162,7 @@ function filter_formats(AccountInterface $account = NULL) {
   if (!isset($formats['user'][$account_id])) {
     $formats['user'][$account_id] = array();
     foreach ($formats['all'] as $format) {
-      if ($format->access('view', $account)) {
+      if ($format->access('use', $account)) {
         $formats['user'][$account_id][$format->format] = $format;
       }
     }
@@ -225,7 +177,6 @@ function filter_formats(AccountInterface $account = NULL) {
  * @see filter_formats()
  */
 function filter_formats_reset() {
-  Cache::deleteTags(array('filter_formats' => TRUE));
   drupal_static_reset('filter_formats');
 }
 
@@ -374,8 +325,8 @@ function filter_format_allowcache($format_id) {
  * @param $text
  *   The text to be filtered.
  * @param $format_id
- *   (optional) The format ID of the text to be filtered. If no format is
- *   assigned, the fallback format will be used. Defaults to NULL.
+ *   (optional) The machine name of the filter format to be used to filter the
+ *   text. Defaults to the fallback format. See filter_fallback_format().
  * @param $langcode
  *   (optional) The language code of the text to be filtered, e.g. 'en' for
  *   English. This allows filters to be language aware so language specific
@@ -421,7 +372,7 @@ function check_markup($text, $format_id = NULL, $langcode = '', $cache = FALSE, 
   $cache_id = '';
   if ($cache) {
     $cache_id = $format->format . ':' . $langcode . ':' . hash('sha256', $text);
-    if ($cached = cache('filter')->get($cache_id)) {
+    if ($cached = \Drupal::cache('filter')->get($cache_id)) {
       return $cached->data;
     }
   }
@@ -460,7 +411,7 @@ function check_markup($text, $format_id = NULL, $langcode = '', $cache = FALSE, 
   // automatically flushed when the text format is updated.
   // @see \Drupal\filter\Entity\FilterFormat::save()
   if ($cache) {
-    cache('filter')->set($cache_id, $text, Cache::PERMANENT, array('filter_format' => $format->id()));
+    \Drupal::cache('filter')->set($cache_id, $text, Cache::PERMANENT, array('filter_format' => $format->id()));
   }
 
   return $text;
@@ -496,7 +447,7 @@ function check_markup($text, $format_id = NULL, $langcode = '', $cache = FALSE, 
  *   The expanded element.
  */
 function filter_process_format($element) {
-  global $user;
+  $user = \Drupal::currentUser();
 
   // Ensure that children appear as subkeys of this element.
   $element['#tree'] = TRUE;
@@ -521,7 +472,7 @@ function filter_process_format($element) {
   );
   // Move this element into sub-element 'value'.
   unset($element['value']);
-  foreach (element_properties($element) as $key) {
+  foreach (Element::properties($element) as $key) {
     if (!in_array($key, $blacklist)) {
       $element['value'][$key] = $element[$key];
     }
@@ -531,7 +482,7 @@ function filter_process_format($element) {
   $element['value'] += element_info($element['#base_type']);
 
   // Turn original element into a text format wrapper.
-  $element['#attached']['library'][] = array('filter', 'drupal.filter');
+  $element['#attached']['library'][] = 'filter/drupal.filter';
 
   // Setup child container for the text format widget.
   $element['format'] = array(
@@ -626,7 +577,7 @@ function filter_process_format($element) {
 
     // Hide the text format selector and any other child element (such as text
     // field's summary).
-    foreach (element_children($element) as $key) {
+    foreach (Element::children($element) as $key) {
       if ($key != 'value') {
         $element[$key]['#access'] = FALSE;
       }
@@ -669,9 +620,7 @@ function filter_form_access_denied($element) {
  *   - id: Filter ID.
  */
 function _filter_tips($format_id, $long = FALSE) {
-  global $user;
-
-  $formats = filter_formats($user);
+  $formats = filter_formats(\Drupal::currentUser());
 
   $tips = array();
 
@@ -779,7 +728,7 @@ function template_preprocess_filter_tips(&$variables) {
  */
 function _filter_html($text, $filter) {
   $allowed_tags = preg_split('/\s+|<|>/', $filter->settings['allowed_html'], -1, PREG_SPLIT_NO_EMPTY);
-  $text = filter_xss($text, $allowed_tags);
+  $text = Xss::filter($text, $allowed_tags);
 
   if ($filter->settings['filter_html_nofollow']) {
     $html_dom = Html::load($text);
@@ -823,7 +772,7 @@ function _filter_url($text, $filter) {
   // the identical list. While '//' is technically optional for MAILTO only,
   // we cannot cleanly differ between protocols here without hard-coding MAILTO,
   // so '//' is optional for all protocols.
-  // @see filter_xss_bad_protocol()
+  // @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
   $protocols = \Drupal::config('system.filter')->get('protocols');
   $protocols = implode(':(?://)?|', $protocols) . ':(?://)?';
 
@@ -1176,65 +1125,5 @@ function filter_filter_secure_image_alter(&$image) {
  * Implements hook_page_build().
  */
 function filter_page_build(&$page) {
-  $page['#attached']['library'][] = array('filter', 'caption');
-}
-
-/**
- * Implements hook_library_info().
- */
-function filter_library_info() {
-  $path = drupal_get_path('module', 'filter');
-
-  $libraries['drupal.filter.admin'] = array(
-    'title' => 'Filter',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      $path . '/filter.admin.js' => array(),
-    ),
-    'css' => array(
-      $path . '/css/filter.admin.css'
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'jquery.once'),
-      array('system', 'drupal.form'),
-    ),
-  );
-  $libraries['drupal.filter.filter_html.admin'] = array(
-    'title' => 'Automatic "Limit allowed HTML tags" filter setting updating.',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      $path . '/filter.filter_html.admin.js' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'jquery.once'),
-      array('system', 'underscore'),
-    ),
-  );
-  $libraries['drupal.filter'] = array(
-    'title' => 'Filter',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      $path . '/filter.js' => array(),
-    ),
-    'css' => array(
-      $path . '/css/filter.admin.css'
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'jquery.once'),
-    ),
-  );
-  $libraries['caption'] = array(
-    'title' => 'Captions for images and alignments',
-    'version' => \Drupal::VERSION,
-    'css' => array(
-      $path . '/css/filter.caption.css',
-    ),
-  );
-
-  return $libraries;
+  $page['#attached']['library'][] = 'filter/caption';
 }

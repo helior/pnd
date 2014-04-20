@@ -7,10 +7,14 @@
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\TypedData\TranslatableInterface;
 use Drupal\entity\Entity\EntityViewDisplay;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -43,12 +47,9 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
   /**
    * The cache bin used to store the render cache.
    *
-   * @todo Defaults to 'cache' for now, until http://drupal.org/node/1194136 is
-   * fixed.
-   *
    * @var string
    */
-  protected $cacheBin = 'cache';
+  protected $cacheBin = 'render';
 
   /**
    * The language manager.
@@ -113,7 +114,7 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
     }
 
     // Invoke hook_entity_prepare_view().
-    module_invoke_all('entity_prepare_view', $this->entityTypeId, $entities, $displays, $view_mode);
+    \Drupal::moduleHandler()->invokeAll('entity_prepare_view', array($this->entityTypeId, $entities, $displays, $view_mode));
 
     // Let the displays build their render arrays.
     foreach ($entities_by_bundle as $bundle => $bundle_entities) {
@@ -143,20 +144,29 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
       "#{$this->entityTypeId}" => $entity,
       '#view_mode' => $view_mode,
       '#langcode' => $langcode,
+      '#cache' => array(
+        'tags' =>  NestedArray::mergeDeep($this->getCacheTag(), $entity->getCacheTag()),
+      ),
     );
 
     // Cache the rendered output if permitted by the view mode and global entity
     // type configuration.
-    if ($this->isViewModeCacheable($view_mode) && !$entity->isNew() && !isset($entity->in_preview) && $this->entityType->isRenderCacheable()) {
-      $return['#cache'] = array(
-        'keys' => array('entity_view', $this->entityTypeId, $entity->id(), $view_mode),
-        'granularity' => DRUPAL_CACHE_PER_ROLE,
-        'bin' => $this->cacheBin,
-        'tags' => array(
-          $this->entityTypeId . '_view' => TRUE,
-          $this->entityTypeId => array($entity->id()),
+    if ($this->isViewModeCacheable($view_mode) && !$entity->isNew() && $entity->isDefaultRevision() && $this->entityType->isRenderCacheable()) {
+      $return['#cache'] += array(
+        'keys' => array(
+          'entity_view',
+          $this->entityTypeId,
+          $entity->id(),
+          $view_mode,
+          'cache_context.theme',
+          'cache_context.user.roles',
         ),
+        'bin' => $this->cacheBin,
       );
+
+      if ($entity instanceof TranslatableInterface && count($entity->getTranslationLanguages()) > 1) {
+        $return['#cache']['keys'][] = $langcode;
+      }
     }
 
     return $return;
@@ -209,7 +219,7 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
 
       // Allow modules to change the view mode.
       $entity_view_mode = $view_mode;
-      drupal_alter('entity_view_mode', $entity_view_mode, $entity, $context);
+      $this->moduleHandler->alter('entity_view_mode', $entity_view_mode, $entity, $context);
       // Store entities for rendering by view_mode.
       $view_modes[$entity_view_mode][$entity->id()] = $entity;
     }
@@ -225,8 +235,8 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
     foreach ($entities as $key => $entity) {
       $entity_view_mode = isset($entity->content['#view_mode']) ? $entity->content['#view_mode'] : $view_mode;
       $display = $displays[$entity_view_mode][$entity->bundle()];
-      module_invoke_all($view_hook, $entity, $display, $entity_view_mode, $langcode);
-      module_invoke_all('entity_view', $entity, $display, $entity_view_mode, $langcode);
+      \Drupal::moduleHandler()->invokeAll($view_hook, array($entity, $display, $entity_view_mode, $langcode));
+      \Drupal::moduleHandler()->invokeAll('entity_view', array($entity, $display, $entity_view_mode, $langcode));
 
       $build[$key] = $entity->content;
       // We don't need duplicate rendering info in $entity->content.
@@ -248,7 +258,7 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
       $build[$key]['#weight'] = $weight++;
 
       // Allow modules to modify the render array.
-      drupal_alter(array($view_hook, 'entity_view'), $build[$key], $entity, $display);
+      $this->moduleHandler->alter(array($view_hook, 'entity_view'), $build[$key], $entity, $display);
     }
 
     return $build;
@@ -259,20 +269,80 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
    */
   public function resetCache(array $entities = NULL) {
     if (isset($entities)) {
-      $tags = array();
+      // Always invalidate the ENTITY_TYPE_list tag.
+      $tags = array($this->entityTypeId . '_list' => TRUE);
       foreach ($entities as $entity) {
-        $id = $entity->id();
-        $tags[$this->entityTypeId][$id] = $id;
-        $tags[$this->entityTypeId . '_view_' . $entity->bundle()] = TRUE;
+        $tags = NestedArray::mergeDeep($tags, $entity->getCacheTag());
       }
-      Cache::deleteTags($tags);
+      Cache::invalidateTags($tags);
     }
     else {
-      Cache::deleteTags(array($this->entityTypeId . '_view' => TRUE));
+      Cache::invalidateTags($this->getCacheTag());
     }
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function viewField(FieldItemListInterface $items, $display_options = array()) {
+    $output = array();
+    $entity = $items->getEntity();
+    $field_name = $items->getFieldDefinition()->getName();
+
+    // Get the display object.
+    if (is_string($display_options)) {
+      $view_mode = $display_options;
+      $display = EntityViewDisplay::collectRenderDisplay($entity, $view_mode);
+      foreach ($entity as $name => $items) {
+        if ($name != $field_name) {
+          $display->removeComponent($name);
+        }
+      }
+    }
+    else {
+      $view_mode = '_custom';
+      $display = entity_create('entity_view_display', array(
+        'targetEntityType' => $entity->getEntityTypeId(),
+        'bundle' => $entity->bundle(),
+        'mode' => $view_mode,
+        'status' => TRUE,
+      ));
+      $display->setComponent($field_name, $display_options);
+    }
+
+    $build = $display->build($entity);
+    if (isset($build[$field_name])) {
+      $output = $build[$field_name];
+    }
+
+    return $output;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function viewFieldItem(FieldItemInterface $item, $display = array()) {
+    $entity = $item->getEntity();
+    $field_name = $item->getFieldDefinition()->getName();
+
+    // Clone the entity since we are going to modify field values.
+    $clone = clone $entity;
+
+    // Push the item as the single value for the field, and defer to viewField()
+    // to build the render array for the whole list.
+    $clone->{$field_name}->setValue(array($item->getValue()));
+    $elements = $this->viewField($clone->{$field_name}, $display);
+
+    // Extract the part of the render array we need.
+    $output = isset($elements[0]) ? $elements[0] : array();
+    if (isset($elements['#access'])) {
+      $output['#access'] = $elements['#access'];
+    }
+
+    return $output;
+  }
+
+  /*
    * Returns TRUE if the view mode is cacheable.
    *
    * @param string $view_mode
@@ -286,8 +356,15 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
       // The 'default' is not an actual view mode.
       return TRUE;
     }
-    $view_modes_info = entity_get_view_modes($this->entityTypeId);
+    $view_modes_info = $this->entityManager->getViewModes($this->entityTypeId);
     return !empty($view_modes_info[$view_mode]['cache']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTag() {
+    return array($this->entityTypeId . '_view' => TRUE);
   }
 
 }

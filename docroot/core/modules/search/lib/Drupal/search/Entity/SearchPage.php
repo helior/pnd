@@ -8,7 +8,9 @@
 namespace Drupal\search\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\search\Plugin\SearchIndexingInterface;
 use Drupal\search\Plugin\SearchPluginBag;
@@ -22,8 +24,8 @@ use Drupal\search\SearchPageInterface;
  *   label = @Translation("Search page"),
  *   controllers = {
  *     "access" = "Drupal\search\SearchPageAccessController",
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
- *     "list" = "Drupal\search\SearchPageListController",
+ *     "storage" = "Drupal\Core\Config\Entity\ConfigEntityStorage",
+ *     "list_builder" = "Drupal\search\SearchPageListBuilder",
  *     "form" = {
  *       "add" = "Drupal\search\Form\SearchPageAddForm",
  *       "edit" = "Drupal\search\Form\SearchPageEditForm",
@@ -39,17 +41,16 @@ use Drupal\search\SearchPageInterface;
  *     "disable" = "search.disable",
  *     "set-default" = "search.set_default"
  *   },
- *   config_prefix = "search.page",
+ *   config_prefix = "page",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "uuid" = "uuid",
  *     "weight" = "weight",
  *     "status" = "status"
  *   }
  * )
  */
-class SearchPage extends ConfigEntityBase implements SearchPageInterface {
+class SearchPage extends ConfigEntityBase implements SearchPageInterface, EntityWithPluginBagInterface {
 
   /**
    * The name (plugin ID) of the search page entity.
@@ -64,13 +65,6 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
    * @var string
    */
   public $label;
-
-  /**
-   * The UUID of the search page entity.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The configuration of the search page entity.
@@ -112,17 +106,23 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $values, $entity_type) {
-    parent::__construct($values, $entity_type);
-
-    $this->pluginBag = new SearchPluginBag($this->searchPluginManager(), array($this->plugin), $this->configuration, $this->id());
-  }
+  protected $pluginConfigKey = 'configuration';
 
   /**
    * {@inheritdoc}
    */
   public function getPlugin() {
-    return $this->pluginBag->get($this->plugin);
+    return $this->getPluginBag()->get($this->plugin);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPluginBag() {
+    if (!$this->pluginBag) {
+      $this->pluginBag = new SearchPluginBag($this->searchPluginManager(), $this->plugin, $this->configuration, $this->id());
+    }
+    return $this->pluginBag;
   }
 
   /**
@@ -130,7 +130,7 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
    */
   public function setPlugin($plugin_id) {
     $this->plugin = $plugin_id;
-    $this->pluginBag->addInstanceID($plugin_id);
+    $this->getPluginBag()->addInstanceID($plugin_id);
   }
 
   /**
@@ -164,8 +164,8 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
   /**
    * {@inheritdoc}
    */
-  public function getExportProperties() {
-    $properties = parent::getExportProperties();
+  public function toArray() {
+    $properties = parent::toArray();
     $names = array(
       'path',
       'weight',
@@ -181,8 +181,8 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
   /**
    * {@inheritdoc}
    */
-  public function postCreate(EntityStorageControllerInterface $storage_controller) {
-    parent::postCreate($storage_controller);
+  public function postCreate(EntityStorageInterface $storage) {
+    parent::postCreate($storage);
 
     // @todo Use self::applyDefaultValue() once https://drupal.org/node/2004756
     //   is in.
@@ -194,29 +194,16 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    $plugin = $this->getPlugin();
-    // If this plugin has any configuration, ensure that it is set.
-    if ($plugin instanceof ConfigurablePluginInterface) {
-      $this->set('configuration', $plugin->getConfiguration());
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
     $this->routeBuilder()->setRebuildNeeded();
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
 
     $search_page_repository = \Drupal::service('search.search_page_repository');
     if (!$search_page_repository->isSearchActive()) {
@@ -227,7 +214,7 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
   /**
    * {@inheritdoc}
    */
-  public static function sort($a, $b) {
+  public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
     /** @var $a \Drupal\search\SearchPageInterface */
     /** @var $b \Drupal\search\SearchPageInterface */
     $a_status = (int) $a->status();

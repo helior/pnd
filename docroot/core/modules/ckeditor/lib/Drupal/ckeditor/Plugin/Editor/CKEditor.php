@@ -12,6 +12,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\ckeditor\CKEditorPluginManager;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Render\Element;
 use Drupal\editor\Plugin\EditorBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\editor\Entity\Editor as EditorEntity;
@@ -58,7 +59,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\ckeditor\CKEditorPluginManager $ckeditor_plugin_manager
    *   The CKEditor plugin manager.
@@ -67,7 +68,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    * @param \Drupal\Core\Language\LanguageManager $language_manager
    *   The language manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->ckeditorPluginManager = $ckeditor_plugin_manager;
     $this->moduleHandler = $module_handler;
@@ -77,7 +78,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -136,7 +137,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     $form['toolbar'] = array(
       '#type' => 'container',
       '#attached' => array(
-        'library' => array(array('ckeditor', 'drupal.ckeditor.admin')),
+        'library' => array('ckeditor/drupal.ckeditor.admin'),
         'js' => array(
           array(
             'type' => 'setting',
@@ -165,7 +166,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       ),
     );
     $this->ckeditorPluginManager->injectPluginSettingsForm($form, $form_state, $editor);
-    if (count(element_children($form['plugins'])) === 0) {
+    if (count(Element::children($form['plugins'])) === 0) {
       unset($form['plugins']);
       unset($form['plugin_settings']);
     }
@@ -313,7 +314,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     // be expensive to calculate all the time. The cache is cleared on core
     // upgrades which is the only situation the CKEditor file listing should
     // change.
-    $langcode_cache = cache('ckeditor.languages')->get('langcodes');
+    $langcode_cache = \Drupal::cache()->get('ckeditor.langcodes');
     if (!empty($langcode_cache)) {
       $langcodes = $langcode_cache->data;
     }
@@ -325,7 +326,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
         $langcode = $language_file->getBasename('.js');
         $langcodes[$langcode] = $langcode;
       }
-      cache('ckeditor.languages')->set('langcodes', $langcodes);
+      \Drupal::cache()->set('ckeditor.langcodes', $langcodes);
     }
 
     // Get language mapping if available to map to Drupal language codes.
@@ -353,16 +354,14 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    */
   public function getLibraries(EditorEntity $editor) {
     $libraries = array(
-      array('ckeditor', 'drupal.ckeditor'),
+      'ckeditor/drupal.ckeditor',
     );
 
     // Get the required libraries for any enabled plugins.
     $enabled_plugins = array_keys($this->ckeditorPluginManager->getEnabledPluginFiles($editor));
     foreach ($enabled_plugins as $plugin_id) {
       $plugin = $this->ckeditorPluginManager->createInstance($plugin_id);
-      $additional_libraries = array_udiff($plugin->getLibraries($editor), $libraries, function($a, $b) {
-        return $a[0] === $b[0] && $a[1] === $b[1] ? 0 : 1;
-      });
+      $additional_libraries = array_diff($plugin->getLibraries($editor), $libraries);
       $libraries = array_merge($libraries, $additional_libraries);
     }
 
@@ -405,7 +404,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       drupal_get_path('module', 'ckeditor') . '/css/ckeditor-iframe.css',
       drupal_get_path('module', 'system') . '/css/system.module.css',
     );
-    drupal_alter('ckeditor_css', $css, $editor);
+    $this->moduleHandler->alter('ckeditor_css', $css, $editor);
     $css = array_merge($css, _ckeditor_theme_css());
     $css = array_map('file_create_url', $css);
 

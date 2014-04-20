@@ -7,12 +7,11 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
-use Drupal\field\Entity\Field;
-use Drupal\field\Entity\FieldInstance;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\file\Entity\File;
-use Drupal\image\Entity\ImageStyle;
-use Drupal\field\FieldInterface;
-use Drupal\field\FieldInstanceInterface;
+use Drupal\field\FieldConfigInterface;
+use Drupal\field\FieldInstanceConfigInterface;
 
 /**
  * Image style constant for user presets in the database.
@@ -82,55 +81,6 @@ function image_help($path, $arg) {
       $effect_definition = $effect->getPluginDefinition();
       return isset($effect_definition['description']) ? ('<p>' . $effect_definition['description'] . '</p>') : NULL;
   }
-}
-
-/**
- * Implements hook_menu().
- */
-function image_menu() {
-  $items = array();
-
-  $items['admin/config/media/image-styles'] = array(
-    'title' => 'Image styles',
-    'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
-    'route_name' => 'image.style_list',
-  );
-  $items['admin/config/media/image-styles/manage/%image_style'] = array(
-    'title' => 'Edit style',
-    'description' => 'Configure an image style.',
-    'route_name' => 'image.style_edit',
-  );
-  $items['admin/config/media/image-styles/manage/%/effects/%'] = array(
-    'title' => 'Edit image effect',
-    'description' => 'Edit an existing effect within a style.',
-    'route_name' => 'image.effect_edit_form',
-  );
-  $items['admin/config/media/image-styles/manage/%image_style/effects/%/delete'] = array(
-    'title' => 'Delete image effect',
-    'description' => 'Delete an existing effect from a style.',
-    'route_name' => 'image.effect_delete',
-  );
-  $items['admin/config/media/image-styles/manage/%/add/%'] = array(
-    'title' => 'Add image effect',
-    'description' => 'Add a new effect to a style.',
-    'route_name' => 'image.effect_add_form',
-  );
-
-  return $items;
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function image_menu_link_defaults() {
-  $links['image.admin.media.image-styles'] = array(
-    'link_title' => 'Image styles',
-    'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
-    'parent' => 'system.admin.config.media',
-    'route_name' => 'image.style_list',
-  );
-
-  return $links;
 }
 
 /**
@@ -423,14 +373,21 @@ function image_filter_keyword($value, $current_pixels, $new_pixels) {
  */
 function image_entity_presave(EntityInterface $entity) {
   $field = FALSE;
-  if ($entity instanceof FieldInstance) {
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_id == 'field_instance_config') {
     $field = $entity->getField();
+    $default_settings = \Drupal::service('plugin.manager.field.field_type')->getDefaultInstanceSettings('image');
   }
-  elseif ($entity instanceof Field) {
+  elseif ($entity_type_id == 'field_config') {
     $field = $entity;
+    $default_settings = \Drupal::service('plugin.manager.field.field_type')->getDefaultSettings('image');
   }
   // Exit, if not saving an image field or image field instance entity.
   if (!$field || $field->type != 'image') {
+    return;
+  }
+
+  if ($field->isSyncing()) {
     return;
   }
 
@@ -438,26 +395,25 @@ function image_entity_presave(EntityInterface $entity) {
   if ($fid) {
     $original_fid = isset($entity->original) ? $entity->original->settings['default_image']['fid'] : NULL;
     if ($fid != $original_fid) {
-      $image = \Drupal::service('image.factory')->get(file_load($fid)->getFileUri());
-      $entity->settings['default_image']['width'] = $image->getWidth();
-      $entity->settings['default_image']['height'] = $image->getHeight();
+      $file = file_load($fid);
+      if ($file) {
+        $image = \Drupal::service('image.factory')->get($file->getFileUri());
+        $entity->settings['default_image']['width'] = $image->getWidth();
+        $entity->settings['default_image']['height'] = $image->getHeight();
+      }
+      else {
+        $entity->settings['default_image']['fid'] = NULL;
+      }
     }
   }
-  else {
-    $entity->settings['default_image'] = array(
-      'fid' => NULL,
-      'alt' => '',
-      'title' => '',
-      'width' => NULL,
-      'height' => NULL,
-    );
-  }
+
+  $entity->settings['default_image'] += $default_settings['default_image'];
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'field_entity'.
+ * Implements hook_ENTITY_TYPE_update() for 'field_config'.
  */
-function image_field_entity_update(FieldInterface $field) {
+function image_field_config_update(FieldConfigInterface $field) {
   if ($field->type != 'image') {
     // Only act on image fields.
     return;
@@ -495,9 +451,9 @@ function image_field_entity_update(FieldInterface $field) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'field_instance'.
+ * Implements hook_ENTITY_TYPE_update() for 'field_instance_config'.
  */
-function image_field_instance_update(FieldInstanceInterface $field_instance) {
+function image_field_instance_config_update(FieldInstanceConfigInterface $field_instance) {
   $field = $field_instance->getField();
   if ($field->type != 'image') {
     // Only act on image fields.
@@ -533,9 +489,9 @@ function image_field_instance_update(FieldInstanceInterface $field_instance) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_entity'.
+ * Implements hook_ENTITY_TYPE_delete() for 'field_config'.
  */
-function image_field_entity_delete(FieldInterface $field) {
+function image_field_config_delete(FieldConfigInterface $field) {
   if ($field->type != 'image') {
     // Only act on image fields.
     return;
@@ -549,9 +505,9 @@ function image_field_entity_delete(FieldInterface $field) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_instance'.
+ * Implements hook_ENTITY_TYPE_delete() for 'field_instance_config'.
  */
-function image_field_instance_delete(FieldInstanceInterface $field_instance) {
+function image_field_instance_config_delete(FieldInstanceConfigInterface $field_instance) {
   $field = $field_instance->getField();
   if ($field->type != 'image') {
     // Only act on image fields.

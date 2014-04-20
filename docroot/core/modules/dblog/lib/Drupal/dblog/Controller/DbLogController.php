@@ -181,7 +181,7 @@ class DbLogController extends ControllerBase {
         }
         if (isset($dblog->wid)) {
           // Truncate link_text to 56 chars of message.
-          $log_text = Unicode::truncate(filter_xss($message, array()), 56, TRUE, TRUE);
+          $log_text = Unicode::truncate(Xss::filter($message, array()), 56, TRUE, TRUE);
           $message = $this->l($log_text, 'dblog.event',  array('event_id' => $dblog->wid), array('html' => TRUE));
         }
       }
@@ -205,7 +205,7 @@ class DbLogController extends ControllerBase {
     }
 
     $build['dblog_table'] = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#attributes' => array('id' => 'admin-dblog', 'class' => array('admin-dblog')),
@@ -280,7 +280,7 @@ class DbLogController extends ControllerBase {
         ),
       );
       $build['dblog_table'] = array(
-        '#theme' => 'table',
+        '#type' => 'table',
         '#rows' => $rows,
         '#attributes' => array('class' => array('dblog-event')),
       );
@@ -379,7 +379,7 @@ class DbLogController extends ControllerBase {
     }
 
     $build['dblog_top_table']  = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#empty' => $this->t('No log messages available.'),

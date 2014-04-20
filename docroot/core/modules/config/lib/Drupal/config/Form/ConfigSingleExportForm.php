@@ -7,7 +7,7 @@
 
 namespace Drupal\config\Form;
 
-use Drupal\Component\Utility\MapArray;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -75,7 +75,7 @@ class ConfigSingleExportForm extends FormBase {
    */
   public function buildForm(array $form, array &$form_state, $config_type = NULL, $config_name = NULL) {
     foreach ($this->entityManager->getDefinitions() as $entity_type => $definition) {
-      if ($definition->getConfigPrefix() && $definition->hasKey('uuid')) {
+      if ($definition->isSubclassOf('Drupal\Core\Config\Entity\ConfigEntityInterface')) {
         $this->definitions[$entity_type] = $definition;
       }
     }
@@ -152,8 +152,7 @@ class ConfigSingleExportForm extends FormBase {
       $name = $form_state['values']['config_name'];
     }
     // Read the raw data for this config name, encode it, and display it.
-    $data = $this->configStorage->read($name);
-    $form['export']['#value'] = $this->configStorage->encode($data);
+    $form['export']['#value'] = Yaml::encode($this->configStorage->read($name));
     $form['export']['#description'] = $this->t('The filename is %name.', array('%name' => $name . '.yml'));
     return $form['export'];
   }
@@ -167,7 +166,7 @@ class ConfigSingleExportForm extends FormBase {
     );
     // For a given entity type, load all entities.
     if ($config_type && $config_type !== 'system.simple') {
-      $entity_storage = $this->entityManager->getStorageController($config_type);
+      $entity_storage = $this->entityManager->getStorage($config_type);
       foreach ($entity_storage->loadMultiple() as $entity) {
         $entity_id = $entity->id();
         $label = $entity->label() ?: $entity_id;
@@ -182,7 +181,8 @@ class ConfigSingleExportForm extends FormBase {
       }, $this->definitions);
 
       // Find all config, and then filter our anything matching a config prefix.
-      $names = MapArray::copyValuesToKeys($this->configStorage->listAll());
+      $names = $this->configStorage->listAll();
+      $names = array_combine($names, $names);
       foreach ($names as $config_name) {
         foreach ($config_prefixes as $config_prefix) {
           if (strpos($config_name, $config_prefix) === 0) {

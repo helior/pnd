@@ -7,12 +7,12 @@
 
 namespace Drupal\system\Tests\Installer;
 
-use Drupal\system\Tests\InstallerTest;
+use Drupal\simpletest\InstallerTestBase;
 
 /**
  * Tests the installer translation detection.
  */
-class InstallerTranslationTest extends InstallerTest {
+class InstallerTranslationTest extends InstallerTestBase {
 
   /**
    * Overrides the language code in which to install Drupal.
@@ -47,16 +47,15 @@ class InstallerTranslationTest extends InstallerTest {
   }
 
   /**
-   * Overrides InstallerTest::setUpConfirm().
+   * Verifies that installation succeeded.
    */
-  protected function setUpConfirm() {
-    // We don't know the translated link text of "Visit your new site", but
-    // luckily, there is only one link.
-    $elements = $this->xpath('//a');
-    $string = (string) current($elements);
-    $this->assertNotEqual($string, 'Visit your new site');
-    $this->translations['Visit your new site'] = $string;
-    parent::setUpConfirm();
+  public function testInstaller() {
+    $this->assertUrl('user/1');
+    $this->assertResponse(200);
+
+    // Ensure that we can enable basic_auth on a non-english site.
+    $this->drupalPostForm('admin/modules', array('modules[Web services][basic_auth][enable]' => TRUE), t('Save configuration'));
+    $this->assertResponse(200);
   }
 
 }

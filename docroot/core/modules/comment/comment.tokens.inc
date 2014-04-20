@@ -5,6 +5,8 @@
  * Builds placeholder replacement tokens for comment-related data.
  */
 
+use Drupal\Component\Utility\Xss;
+
 /**
  * Implements hook_token_info().
  */
@@ -142,11 +144,6 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
           $replacements[$original] = $sanitize ? check_plain($comment->getHostname()) : $comment->getHostname();
           break;
 
-        case 'name':
-          $name = ($comment->getOwnerId() == 0) ? \Drupal::config('user.settings')->get('anonymous') : $comment->getAuthorName();
-          $replacements[$original] = $sanitize ? filter_xss($name) : $name;
-          break;
-
         case 'mail':
           $mail = $comment->getAuthorEmail();
           $replacements[$original] = $sanitize ? check_plain($mail) : $mail;
@@ -157,7 +154,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
           break;
 
         case 'title':
-          $replacements[$original] = $sanitize ? filter_xss($comment->getSubject()) : $comment->getSubject();
+          $replacements[$original] = $sanitize ? Xss::filter($comment->getSubject()) : $comment->getSubject();
           break;
 
         case 'body':
@@ -180,13 +177,13 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
         case 'name':
         case 'author':
           $name = $comment->getAuthorName();
-          $replacements[$original] = $sanitize ? filter_xss($name) : $name;
+          $replacements[$original] = $sanitize ? Xss::filter($name) : $name;
           break;
 
         case 'parent':
           if ($comment->hasParentComment()) {
             $parent = $comment->getParentComment();
-            $replacements[$original] = $sanitize ? filter_xss($parent->getSubject()) : $parent->getSubject();
+            $replacements[$original] = $sanitize ? Xss::filter($parent->getSubject()) : $parent->getSubject();
           }
           break;
 
@@ -201,7 +198,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
         case 'entity':
           $entity = $comment->getCommentedEntity();
           $title = $entity->label();
-          $replacements[$original] = $sanitize ? filter_xss($title) : $title;
+          $replacements[$original] = $sanitize ? Xss::filter($title) : $title;
           break;
 
         case 'node':
@@ -211,7 +208,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
           if ($comment->getCommentedEntityTypeId() == 'node') {
             $entity = $comment->getCommentedEntity();
             $title = $entity->label();
-            $replacements[$original] = $sanitize ? filter_xss($title) : $title;
+            $replacements[$original] = $sanitize ? Xss::filter($title) : $title;
           }
           else {
             $replacements[$original] = NULL;
@@ -257,7 +254,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
         case 'comment-count':
           $count = 0;
           $fields = array_keys(\Drupal::service('comment.manager')->getFields($entity->getEntityTypeId()));
-          $definitions = array_keys($entity->getPropertyDefinitions());
+          $definitions = array_keys($entity->getFieldDefinitions());
           $valid_fields = array_intersect($fields, $definitions);
           foreach ($valid_fields as $field_name) {
             $count += $entity->get($field_name)->comment_count;

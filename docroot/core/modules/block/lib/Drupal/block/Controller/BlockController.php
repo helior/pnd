@@ -36,12 +36,12 @@ class BlockController extends ControllerBase {
             // page by path_is_admin() function in order to use the frontend
             // theme. Since JavaScript relies on a proper separation of admin
             // pages, it needs to know this is an actual administrative page.
-            'data' => array('currentPathIsAdmin' => TRUE),
+            'data' => array('path' => array('currentPathIsAdmin' => TRUE)),
             'type' => 'setting',
           )
         ),
         'library' => array(
-          array('block', 'drupal.block.admin'),
+          'block/drupal.block.admin',
         ),
       ),
     );

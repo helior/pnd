@@ -11,6 +11,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Render\Element;
 use Drupal\field\Field;
 
 /**
@@ -21,13 +22,19 @@ use Drupal\field\Field;
  *   label = @Translation("File"),
  *   field_types = {
  *     "file"
- *   },
- *   settings = {
- *     "progress_indicator" = "throbber"
  *   }
  * )
  */
 class FileWidget extends WidgetBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultSettings() {
+    return array(
+      'progress_indicator' => 'throbber',
+    ) + parent::defaultSettings();
+  }
 
   /**
    * {@inheritdoc}
@@ -145,6 +152,7 @@ class FileWidget extends WidgetBase {
       // building up the full list (like draggable table rows).
       $elements['#file_upload_delta'] = $delta;
       $elements['#type'] = 'details';
+      $elements['#open'] = TRUE;
       $elements['#theme'] = 'file_widget_multiple';
       $elements['#theme_wrappers'] = array('details');
       $elements['#process'] = array(array(get_class($this), 'processMultiple'));
@@ -301,7 +309,7 @@ class FileWidget extends WidgetBase {
     $values = NestedArray::getValue($form_state['values'], $parents);
 
     array_pop($parents);
-    $current = count(element_children(NestedArray::getValue($form, $parents))) - 1;
+    $current = count(Element::children(NestedArray::getValue($form, $parents))) - 1;
 
     $field = Field::fieldInfo()->getField($element['#entity_type'], $element['#field_name']);
     $uploaded = count($values['fids']);
@@ -377,7 +385,7 @@ class FileWidget extends WidgetBase {
       );
       $field_element = NestedArray::getValue($form, $parents);
       $new_wrapper = $field_element['#id'] . '-ajax-wrapper';
-      foreach (element_children($element) as $key) {
+      foreach (Element::children($element) as $key) {
         if (isset($element[$key]['#ajax'])) {
           $element[$key]['#ajax']['path'] = $new_path;
           $element[$key]['#ajax']['options'] = $new_options;
@@ -409,7 +417,7 @@ class FileWidget extends WidgetBase {
    * method.
    */
   public static function processMultiple($element, &$form_state, $form) {
-    $element_children = element_children($element, TRUE);
+    $element_children = Element::children($element, TRUE);
     $count = count($element_children);
 
     foreach ($element_children as $delta => $key) {

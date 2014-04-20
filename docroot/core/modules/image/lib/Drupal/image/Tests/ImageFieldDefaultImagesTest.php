@@ -73,7 +73,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $default_image = $instance->getSetting('default_image');
     $this->assertEqual($default_image['fid'], $default_images['instance']->id());
 
-    // Also test \Drupal\field\Entity\FieldInstance::getSetting().
+    // Also test \Drupal\field\Entity\FieldInstanceConfig::getSetting().
     $instance_field_settings = $instance->getSettings();
     $this->assertEqual($instance_field_settings['default_image']['fid'], $default_images['instance']->id());
 
@@ -83,12 +83,12 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $default_image = $field->getSetting('default_image');
     $this->assertEqual($default_image['fid'], $default_images['field']->id());
 
-    // Also test \Drupal\field\Entity\Field::getSettings().
+    // Also test \Drupal\field\Entity\FieldConfig::getSettings().
     $field_field_settings = $field->getSettings();
     $this->assertEqual($field_field_settings['default_image']['fid'], $default_images['field']->id());
 
     // Add another instance with another default image to the page content type.
-    $instance2 = entity_create('field_instance', array(
+    $instance2 = entity_create('field_instance_config', array(
       'field_name' => $field->name,
       'entity_type' => 'node',
       'bundle' => 'page',
@@ -115,7 +115,8 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
       ->save();
 
     // Confirm the defaults are present on the article field settings form.
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance->id/field");
+    $instance_id = $instance->id();
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id/field");
     $this->assertFieldByXpath(
       '//input[@name="field[settings][default_image][fid][fids]"]',
       $default_images['field']->id(),
@@ -125,7 +126,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
       )
     );
     // Confirm the defaults are present on the article field edit form.
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance->id");
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id");
     $this->assertFieldByXpath(
       '//input[@name="instance[settings][default_image][fid][fids]"]',
       $default_images['instance']->id(),
@@ -136,7 +137,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     );
 
     // Confirm the defaults are present on the page field settings form.
-    $this->drupalGet("admin/structure/types/manage/page/fields/$instance->id/field");
+    $this->drupalGet("admin/structure/types/manage/page/fields/$instance_id/field");
     $this->assertFieldByXpath(
       '//input[@name="field[settings][default_image][fid][fids]"]',
       $default_images['field']->id(),
@@ -146,7 +147,8 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
       )
     );
     // Confirm the defaults are present on the page field edit form.
-    $this->drupalGet("admin/structure/types/manage/page/fields/$instance2->id");
+    $instance2_id = $instance2->id();
+    $this->drupalGet("admin/structure/types/manage/page/fields/$instance2_id");
     $this->assertFieldByXpath(
       '//input[@name="instance[settings][default_image][fid][fids]"]',
       $default_images['instance2']->id(),
@@ -185,7 +187,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $field->save();
 
     // Confirm that the new default is used on the article field settings form.
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance->id/field");
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id/field");
     $this->assertFieldByXpath(
       '//input[@name="field[settings][default_image][fid][fids]"]',
       $default_images['field_new']->id(),
@@ -221,7 +223,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
 
     // Confirm the new field instance default is used on the article field
     // admin form.
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance->id");
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id");
     $this->assertFieldByXpath(
       '//input[@name="instance[settings][default_image][fid][fids]"]',
       $default_images['instance_new']->id(),
@@ -259,7 +261,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $instance->save();
 
     // Confirm the article field instance default has been removed.
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance->id");
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id");
     $this->assertFieldByXpath(
       '//input[@name="instance[settings][default_image][fid][fids]"]',
       '',
@@ -287,6 +289,45 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
         array('@fid' => $default_images['instance2']->id())
       )
     );
+  }
+
+  /**
+   * Tests image field and instance having an invalid default image.
+   */
+  public  function testInvalidDefaultImage() {
+    $field = array(
+      'name' => drupal_strtolower($this->randomName()),
+      'entity_type' => 'node',
+      'type' => 'image',
+      'settings' => array(
+        'default_image' => array(
+          'fid' => 100000,
+        )
+      ),
+    );
+    $instance = array(
+      'field_name' => $field['name'],
+      'label' => $this->randomName(),
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'settings' => array(
+        'default_image' => array(
+          'fid' => 100000,
+        )
+      ),
+    );
+    $field_config = entity_create('field_config', $field);
+    $field_config->save();
+    $settings = $field_config->getSettings();
+    // The non-existent default image should not be saved.
+    $this->assertNull($settings['default_image']['fid']);
+
+    $field_instance_config = entity_create('field_instance_config', $instance);
+    $field_instance_config->save();
+    $settings = $field_instance_config->getSettings();
+    // The non-existent default image should not be saved.
+    $this->assertNull($settings['default_image']['fid']);
+
   }
 
 }

@@ -9,6 +9,8 @@ namespace Drupal\views\Plugin\views\field;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\Component\Utility\Xss;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ResultRow;
@@ -538,7 +540,6 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['style_settings'] = array(
       '#type' => 'details',
       '#title' => t('Style settings'),
-      '#collapsed' => TRUE,
       '#weight' => 99,
     );
 
@@ -687,7 +688,6 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['alter'] = array(
       '#title' => t('Rewrite results'),
       '#type' => 'details',
-      '#collapsed' => TRUE,
       '#weight' => 100,
     );
 
@@ -890,7 +890,6 @@ abstract class FieldPluginBase extends HandlerBase {
       $form['alter']['help'] = array(
         '#type' => 'details',
         '#title' => t('Replacement patterns'),
-        '#collapsed' => TRUE,
         '#value' => $output,
         '#states' => array(
           'visible' => array(
@@ -1029,7 +1028,6 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['empty_field_behavior'] = array(
       '#type' => 'details',
       '#title' => t('No results behavior'),
-      '#collapsed' => TRUE,
       '#weight' => 100,
     );
 
@@ -1252,7 +1250,7 @@ abstract class FieldPluginBase extends HandlerBase {
       if ($this->options['alter']['more_link'] && strlen($value) < $length) {
         $tokens = $this->getRenderTokens($alter);
         $more_link_text = $this->options['alter']['more_link_text'] ? $this->options['alter']['more_link_text'] : t('more');
-        $more_link_text = strtr(filter_xss_admin($more_link_text), $tokens);
+        $more_link_text = strtr(Xss::filterAdmin($more_link_text), $tokens);
         $more_link_path = $this->options['alter']['more_link_path'];
         $more_link_path = strip_tags(decode_entities(strtr($more_link_path, $tokens)));
 
@@ -1289,7 +1287,7 @@ abstract class FieldPluginBase extends HandlerBase {
    */
   protected function renderAltered($alter, $tokens) {
     // Filter this right away as our substitutions are already sanitized.
-    $value = filter_xss_admin($alter['text']);
+    $value = Xss::filterAdmin($alter['text']);
     $value = strtr($value, $tokens);
 
     return $value;
@@ -1315,7 +1313,7 @@ abstract class FieldPluginBase extends HandlerBase {
     $value = '';
 
     if (!empty($alter['prefix'])) {
-      $value .= filter_xss_admin(strtr($alter['prefix'], $tokens));
+      $value .= Xss::filterAdmin(strtr($alter['prefix'], $tokens));
     }
 
     $options = array(
@@ -1427,7 +1425,7 @@ abstract class FieldPluginBase extends HandlerBase {
     if (isset($alter['query'])) {
       // Convert the query to a string, perform token replacement, and then
       // convert back to an array form for l().
-      $options['query'] = drupal_http_build_query($alter['query']);
+      $options['query'] = UrlHelper::buildQuery($alter['query']);
       $options['query'] = strtr($options['query'], $tokens);
       $query = array();
       parse_str($options['query'], $query);
@@ -1455,7 +1453,7 @@ abstract class FieldPluginBase extends HandlerBase {
     $value .= l($text, $path, $options);
 
     if (!empty($alter['suffix'])) {
-      $value .= filter_xss_admin(strtr($alter['suffix'], $tokens));
+      $value .= Xss::filterAdmin(strtr($alter['suffix'], $tokens));
     }
 
     return $value;

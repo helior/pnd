@@ -8,8 +8,8 @@
 namespace Drupal\node;
 
 use Drupal\Core\Entity\EntityFormController;
-use Drupal\Component\Utility\MapArray;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Entity\EntityTypeInterface;
 
 /**
  * Form controller for node type forms.
@@ -32,12 +32,13 @@ class NodeTypeFormController extends EntityFormController {
 
     $node_settings = $type->getModuleSettings('node');
     // Prepare node options to be used for 'checkboxes' form element.
-    $node_settings['options'] = MapArray::copyValuesToKeys(array_keys(array_filter($node_settings['options'])));
+    $keys = array_keys(array_filter($node_settings['options']));
+    $node_settings['options'] = array_combine($keys, $keys);
     $form['name'] = array(
       '#title' => t('Name'),
       '#type' => 'textfield',
       '#default_value' => $type->name,
-      '#description' => t('The human-readable name of this content type. This text will be displayed as part of the list on the <em>Add new content</em> page. It is recommended that this name begin with a capital letter and contain only letters, numbers, and spaces. This name must be unique.'),
+      '#description' => t('The human-readable name of this content type. This text will be displayed as part of the list on the <em>Add content</em> page. It is recommended that this name begin with a capital letter and contain only letters, numbers, and spaces. This name must be unique.'),
       '#required' => TRUE,
       '#size' => 30,
     );
@@ -45,14 +46,14 @@ class NodeTypeFormController extends EntityFormController {
     $form['type'] = array(
       '#type' => 'machine_name',
       '#default_value' => $type->id(),
-      '#maxlength' => 32,
+      '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
       '#disabled' => $type->isLocked(),
       '#machine_name' => array(
         'exists' => 'node_type_load',
         'source' => array('name'),
       ),
       '#description' => t('A unique machine-readable name for this content type. It must only contain lowercase letters, numbers, and underscores. This name will be used for constructing the URL of the %node-add page, in which underscores will be converted into hyphens.', array(
-        '%node-add' => t('Add new content'),
+        '%node-add' => t('Add content'),
       )),
     );
 
@@ -60,13 +61,13 @@ class NodeTypeFormController extends EntityFormController {
       '#title' => t('Description'),
       '#type' => 'textarea',
       '#default_value' => $type->description,
-      '#description' => t('Describe this content type. The text will be displayed on the <em>Add new content</em> page.'),
+      '#description' => t('Describe this content type. The text will be displayed on the <em>Add content</em> page.'),
     );
 
     $form['additional_settings'] = array(
       '#type' => 'vertical_tabs',
       '#attached' => array(
-        'library' => array(array('node', 'drupal.content_types')),
+        'library' => array('node/drupal.content_types'),
       ),
     );
 
@@ -74,6 +75,7 @@ class NodeTypeFormController extends EntityFormController {
       '#type' => 'details',
       '#title' => t('Submission form settings'),
       '#group' => 'additional_settings',
+      '#open' => TRUE,
     );
     $form['submission']['title_label'] = array(
       '#title' => t('Title field label'),
@@ -108,7 +110,6 @@ class NodeTypeFormController extends EntityFormController {
     $form['workflow'] = array(
       '#type' => 'details',
       '#title' => t('Publishing options'),
-      '#collapsed' => TRUE,
       '#group' => 'additional_settings',
     );
     $form['workflow']['options'] = array('#type' => 'checkboxes',
@@ -127,7 +128,6 @@ class NodeTypeFormController extends EntityFormController {
       $form['language'] = array(
         '#type' => 'details',
         '#title' => t('Language settings'),
-        '#collapsed' => TRUE,
         '#group' => 'additional_settings',
       );
 
@@ -144,7 +144,6 @@ class NodeTypeFormController extends EntityFormController {
     $form['display'] = array(
       '#type' => 'details',
       '#title' => t('Display settings'),
-      '#collapsed' => TRUE,
       '#group' => 'additional_settings',
     );
     $form['display']['submitted'] = array(
@@ -202,7 +201,7 @@ class NodeTypeFormController extends EntityFormController {
     }
     elseif ($status == SAVED_NEW) {
       drupal_set_message(t('The content type %name has been added.', $t_args));
-      watchdog('node', 'Added content type %name.', $t_args, WATCHDOG_NOTICE, l(t('view'), 'admin/structure/types'));
+      watchdog('node', 'Added content type %name.', $t_args, WATCHDOG_NOTICE, l(t('View'), 'admin/structure/types'));
     }
 
     $form_state['redirect_route']['route_name'] = 'node.overview_types';

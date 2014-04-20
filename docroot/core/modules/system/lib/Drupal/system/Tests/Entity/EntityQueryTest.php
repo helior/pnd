@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Language\Language;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -63,7 +63,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     $figures = drupal_strtolower($this->randomName());
     $greetings = drupal_strtolower($this->randomName());
     foreach (array($figures => 'shape', $greetings => 'text') as $field_name => $field_type) {
-      $field = entity_create('field_entity', array(
+      $field = entity_create('field_config', array(
         'name' => $field_name,
         'entity_type' => 'entity_test_mulrev',
         'type' => $field_type,
@@ -82,7 +82,7 @@ class EntityQueryTest extends EntityUnitTestBase {
       } while ($bundles && strtolower($bundles[0]) >= strtolower($bundle));
       entity_test_create_bundle($bundle);
       foreach ($fields as $field) {
-        entity_create('field_instance', array(
+        entity_create('field_instance_config', array(
           'field_name' => $field->name,
           'entity_type' => 'entity_test_mulrev',
           'bundle' => $bundle,
@@ -235,6 +235,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     // word but allows us to test revisions and string operations.
     $ids = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'merhaba')
+      ->sort('id')
       ->execute();
     $entities = entity_load_multiple('entity_test_mulrev', $ids);
     foreach ($entities as $entity) {
@@ -249,7 +250,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     $this->assertResult();
     $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'merhaba')
-      ->age(EntityStorageControllerInterface::FIELD_LOAD_REVISION)
+      ->age(EntityStorageInterface::FIELD_LOAD_REVISION)
       ->sort('revision_id')
       ->execute();
     // Bit 2 needs to be set.
@@ -267,19 +268,21 @@ class EntityQueryTest extends EntityUnitTestBase {
     $this->assertIdentical($results, $assert);
     $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'siema', 'STARTS_WITH')
+      ->sort('revision_id')
       ->execute();
     // Now we only get the ones that originally were siema, entity id 8 and
     // above.
     $this->assertIdentical($results, array_slice($assert, 4, 8, TRUE));
     $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'a', 'ENDS_WITH')
+      ->sort('revision_id')
       ->execute();
     // It is very important that we do not get the ones which only have
     // xsiemax despite originally they were merhaba, ie. ended with a.
     $this->assertIdentical($results, array_slice($assert, 4, 8, TRUE));
     $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'a', 'ENDS_WITH')
-      ->age(EntityStorageControllerInterface::FIELD_LOAD_REVISION)
+      ->age(EntityStorageInterface::FIELD_LOAD_REVISION)
       ->sort('id')
       ->execute();
     // Now we get everything.
@@ -427,7 +430,7 @@ class EntityQueryTest extends EntityUnitTestBase {
   protected function testCount() {
     // Create a field with the same name in a different entity type.
     $field_name = $this->figures;
-    $field = entity_create('field_entity', array(
+    $field = entity_create('field_config', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'shape',
@@ -436,7 +439,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     ));
     $field->save();
     $bundle = $this->randomName();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'bundle' => $bundle,
@@ -447,7 +450,6 @@ class EntityQueryTest extends EntityUnitTestBase {
       'type' => $bundle,
     ));
     $entity->enforceIsNew();
-    $entity->setNewRevision();
     $entity->save();
 
     // As the single entity of this type we just saved does not have a value

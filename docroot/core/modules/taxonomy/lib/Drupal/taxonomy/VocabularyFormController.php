@@ -8,6 +8,7 @@
 namespace Drupal\taxonomy;
 
 use Drupal\Core\Entity\EntityFormController;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Language\Language;
 
 /**
@@ -20,7 +21,12 @@ class VocabularyFormController extends EntityFormController {
    */
   public function form(array $form, array &$form_state) {
     $vocabulary = $this->entity;
-    $form['#title'] = $this->t('Edit vocabulary');
+    if ($vocabulary->isNew()) {
+      $form['#title'] = $this->t('Add vocabulary');
+    }
+    else {
+      $form['#title'] = $this->t('Edit vocabulary');
+    }
 
     $form['name'] = array(
       '#type' => 'textfield',
@@ -32,7 +38,7 @@ class VocabularyFormController extends EntityFormController {
     $form['vid'] = array(
       '#type' => 'machine_name',
       '#default_value' => $vocabulary->id(),
-      '#maxlength' => 255,
+      '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
       '#machine_name' => array(
         'exists' => 'taxonomy_vocabulary_load',
         'source' => array('name'),
@@ -58,6 +64,7 @@ class VocabularyFormController extends EntityFormController {
       $form['default_terms_language'] = array(
         '#type' => 'details',
         '#title' => $this->t('Terms language'),
+        '#open' => TRUE,
       );
       $form['default_terms_language']['default_language'] = array(
         '#type' => 'language_configuration',
@@ -130,8 +137,7 @@ class VocabularyFormController extends EntityFormController {
     $vocabulary->name = trim($vocabulary->name);
 
     $status = $vocabulary->save();
-    $uri = $vocabulary->urlInfo();
-    $edit_link = \Drupal::l($this->t('edit'), $uri['route_name'], $uri['route_parameters'], $uri['options']);
+    $edit_link = \Drupal::linkGenerator()->generateFromUrl($this->t('Edit'), $this->entity->urlInfo());
     switch ($status) {
       case SAVED_NEW:
         drupal_set_message($this->t('Created new vocabulary %name.', array('%name' => $vocabulary->name)));

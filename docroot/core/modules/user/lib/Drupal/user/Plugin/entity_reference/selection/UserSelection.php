@@ -67,7 +67,7 @@ class UserSelection extends SelectionBase {
         '#type' => 'checkboxes',
         '#title' => t('Restrict to the selected roles'),
         '#required' => TRUE,
-        '#options' => array_diff_key(user_role_names(TRUE), drupal_map_assoc(array(DRUPAL_AUTHENTICATED_RID))),
+        '#options' => array_diff_key(user_role_names(TRUE), array(DRUPAL_AUTHENTICATED_RID => DRUPAL_AUTHENTICATED_RID)),
         '#default_value' => $selection_handler_settings['filter']['role'],
       );
     }
@@ -133,8 +133,8 @@ class UserSelection extends SelectionBase {
     }
 
     // Add the filter by role option.
-    if (!empty($this->instance['settings']['handler_settings']['filter'])) {
-      $filter_settings = $this->instance['settings']['handler_settings']['filter'];
+    if (!empty($this->fieldDefinition->getSetting('handler_settings')['filter'])) {
+      $filter_settings = $this->fieldDefinition->getSetting('handler_settings')['filter'];
       if ($filter_settings['type'] == 'role') {
         $tables = $query->getTables();
         $base_table = $tables['base_table']['alias'];

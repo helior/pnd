@@ -7,9 +7,8 @@
 
 namespace Drupal\views\Entity;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\views\Views;
 use Drupal\views_ui\ViewUI;
 use Drupal\views\ViewStorageInterface;
@@ -22,15 +21,12 @@ use Drupal\views\ViewExecutable;
  *   id = "view",
  *   label = @Translation("View"),
  *   controllers = {
- *     "storage" = "Drupal\views\ViewStorageController",
  *     "access" = "Drupal\views\ViewAccessController"
  *   },
  *   admin_permission = "administer views",
- *   config_prefix = "views.view",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "uuid" = "uuid",
  *     "status" = "status"
  *   }
  * )
@@ -96,13 +92,6 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    * @var string
    */
   protected $base_field = 'nid';
-
-  /**
-   * The UUID for this entity.
-   *
-   * @var string
-   */
-  public $uuid = NULL;
 
   /**
    * Stores a reference to the executable version of this view.
@@ -176,6 +165,7 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
     }
 
     $plugin = Views::pluginManager('display')->getDefinition($plugin_id);
+
     if (empty($plugin)) {
       $plugin['title'] = t('Broken');
     }
@@ -207,7 +197,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
       'display_plugin' => $plugin_id,
       'id' => $id,
       'display_title' => $title,
-      'position' => count($this->display),
+      'position' => $id === 'default' ? 0 : count($this->display),
+      'provider' => $plugin['provider'],
       'display_options' => array(),
     );
 
@@ -249,9 +240,9 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   }
 
   /**
-   * Overrides \Drupal\Core\Config\Entity\ConfigEntityBase::getExportProperties();
+   * {@inheritdoc}
    */
-  public function getExportProperties() {
+  public function toArray() {
     $names = array(
       'base_field',
       'base_table',
@@ -265,6 +256,7 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
       'tag',
       'uuid',
       'langcode',
+      'dependencies',
     );
     $properties = array();
     foreach ($names as $name) {
@@ -276,21 +268,51 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function calculateDependencies() {
+    parent::calculateDependencies();
 
-    // Clear cache tags for this view.
+    // Ensure that the view is dependant on the module that implements the view.
+    $this->addDependency('module', $this->module);
+    // Ensure that the view is dependant on the module that provides the schema
+    // for the base table.
+    $schema = drupal_get_schema($this->base_table);
+    if ($this->module != $schema['module']) {
+      $this->addDependency('module', $schema['module']);
+    }
+
+    $handler_types = array();
+    foreach (ViewExecutable::getHandlerTypes() as $type) {
+      $handler_types[] = $type['plural'];
+    }
+    foreach ($this->get('display') as $display) {
+      foreach ($handler_types as $handler_type) {
+        if (!empty($display['display_options'][$handler_type])) {
+          foreach ($display['display_options'][$handler_type] as $handler) {
+            if (isset($handler['provider']) && empty($handler['optional'])) {
+              $this->addDependency('module', $handler['provider']);
+            }
+          }
+        }
+      }
+    }
+    return $this->dependencies;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
+
     // @todo Remove if views implements a view_builder controller.
-    $id = $this->id();
-    Cache::deleteTags(array('view' => array($id => $id)));
     views_invalidate_cache();
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function postLoad(EntityStorageControllerInterface $storage_controller, array &$entities) {
-    parent::postLoad($storage_controller, $entities);
+  public static function postLoad(EntityStorageInterface $storage, array &$entities) {
+    parent::postLoad($storage, $entities);
     foreach ($entities as $entity) {
       $entity->mergeDefaultDisplaysOptions();
     }
@@ -299,8 +321,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
-    parent::preCreate($storage_controller, $values);
+  public static function preCreate(EntityStorageInterface $storage, array &$values) {
+    parent::preCreate($storage, $values);
 
     // If there is no information about displays available add at least the
     // default display.
@@ -320,8 +342,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function postCreate(EntityStorageControllerInterface $storage_controller) {
-    parent::postCreate($storage_controller);
+  public function postCreate(EntityStorageInterface $storage) {
+    parent::postCreate($storage);
 
     $this->mergeDefaultDisplaysOptions();
   }
@@ -329,21 +351,13 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
 
     $tempstore = \Drupal::service('user.tempstore')->get('views');
-    $tags = array();
-
     foreach ($entities as $entity) {
-      $id = $entity->id();
-      $tempstore->delete($id);
-      $tags['view'][$id] = $id;
+      $tempstore->delete($entity->id());
     }
-
-    // Clear cache tags for these views.
-    // @todo Remove if views implements a view_builder controller.
-    Cache::deleteTags($tags);
   }
 
   /**

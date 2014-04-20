@@ -7,6 +7,8 @@
 
 namespace Drupal\user\Tests\Views;
 
+use Drupal\views\Views;
+
 /**
  * Tests views user argument default plugin.
  */
@@ -35,16 +37,16 @@ class ArgumentDefaultTest extends UserTestBase {
     $this->drupalLogin($account);
     global $user;
     $admin = $user;
-    drupal_save_session(FALSE);
+    $session_manager = \Drupal::service('session_manager')->disable();
     $user = $account;
 
-    $view = views_get_view('test_plugin_argument_default_current_user');
+    $view = Views::getView('test_plugin_argument_default_current_user');
     $view->initHandlers();
 
     $this->assertEqual($view->argument['null']->getDefaultArgument(), $account->id(), 'Uid of the current user is used.');
     // Switch back.
     $user = $admin;
-    drupal_save_session(TRUE);
+    $session_manager->enable();
   }
 
 }

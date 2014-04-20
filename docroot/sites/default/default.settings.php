@@ -214,25 +214,6 @@
 $databases = array();
 
 /**
- * Salt for one-time login links and cancel links, form tokens, etc.
- *
- * This variable will be set to a random value by the installer. All one-time
- * login links will be invalidated if the value is changed. Note that if your
- * site is deployed on a cluster of web servers, you must ensure that this
- * variable has the same value on each server. If this variable is empty, a hash
- * of the serialized database credentials will be used as a fallback salt.
- *
- * For enhanced security, you may set this variable to a value using the
- * contents of a file outside your docroot that is never saved together
- * with any backups of your Drupal files and database.
- *
- * Example:
- *   $drupal_hash_salt = file_get_contents('/home/example/salt.txt');
- *
- */
-$drupal_hash_salt = '';
-
-/**
  * Location of the site configuration files.
  *
  * By default, Drupal configuration files are stored in a randomly named
@@ -263,6 +244,25 @@ $config_directories = array();
  */
 
 /**
+ * Salt for one-time login links, cancel links, form tokens, etc.
+ *
+ * This variable will be set to a random value by the installer. All one-time
+ * login links will be invalidated if the value is changed. Note that if your
+ * site is deployed on a cluster of web servers, you must ensure that this
+ * variable has the same value on each server.
+ *
+ * For enhanced security, you may set this variable to a value using the
+ * contents of a file outside your docroot that is never saved together
+ * with any backups of your Drupal files and database.
+ *
+ * Example:
+ * @code
+ *   $settings['hash_salt'] = file_get_contents('/home/example/salt.txt');
+ * @endcode
+ */
+$settings['hash_salt'] = '';
+
+/**
  * Access control for update.php script.
  *
  * If you are updating your Drupal installation using the update.php script but
@@ -289,6 +289,9 @@ $settings['update_free_access'] = FALSE;
  * - Twig templates are automatically recompiled whenever the source code
  *   changes (see twig_auto_reload below).
  *
+ * Note: changes to this setting will only take effect once the cache is
+ * cleared.
+ *
  * For more information about debugging Twig templates, see
  * http://drupal.org/node/1906392.
  *
@@ -303,6 +306,9 @@ $settings['update_free_access'] = FALSE;
  * you don't provide a value for twig_auto_reload, it will be determined based
  * on the value of twig_debug.
  *
+ * Note: changes to this setting will only take effect once the cache is
+ * cleared.
+ *
  * Not recommended in production environments (Default: NULL).
  */
 # $settings['twig_auto_reload'] = TRUE;
@@ -314,6 +320,9 @@ $settings['update_free_access'] = FALSE;
  * increase performance. Disabling the Twig cache will recompile the templates
  * from source each time they are used. In most cases the twig_auto_reload
  * setting above should be enabled rather than disabling the Twig cache.
+ *
+ * Note: changes to this setting will only take effect once the cache is
+ * cleared.
  *
  * Not recommended in production environments (Default: TRUE).
  */
@@ -590,6 +599,19 @@ ini_set('session.cookie_lifetime', 2000000);
  * with a leading dot, as per RFC 2109.
  */
 # $cookie_domain = '.example.com';
+
+/**
+ * Active configuration settings.
+ *
+ * By default, the active configuration is stored in the database in the
+ * {config} table. To install Drupal with a different active configuration
+ * storage, you need to override the setting here, in addition to overriding
+ * the config.storage.active service definition in a module or profile.
+ *
+ * The 'bootstrap_config_storage' setting needs to be a callable that returns
+ * core.services.yml.
+ */
+ # $settings['bootstrap_config_storage'] = array('Drupal\Core\Config\BootstrapConfigStorageFactory', 'getFileStorage');
 
 /**
  * Configuration overrides.
