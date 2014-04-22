@@ -1,0 +1,10 @@
+id: medium
+label: 'Default medium date'
+status: true
+uuid: 16821249-c7ec-4c25-9600-0f04bec1814b
+langcode: en
+dependencies: {  }
+locked: false
+pattern:
+  php: 'D, m/d/Y - H:i'
+  intl: 'ccc, MM/dd/yyyy - kk:mm'

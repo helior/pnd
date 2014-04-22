@@ -1,0 +1,19 @@
+id: custom_block.basic.default
+uuid: aba27a22-cd87-4dbc-b500-d65d8844507c
+targetEntityType: custom_block
+bundle: basic
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+hidden: {  }
+status: true
+dependencies:
+  entity:
+    - custom_block.type.basic
+    - field.instance.custom_block.basic.body
+  module:
+    - text

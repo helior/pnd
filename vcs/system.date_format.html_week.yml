@@ -1,0 +1,10 @@
+id: html_week
+label: 'HTML Week'
+status: true
+uuid: 3d9b5bb0-f370-469b-a94d-77e82e03b150
+langcode: en
+dependencies: {  }
+locked: true
+pattern:
+  php: Y-\WW
+  intl: 'Y-''W''WW'

@@ -1,0 +1,10 @@
+id: custom_block.full
+label: Full
+targetEntityType: custom_block
+status: false
+cache: true
+uuid: cb11cc1e-2e60-477e-9b00-c12a61d5c925
+langcode: en
+dependencies:
+  module:
+    - custom_block

@@ -1,0 +1,20 @@
+id: node.article.field_tags
+uuid: 53dca7f4-f8b8-4010-8427-390e0d37b140
+status: true
+langcode: und
+field_uuid: 34c94b89-efff-4636-8428-402bc707f1c6
+field_name: field_tags
+entity_type: node
+bundle: article
+label: Tags
+description: 'Enter a comma-separated list. For example: Amsterdam, Mexico City, "Cleveland, Ohio"'
+required: false
+default_value: {  }
+default_value_function: ''
+settings:
+  handler: default
+dependencies:
+  entity:
+    - field.field.node.field_tags
+    - node.type.article
+field_type: taxonomy_term_reference

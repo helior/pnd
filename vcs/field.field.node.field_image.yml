@@ -1,0 +1,30 @@
+id: node.field_image
+uuid: 661cf2ad-f125-4354-bc04-4ad53944f4b5
+status: true
+langcode: und
+name: field_image
+entity_type: node
+type: image
+settings:
+  uri_scheme: public
+  default_image:
+    fid: null
+    alt: ''
+    title: ''
+    width: null
+    height: null
+  target_type: file
+  display_field: 0
+  display_default: 0
+  target_bundle: null
+module: image
+locked: false
+cardinality: 1
+translatable: false
+indexes:
+  target_id:
+    - target_id
+dependencies:
+  module:
+    - image
+    - node

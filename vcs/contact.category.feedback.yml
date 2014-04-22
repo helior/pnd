@@ -1,0 +1,10 @@
+id: feedback
+label: 'Website feedback'
+recipients:
+  - ''
+reply: ''
+weight: 0
+status: true
+uuid: a33ad83d-cfa9-450b-a800-b0d9dfcbf921
+langcode: en
+dependencies: {  }

@@ -1,0 +1,34 @@
+id: user.user.user_picture
+uuid: 85906501-688e-400d-a523-3589f90ae33f
+status: true
+langcode: en
+field_uuid: 81caa79c-ba10-486b-bf00-0b37db910e34
+field_name: user_picture
+entity_type: user
+bundle: user
+label: Picture
+description: 'Your virtual face or picture.'
+required: false
+default_value: {  }
+default_value_function: ''
+settings:
+  file_extensions: 'png gif jpg jpeg'
+  file_directory: pictures
+  max_filesize: '30 KB'
+  alt_field: false
+  title_field: false
+  max_resolution: 85x85
+  min_resolution: ''
+  default_image:
+    fid: null
+    alt: ''
+    title: ''
+    width: null
+    height: null
+  alt_field_required: false
+  title_field_required: false
+  handler: default
+dependencies:
+  entity:
+    - field.field.user.user_picture
+field_type: image

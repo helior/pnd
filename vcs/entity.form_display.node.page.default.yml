@@ -1,0 +1,27 @@
+id: node.page.default
+uuid: 78df908c-0136-4fd8-bd00-aa3d377a5aca
+targetEntityType: node
+bundle: page
+mode: default
+content:
+  title:
+    type: string
+    weight: -5
+    settings:
+      size: 60
+      placeholder: ''
+  body:
+    type: text_textarea_with_summary
+    weight: -4
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+hidden: {  }
+status: true
+dependencies:
+  entity:
+    - field.instance.node.page.body
+    - node.type.page
+  module:
+    - text

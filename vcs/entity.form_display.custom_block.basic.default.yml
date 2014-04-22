@@ -1,0 +1,27 @@
+id: custom_block.basic.default
+uuid: c07c2dec-bf9c-41d5-9800-bc985617fb65
+targetEntityType: custom_block
+bundle: basic
+mode: default
+content:
+  info:
+    type: string
+    weight: -5
+    settings:
+      size: 60
+      placeholder: ''
+  body:
+    type: text_textarea_with_summary
+    weight: -4
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+hidden: {  }
+status: true
+dependencies:
+  entity:
+    - custom_block.type.basic
+    - field.instance.custom_block.basic.body
+  module:
+    - text

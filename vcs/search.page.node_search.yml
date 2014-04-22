@@ -1,0 +1,13 @@
+id: node_search
+label: Content
+status: true
+uuid: 3f3365bb-b919-48a0-a200-abd939666471
+langcode: en
+dependencies:
+  module:
+    - node
+path: node
+weight: -10
+plugin: node_search
+configuration:
+  rankings: {  }

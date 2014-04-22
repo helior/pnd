@@ -1,0 +1,18 @@
+id: comment.node__comment.default
+uuid: f5fea068-1a0a-4021-9f00-a9883df9d444
+targetEntityType: comment
+bundle: node__comment
+mode: default
+content:
+  comment_body:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+hidden: {  }
+status: true
+dependencies:
+  entity:
+    - field.instance.comment.node__comment.comment_body
+  module:
+    - text

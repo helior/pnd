@@ -1,0 +1,12 @@
+uuid: dc859c1c-9846-4e69-a800-f8465f0489f9
+name: 'Pizza N Drupal'
+mail: joe@shooflydesign.org
+slogan: ''
+page:
+  403: ''
+  404: ''
+  front: node
+admin_compact_mode: false
+weight_select_max: 100
+langcode: en
+mail_notification: ''

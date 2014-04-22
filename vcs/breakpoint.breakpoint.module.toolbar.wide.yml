@@ -1,0 +1,15 @@
+id: module.toolbar.wide
+name: wide
+label: wide
+mediaQuery: 'only screen and (min-width: 52em)'
+source: toolbar
+sourceType: module
+weight: 2
+multipliers:
+  1x: 1x
+status: true
+uuid: ef6eeb81-3c2a-4d63-8600-a86b28863ac0
+langcode: en
+dependencies:
+  module:
+    - toolbar

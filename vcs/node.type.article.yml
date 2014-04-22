@@ -1,0 +1,19 @@
+type: article
+name: Article
+description: 'Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.'
+help: ''
+has_title: true
+title_label: Title
+settings:
+  node:
+    options:
+      status: true
+      promote: true
+      sticky: false
+      revision: false
+    preview: 1
+    submitted: true
+status: true
+uuid: fdbaa9ea-2156-438e-b603-3cc143c97130
+langcode: en
+dependencies: {  }

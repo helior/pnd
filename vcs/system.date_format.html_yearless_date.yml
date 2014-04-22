@@ -1,0 +1,10 @@
+id: html_yearless_date
+label: 'HTML Yearless date'
+status: true
+uuid: 0ad414ab-56a7-4e34-9802-2aa05c00b435
+langcode: en
+dependencies: {  }
+locked: true
+pattern:
+  php: m-d
+  intl: MM-d

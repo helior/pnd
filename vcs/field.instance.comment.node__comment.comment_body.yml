@@ -1,0 +1,19 @@
+id: comment.node__comment.comment_body
+uuid: c701c69a-5993-44c0-9100-f420d13100cc
+status: true
+langcode: en
+field_uuid: 6a17ffcb-0a5b-4ade-bc00-ceda749e7891
+field_name: comment_body
+entity_type: comment
+bundle: node__comment
+label: Comment
+description: ''
+required: true
+default_value: {  }
+default_value_function: ''
+settings:
+  text_processing: '1'
+dependencies:
+  entity:
+    - field.field.comment.comment_body
+field_type: text_long

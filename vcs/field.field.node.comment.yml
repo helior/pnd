@@ -1,0 +1,18 @@
+id: node.comment
+uuid: e35fd49c-a7a0-488d-a32a-4218f3ebc966
+status: true
+langcode: en
+name: comment
+entity_type: node
+type: comment
+settings:
+  description: 'Default comment field'
+module: comment
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+dependencies:
+  module:
+    - comment
+    - node

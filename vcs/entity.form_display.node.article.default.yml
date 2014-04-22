@@ -1,0 +1,47 @@
+id: node.article.default
+uuid: 7e89d825-c31e-4975-9b48-727fbc953a57
+targetEntityType: node
+bundle: article
+mode: default
+content:
+  title:
+    type: string
+    weight: 0
+    settings:
+      size: 60
+      placeholder: ''
+  body:
+    type: text_textarea_with_summary
+    weight: 1
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+  field_tags:
+    type: taxonomy_autocomplete
+    weight: 3
+    settings: {  }
+  field_image:
+    type: image_image
+    weight: 4
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+  comment:
+    type: comment_default
+    weight: 20
+    settings: {  }
+hidden: {  }
+status: true
+dependencies:
+  entity:
+    - field.instance.node.article.body
+    - field.instance.node.article.comment
+    - field.instance.node.article.field_image
+    - field.instance.node.article.field_tags
+    - node.type.article
+  module:
+    - comment
+    - image
+    - taxonomy
+    - text
